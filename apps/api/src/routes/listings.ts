@@ -17,7 +17,7 @@ const createListingSchema = z.object({
   price: z.number().positive(),
   title: z.string().min(1).max(255),
   description: z.string().optional(),
-  marketplaceData: z.record(z.unknown()).optional(),
+  marketplaceData: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function listingsRoutes(fastify: FastifyInstance) {

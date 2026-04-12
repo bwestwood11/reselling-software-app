@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   PrismaClient,
   ListingStatus,
   MarketplaceType,
@@ -20,6 +21,14 @@ interface CreateInput {
   marketplace: MarketplaceType;
   price: number;
   title: string;
+  description?: string;
+  marketplaceData?: Record<string, unknown>;
+}
+
+interface UpdateInput {
+  marketplace?: MarketplaceType;
+  price?: number;
+  title?: string;
   description?: string;
   marketplaceData?: Record<string, unknown>;
 }
@@ -94,7 +103,7 @@ export class ListingService {
         price: input.price,
         title: input.title,
         description: input.description,
-        marketplaceData: input.marketplaceData,
+        marketplaceData: input.marketplaceData as Prisma.InputJsonValue | undefined,
         status: "DRAFT",
       },
       include: {
@@ -104,13 +113,23 @@ export class ListingService {
     });
   }
 
-  async update(id: string, userId: string, input: Partial<CreateInput>) {
+  async update(id: string, userId: string, input: UpdateInput) {
     const existing = await this.db.listing.findFirst({ where: { id, userId } });
     if (!existing) return null;
 
+    const data: Prisma.ListingUpdateInput = {
+      ...(input.marketplace !== undefined && { marketplace: input.marketplace }),
+      ...(input.price !== undefined && { price: input.price }),
+      ...(input.title !== undefined && { title: input.title }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.marketplaceData !== undefined && {
+        marketplaceData: input.marketplaceData as Prisma.InputJsonValue,
+      }),
+    };
+
     return this.db.listing.update({
       where: { id },
-      data: input,
+      data,
       include: {
         inventoryItem: true,
         marketplaceConnection: true,
