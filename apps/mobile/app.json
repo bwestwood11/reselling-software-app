@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ReList",
+    "slug": "relist",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.relist.app"
+    },
+    "android": {
+      "package": "com.relist.app"
+    },
+    "scheme": "relist",
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

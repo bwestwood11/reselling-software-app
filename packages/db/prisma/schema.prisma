@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth Core Models ─────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions               Session[]
+  accounts               Account[]
+  marketplaceConnections MarketplaceConnection[]
+  inventoryItems         InventoryItem[]
+  listings               Listing[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Marketplace Enums ────────────────────────────────────────────────────────
+
+enum MarketplaceType {
+  EBAY
+  FACEBOOK_MARKETPLACE
+  DEPOP
+  MERCARI
+  POSHMARK
+  ETSY
+}
+
+// ─── Marketplace Connections ──────────────────────────────────────────────────
+
+model MarketplaceConnection {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketplace  MarketplaceType
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  accountId    String? // external account ID
+  accountName  String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  listings Listing[]
+
+  @@unique([userId, marketplace])
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+enum InventoryStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  ARCHIVED
+}
+
+enum Condition {
+  NEW_WITH_TAGS
+  NEW_WITHOUT_TAGS
+  VERY_GOOD
+  GOOD
+  SATISFACTORY
+}
+
+model InventoryItem {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  sku         String?
+  condition   Condition       @default(GOOD)
+  status      InventoryStatus @default(DRAFT)
+  quantity    Int             @default(1)
+  costPrice   Decimal?        @db.Decimal(10, 2)
+  targetPrice Decimal?        @db.Decimal(10, 2)
+  brand       String?
+  category    String?
+  tags        String[]
+  weight      Decimal?        @db.Decimal(10, 2) // lbs
+  dimensions  Json? // { length: number, width: number, height: number }
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  images     InventoryImage[]
+  listings   Listing[]
+  attributes InventoryAttribute[]
+}
+
+model InventoryImage {
+  id        String        @id @default(cuid())
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  url       String
+  key       String // storage key (S3/R2/Cloudinary)
+  isPrimary Boolean       @default(false)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+}
+
+model InventoryAttribute {
+  id     String        @id @default(cuid())
+  itemId String
+  item   InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name   String
+  value  String
+}
+
+// ─── Listings ─────────────────────────────────────────────────────────────────
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  SOLD
+  ENDED
+  FAILED
+}
+
+model Listing {
+  id                      String                @id @default(cuid())
+  userId                  String
+  user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inventoryItemId         String
+  inventoryItem           InventoryItem         @relation(fields: [inventoryItemId], references: [id])
+  marketplaceConnectionId String
+  marketplaceConnection   MarketplaceConnection @relation(fields: [marketplaceConnectionId], references: [id])
+  marketplace             MarketplaceType
+  externalId              String? // listing ID on the marketplace
+  externalUrl             String?
+  status                  ListingStatus         @default(DRAFT)
+  price                   Decimal               @db.Decimal(10, 2)
+  title                   String
+  description             String?
+  listedAt                DateTime?
+  soldAt                  DateTime?
+  endedAt                 DateTime?
+  lastSyncAt              DateTime?
+  syncError               String?
+  marketplaceData         Json? // marketplace-specific data
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+
+  syncEvents SyncEvent[]
+}
+
+// ─── Sync Events ──────────────────────────────────────────────────────────────
+
+enum SyncEventType {
+  PUBLISH
+  UPDATE
+  DELIST
+  SOLD
+  RELIST
+  PRICE_UPDATE
+  STATUS_CHECK
+  ERROR
+}
+
+model SyncEvent {
+  id        String        @id @default(cuid())
+  listingId String
+  listing   Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  type      SyncEventType
+  status    String // success | failed | pending
+  message   String?
+  data      Json?
+  createdAt DateTime      @default(now())
+}
