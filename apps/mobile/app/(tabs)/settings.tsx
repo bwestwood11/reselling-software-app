@@ -1,5 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useState } from "react";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 const settingsItems = [
   { icon: "link", label: "Marketplace Connections", subtitle: "Connect eBay, Depop and more" },
@@ -9,8 +11,34 @@ const settingsItems = [
 ];
 
 export default function SettingsScreen() {
+  const { user, signOut } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.container}>
+      {user && (
+        <View style={styles.userCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+          </View>
+        </View>
+      )}
+
       <Text style={styles.heading}>Settings</Text>
 
       <View style={styles.section}>
@@ -35,8 +63,16 @@ export default function SettingsScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.signOut}>
-        <Text style={styles.signOutText}>Sign out</Text>
+      <TouchableOpacity
+        style={[styles.signOut, isSigningOut && styles.signOutDisabled]}
+        onPress={handleSignOut}
+        disabled={isSigningOut}
+      >
+        {isSigningOut ? (
+          <ActivityIndicator color="#dc2626" size="small" />
+        ) : (
+          <Text style={styles.signOutText}>Sign out</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -76,11 +112,36 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { fontSize: 14, fontWeight: "500", color: "#111827" },
   rowSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { fontSize: 18, fontWeight: "700", color: "#1d4ed8" },
+  userName: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  userEmail: { fontSize: 13, color: "#6b7280", marginTop: 1 },
   signOut: {
     backgroundColor: "#fee2e2",
     borderRadius: 10,
     padding: 14,
     alignItems: "center",
   },
+  signOutDisabled: { opacity: 0.6 },
   signOutText: { color: "#dc2626", fontWeight: "600" },
 });

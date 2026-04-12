@@ -22,10 +22,35 @@ export async function buildApp() {
     },
   });
 
+  const configuredOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  const allowedOrigins = new Set([
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    ...configuredOrigins,
+  ]);
+
+  const isAllowedOrigin = (origin?: string): boolean => {
+    if (!origin) return true;
+    if (allowedOrigins.has(origin)) return true;
+
+    return (
+      process.env.NODE_ENV !== "production" &&
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    );
+  };
+
   // ── Security ──────────────────────────────────────────────────────────────
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
-    origin: (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000").split(","),
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) return callback(null, true);
+
+      return callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
@@ -39,6 +64,17 @@ export async function buildApp() {
 
   // ── Better Auth handler (all /api/auth/* routes) ──────────────────────────
   app.all("/api/auth/*", async (request, reply) => {
+    const origin = request.headers.origin;
+    if (typeof origin === "string" && isAllowedOrigin(origin)) {
+      reply.header("Access-Control-Allow-Origin", origin);
+      reply.header("Access-Control-Allow-Credentials", "true");
+      reply.header("Vary", "Origin");
+    }
+
+    // Fastify may consume/parse the body before handing off to node handlers.
+    // Expose parsed body so Better Auth validation can read payloads.
+    (request.raw as unknown as { body?: unknown }).body = request.body;
+
     const nodeHandler = toNodeHandler(auth);
     return nodeHandler(request.raw, reply.raw);
   });

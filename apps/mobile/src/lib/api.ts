@@ -1,16 +1,33 @@
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getStoredToken } from "./auth";
+import { resolveApiBaseUrl } from "./config";
+
+const API_BASE = resolveApiBaseUrl();
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = await getStoredToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
+    headers,
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  const data: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message =
+      typeof data === "object" && data !== null && "error" in data
+        ? String((data as Record<string, unknown>).error)
+        : "Request failed";
+    throw new Error(message);
+  }
   return data as T;
 }
 

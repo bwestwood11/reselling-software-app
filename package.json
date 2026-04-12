@@ -4,6 +4,10 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:api": "pnpm run kill:api-port && pnpm --filter @repo/api run dev",
+    "dev:web": "pnpm run kill:api-port && turbo dev --filter=@repo/api --filter=@repo/web",
+    "dev:mobile": "pnpm run kill:api-port && turbo dev --filter=@repo/mobile --filter=@repo/api",
+    "kill:api-port": "kill-port 3001",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\" --ignore-path .gitignore",
@@ -14,8 +18,9 @@
     "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
   },
   "devDependencies": {
-    "turbo": "^2.3.3",
+    "kill-port": "^2.0.1",
     "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
     "typescript": "^5.7.3"
   },
   "engines": {
