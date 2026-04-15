@@ -58,6 +58,8 @@ export const MARKETPLACE_LABELS: Record<MarketplaceType, string> = {
   MERCARI: "Mercari",
   POSHMARK: "Poshmark",
   ETSY: "Etsy",
+  WHATNOT: "Whatnot",
+  GRAILED: "Grailed",
 };
 
 export function getMarketplaceLabel(marketplace: MarketplaceType): string {

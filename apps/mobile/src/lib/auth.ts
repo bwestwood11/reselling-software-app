@@ -1,5 +1,8 @@
 import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import { resolveApiBaseUrl } from "./config";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const API_BASE = resolveApiBaseUrl();
 const TOKEN_KEY = "relist_session_token";
@@ -32,6 +35,26 @@ type SessionData = {
   user: AuthUser;
   session: { id: string; token: string; expiresAt: string };
 };
+
+type SocialSignInResponse = {
+  redirect: boolean;
+  url?: string;
+  token?: string;
+  user?: AuthUser;
+};
+
+function getTokenFromCallbackUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.searchParams.get("token") ??
+      parsed.searchParams.get("session_token") ??
+      parsed.searchParams.get("access_token")
+    );
+  } catch {
+    return null;
+  }
+}
 
 async function authRequest<T>(
   path: string,
@@ -83,6 +106,45 @@ export async function signIn(email: string, password: string): Promise<AuthUser>
   if (token) await storeToken(token);
 
   return data.user;
+}
+
+export async function signInWithGoogle(): Promise<AuthUser> {
+  // Use a fixed deep link callback; Expo may still return exp:// URLs from createURL in dev.
+  const callbackURL = "relist://oauth-callback";
+
+  const data = await authRequest<SocialSignInResponse>("/sign-in/social", {
+    provider: "google",
+    callbackURL,
+    errorCallbackURL: callbackURL,
+    disableRedirect: true,
+  });
+
+  if (data.token) {
+    await storeToken(data.token);
+    return data.user ?? ((await getSession()) as AuthUser);
+  }
+
+  if (!data.url) {
+    throw new Error("Google sign in could not be started.");
+  }
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, callbackURL);
+
+  if (result.type !== "success") {
+    throw new Error("Google sign in was cancelled.");
+  }
+
+  const token = getTokenFromCallbackUrl(result.url);
+  if (token) {
+    await storeToken(token);
+  }
+
+  const user = await getSession();
+  if (!user) {
+    throw new Error("Google sign in finished but no session was returned.");
+  }
+
+  return user;
 }
 
 export async function signUp(

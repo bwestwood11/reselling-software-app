@@ -23,6 +23,8 @@ model User {
   marketplaceConnections MarketplaceConnection[]
   inventoryItems         InventoryItem[]
   listings               Listing[]
+  subscription           Subscription?
+  creditTransactions     CreditTransaction[]
 }
 
 model Session {
@@ -193,6 +195,54 @@ model Listing {
   updatedAt               DateTime              @updatedAt
 
   syncEvents SyncEvent[]
+}
+
+// ─── Subscriptions & Credits ──────────────────────────────────────────────────
+
+enum PlanType {
+  FREE
+  STARTER
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  plan                 PlanType           @default(STARTER)
+  status               SubscriptionStatus @default(INACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  credits              Int                @default(0)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  creditTransactions CreditTransaction[]
+}
+
+model CreditTransaction {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount         Int // positive = credits added, negative = credits used
+  description    String
+  listingId      String?
+  createdAt      DateTime     @default(now())
 }
 
 // ─── Sync Events ──────────────────────────────────────────────────────────────

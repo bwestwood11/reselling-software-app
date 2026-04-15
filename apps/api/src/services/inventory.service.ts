@@ -8,6 +8,13 @@ interface ListOptions {
   search?: string;
 }
 
+interface ImageInput {
+  url: string;
+  key: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
 interface CreateInput {
   title: string;
   description?: string;
@@ -23,6 +30,7 @@ interface CreateInput {
   dimensions?: { length: number; width: number; height: number };
   notes?: string;
   attributes?: Array<{ name: string; value: string }>;
+  images?: ImageInput[];
 }
 
 export class InventoryService {
@@ -75,19 +83,18 @@ export class InventoryService {
   }
 
   async create(userId: string, input: CreateInput) {
-    const { attributes, dimensions, ...rest } = input;
+    const { attributes, dimensions, images, ...rest } = input;
 
     return this.db.inventoryItem.create({
       data: {
         ...rest,
         userId,
         dimensions: dimensions ? JSON.stringify(dimensions) : undefined,
-        attributes: attributes
-          ? { create: attributes }
-          : undefined,
+        attributes: attributes ? { create: attributes } : undefined,
+        images: images ? { create: images } : undefined,
       },
       include: {
-        images: true,
+        images: { orderBy: { sortOrder: "asc" } },
         attributes: true,
       },
     });
@@ -99,7 +106,7 @@ export class InventoryService {
     });
     if (!existing) return null;
 
-    const { attributes, dimensions, ...rest } = input;
+    const { attributes, dimensions, images, ...rest } = input;
 
     return this.db.inventoryItem.update({
       where: { id },
@@ -107,10 +114,10 @@ export class InventoryService {
         ...rest,
         dimensions: dimensions ? JSON.stringify(dimensions) : undefined,
         ...(attributes && {
-          attributes: {
-            deleteMany: {},
-            create: attributes,
-          },
+          attributes: { deleteMany: {}, create: attributes },
+        }),
+        ...(images && {
+          images: { deleteMany: {}, create: images },
         }),
       },
       include: {

@@ -9,6 +9,7 @@ import {
 import {
   getSession,
   signIn as authSignIn,
+  signInWithGoogle as authSignInWithGoogle,
   signOut as authSignOut,
   signUp as authSignUp,
 } from "../lib/auth";
@@ -24,6 +25,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -59,8 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const authUser = await authSignInWithGoogle();
+    setUser(authUser);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, signIn, signInWithGoogle, signUp, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

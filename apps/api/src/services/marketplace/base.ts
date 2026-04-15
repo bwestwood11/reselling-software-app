@@ -6,6 +6,7 @@ export interface ListingPayload {
   marketplaceData?: unknown;
   inventoryItem?: {
     images?: Array<{ url: string; isPrimary: boolean }>;
+    attributes?: Array<{ name: string; value: string }>;
     condition?: string;
     brand?: string | null;
     category?: string | null;

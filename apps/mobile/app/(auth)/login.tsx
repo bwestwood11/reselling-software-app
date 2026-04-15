@@ -14,7 +14,7 @@ import { useAuth } from "../../src/contexts/AuthContext";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,9 +32,23 @@ export default function LoginScreen() {
 
     try {
       await signIn(email.trim(), password);
-      // AuthContext update triggers root layout redirect to (tabs)
+      router.replace("/(tabs)");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      await signInWithGoogle();
+      router.replace("/(tabs)");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google sign in failed");
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +114,14 @@ export default function LoginScreen() {
             ) : (
               <Text style={styles.buttonText}>Sign in</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
+          >
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
         </View>
 
@@ -190,6 +212,16 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+  googleButton: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  googleButtonText: { color: "#111827", fontWeight: "600", fontSize: 15 },
   footer: { textAlign: "center", color: "#6b7280", fontSize: 13 },
   link: { color: "#1d4ed8", fontWeight: "600" },
 });

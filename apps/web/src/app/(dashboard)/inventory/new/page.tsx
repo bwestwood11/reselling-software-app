@@ -1,15 +1,11 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Input,
   Label,
   Select,
@@ -18,9 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
+import { uploadApi } from "@/lib/api";
+import { Textarea } from "@/components/ui/textarea";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -43,9 +41,30 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const INITIAL_SLOTS = 3;
+const MAX_IMAGES = 10; // 3 initial + 7 more via "+"
+
+interface ImageSlot {
+  /** Local object URL for preview (revoked after upload) */
+  preview: string;
+  /** S3 public URL — undefined while uploading */
+  url?: string;
+  /** S3 object key — undefined while uploading */
+  key?: string;
+  uploading: boolean;
+  error?: string;
+}
+
 export default function NewInventoryItemPage(): import("react").JSX.Element {
   const router = useRouter();
   const createMutation = useCreateInventoryItem();
+
+  // images[i] = slot data, or undefined for an empty slot
+  const [images, setImages] = useState<(ImageSlot | undefined)[]>(
+    Array(INITIAL_SLOTS).fill(undefined)
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingSlotRef = useRef<number>(0);
 
   const {
     register,
@@ -57,140 +76,402 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     defaultValues: { condition: "GOOD", quantity: 1 },
   });
 
+  function openPicker(slotIndex: number) {
+    pendingSlotRef.current = slotIndex;
+    fileInputRef.current?.click();
+  }
+
+  async function onFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    // Find starting slot and allocate placeholders immediately so the UI shows previews
+    let slot = pendingSlotRef.current;
+    const updates = [...images];
+
+    const toUpload: Array<{ file: File; slotIndex: number }> = [];
+
+    for (const file of files) {
+      while (slot < updates.length && updates[slot] !== undefined) slot++;
+      if (slot >= MAX_IMAGES) break;
+      if (slot >= updates.length) updates.push(undefined);
+
+      const preview = URL.createObjectURL(file);
+      updates[slot] = { preview, uploading: true };
+      toUpload.push({ file, slotIndex: slot });
+      slot++;
+    }
+
+    setImages([...updates]);
+    e.target.value = "";
+
+    // Upload each file and update the slot when done
+    await Promise.all(
+      toUpload.map(async ({ file, slotIndex }) => {
+        try {
+          const { url, key } = await uploadApi.uploadImage(file);
+          setImages((prev) => {
+            const next = [...prev];
+            const existing = next[slotIndex];
+            if (existing) {
+              URL.revokeObjectURL(existing.preview);
+              next[slotIndex] = { preview: url, url, key, uploading: false };
+            }
+            return next;
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Upload failed";
+          setImages((prev) => {
+            const next = [...prev];
+            const existing = next[slotIndex];
+            if (existing) next[slotIndex] = { ...existing, uploading: false, error: message };
+            return next;
+          });
+        }
+      })
+    );
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => {
+      const next = [...prev];
+      const slot = next[index];
+      if (slot) URL.revokeObjectURL(slot.preview);
+      next[index] = undefined;
+      // trim trailing empty slots down to INITIAL_SLOTS minimum
+      while (next.length > INITIAL_SLOTS && next[next.length - 1] === undefined) {
+        next.pop();
+      }
+      return next;
+    });
+  }
+
+  function addSlot() {
+    if (images.length >= MAX_IMAGES) return;
+    setImages((prev) => [...prev, undefined]);
+  }
+
+  const uploading = images.some((s) => s?.uploading);
+
   async function onSubmit(values: FormValues) {
     const payload = {
       ...values,
       costPrice: values.costPrice === "" ? undefined : values.costPrice,
       targetPrice: values.targetPrice === "" ? undefined : values.targetPrice,
+      images: images
+        .map((slot, i) =>
+          slot?.url && slot.key
+            ? { url: slot.url, key: slot.key, isPrimary: i === 0, sortOrder: i }
+            : null
+        )
+        .filter(Boolean) as { url: string; key: string; isPrimary: boolean; sortOrder: number }[],
     };
-
     await createMutation.mutateAsync(payload);
     router.push("/inventory");
   }
 
+  const busy = isSubmitting || createMutation.isPending || uploading;
+  const filledCount = images.filter((s) => s?.url).length;
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/inventory">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back
+    <div className="min-h-screen bg-[#f6f5f3]">
+      {/* Hidden file input — allows multiple files */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={onFilesSelected}
+      />
+
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+
+        {/* ── Header ───────────────────────────────────────────────── */}
+        <div className="mb-8 flex items-center gap-4">
+          <Link
+            href="/inventory"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-colors hover:text-zinc-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Link>
-        </Button>
-        <h1 className="text-2xl font-bold text-gray-900">Add Inventory Item</h1>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Item Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input id="title" placeholder="e.g. Vintage Levi 501 Jeans Size 32x30" {...register("title")} />
-              {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="brand">Brand</Label>
-                <Input id="brand" placeholder="e.g. Levi's" {...register("brand")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input id="sku" placeholder="e.g. ITEM-001" {...register("sku")} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Condition *</Label>
-              <Select
-                defaultValue="GOOD"
-                onValueChange={(val) => setValue("condition", val as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NEW_WITH_TAGS">New with tags</SelectItem>
-                  <SelectItem value="NEW_WITHOUT_TAGS">New without tags</SelectItem>
-                  <SelectItem value="VERY_GOOD">Very good</SelectItem>
-                  <SelectItem value="GOOD">Good</SelectItem>
-                  <SelectItem value="SATISFACTORY">Satisfactory</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <textarea
-                id="description"
-                rows={4}
-                placeholder="Describe the item in detail..."
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                {...register("description")}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing & Quantity</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity *</Label>
-              <Input id="quantity" type="number" min="1" {...register("quantity")} />
-              {errors.quantity && <p className="text-sm text-destructive">{errors.quantity.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="costPrice">Cost price ($)</Label>
-              <Input id="costPrice" type="number" step="0.01" placeholder="0.00" {...register("costPrice")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="targetPrice">List price ($)</Label>
-              <Input id="targetPrice" type="number" step="0.01" placeholder="0.00" {...register("targetPrice")} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Additional Info</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input id="category" placeholder="e.g. Clothing > Jeans" {...register("category")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Internal notes</Label>
-              <textarea
-                id="notes"
-                rows={2}
-                placeholder="Notes visible only to you..."
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                {...register("notes")}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" type="button" asChild>
-            <Link href="/inventory">Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-            {(isSubmitting || createMutation.isPending) && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Save item
-          </Button>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+              Inventory
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+              Add New Item
+            </h1>
+          </div>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+
+            {/* ── Left — form fields ───────────────────────────────── */}
+            <div className="space-y-5">
+
+              {/* Item Details */}
+              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+                <SectionHeader step="01" title="Item Details" />
+                <div className="mt-5 space-y-4">
+                  <Field label="Title *" error={errors.title?.message}>
+                    <Input
+                      placeholder="e.g. Vintage Levi 501 Jeans Size 32x30"
+                      className="border-zinc-200 focus-visible:ring-orange-400"
+                      {...register("title")}
+                    />
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Brand">
+                      <Input
+                        placeholder="e.g. Levi's"
+                        className="border-zinc-200 focus-visible:ring-orange-400"
+                        {...register("brand")}
+                      />
+                    </Field>
+                    <Field label="SKU">
+                      <Input
+                        placeholder="e.g. ITEM-001"
+                        className="border-zinc-200 focus-visible:ring-orange-400"
+                        {...register("sku")}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Condition *">
+                      <Select
+                        defaultValue="GOOD"
+                        onValueChange={(val) => setValue("condition", val as any)}
+                      >
+                        <SelectTrigger className="border-zinc-200 focus:ring-orange-400">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NEW_WITH_TAGS">New with tags</SelectItem>
+                          <SelectItem value="NEW_WITHOUT_TAGS">New without tags</SelectItem>
+                          <SelectItem value="VERY_GOOD">Very good</SelectItem>
+                          <SelectItem value="GOOD">Good</SelectItem>
+                          <SelectItem value="SATISFACTORY">Satisfactory</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="Category">
+                      <Input
+                        placeholder="e.g. Clothing › Jeans"
+                        className="border-zinc-200 focus-visible:ring-orange-400"
+                        {...register("category")}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Description">
+                    <Textarea
+                      rows={4}
+                      placeholder="Describe condition, measurements, notable details…"
+                      className="resize-none border-zinc-200 focus-visible:ring-orange-400"
+                      {...register("description")}
+                    />
+                  </Field>
+                </div>
+              </section>
+
+              {/* Pricing & Quantity */}
+              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+                <SectionHeader step="02" title="Pricing & Quantity" />
+                <div className="mt-5 grid grid-cols-3 gap-4">
+                  <Field label="Quantity *" error={errors.quantity?.message}>
+                    <Input
+                      type="number"
+                      min="1"
+                      className="border-zinc-200 focus-visible:ring-orange-400"
+                      {...register("quantity")}
+                    />
+                  </Field>
+                  <Field label="Cost price">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
+                        {...register("costPrice")}
+                      />
+                    </div>
+                  </Field>
+                  <Field label="List price">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
+                        {...register("targetPrice")}
+                      />
+                    </div>
+                  </Field>
+                </div>
+              </section>
+
+              {/* Notes */}
+              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+                <SectionHeader step="03" title="Internal Notes" />
+                <div className="mt-5">
+                  <Textarea
+                    rows={3}
+                    placeholder="Storage location, purchase source, or any private notes…"
+                    className="resize-none border-zinc-200 focus-visible:ring-orange-400"
+                    {...register("notes")}
+                  />
+                </div>
+              </section>
+            </div>
+
+            {/* ── Right — images + save ────────────────────────────── */}
+            <div className="lg:sticky lg:top-6 lg:self-start">
+              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+                <SectionHeader step="04" title="Photos" />
+                <p className="mt-1 text-xs text-zinc-500">
+                  First photo is the primary listing image.{" "}
+                  {filledCount > 0 && (
+                    <span className="font-medium text-zinc-700">
+                      {filledCount} / {MAX_IMAGES} added
+                    </span>
+                  )}
+                </p>
+
+                {/* Image grid */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {images.map((slot, i) =>
+                    slot ? (
+                      /* Filled slot */
+                      <div key={i} className="group relative aspect-square">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={slot.preview}
+                          alt={`Photo ${i + 1}`}
+                          className="h-full w-full rounded-xl object-cover"
+                        />
+                        {slot.uploading && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
+                            <Loader2 className="h-5 w-5 animate-spin text-white" />
+                          </div>
+                        )}
+                        {slot.error && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60 p-1">
+                            <span className="text-center text-[10px] leading-tight text-white">{slot.error}</span>
+                          </div>
+                        )}
+                        {i === 0 && !slot.uploading && (
+                          <span className="absolute bottom-1.5 left-1.5 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow">
+                            Primary
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Empty slot */
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => openPicker(i)}
+                        className="group aspect-square rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 transition-all hover:border-orange-300 hover:bg-orange-50"
+                      >
+                        <div className="flex h-full flex-col items-center justify-center gap-1">
+                          <Camera className="h-5 w-5 text-zinc-300 transition-colors group-hover:text-orange-400" />
+                          {i === 0 && (
+                            <span className="text-[10px] font-medium text-zinc-400 group-hover:text-orange-500">
+                              Add photo
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  )}
+
+                  {/* "+" add slot button */}
+                  {images.length < MAX_IMAGES && (
+                    <button
+                      type="button"
+                      onClick={addSlot}
+                      className="group aspect-square rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 transition-all hover:border-orange-300 hover:bg-orange-50"
+                    >
+                      <div className="flex h-full items-center justify-center">
+                        <Plus className="h-5 w-5 text-zinc-300 transition-colors group-hover:text-orange-400" />
+                      </div>
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
+                  Click any slot to pick from your device. You can select multiple files at once.
+                </p>
+              </section>
+
+              {/* Action buttons */}
+              <div className="mt-4 space-y-2">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
+                >
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {uploading ? "Uploading photos…" : "Save item"}
+                </button>
+                <Link
+                  href="/inventory"
+                  className="flex w-full items-center justify-center rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50"
+                >
+                  Cancel
+                </Link>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
+function SectionHeader({ step, title }: { step: string; title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-[10px] font-bold text-white">
+        {step}
+      </span>
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        {label}
+      </Label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}

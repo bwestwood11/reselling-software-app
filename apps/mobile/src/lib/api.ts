@@ -41,4 +41,5 @@ export const api = {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
     return request<any>(`/api/listings${qs}`);
   },
+  getSubscription: () => request<any>("/api/subscriptions/current"),
 };

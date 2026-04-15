@@ -19,7 +19,8 @@ async function request<T>(
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      // Only send Content-Type when there is a body to avoid Fastify's FST_ERR_CTP_EMPTY_JSON_BODY
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
       ...options?.headers,
     },
   });
@@ -96,6 +97,11 @@ export const marketplacesApi = {
     request<any>(`/api/marketplaces/connections/${id}`, { method: "DELETE" }),
   getAuthUrl: (marketplace: string) =>
     request<any>(`/api/marketplaces/oauth/${marketplace}/authorize`),
+  getEbayPolicies: () => request<any>("/api/marketplaces/ebay/policies"),
+  getEbayCategorySuggestions: (q: string) =>
+    request<any>(`/api/marketplaces/ebay/category-suggestions?q=${encodeURIComponent(q)}`),
+  getEbayCategoryAspects: (categoryId: string) =>
+    request<any>(`/api/marketplaces/ebay/category-aspects?categoryId=${encodeURIComponent(categoryId)}`),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -114,6 +120,42 @@ export const syncApi = {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
     return request<any>(`/api/sync/events${qs}`);
   },
+};
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+
+export const uploadApi = {
+  uploadImage: async (file: File): Promise<{ url: string; key: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_BASE}/api/upload`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new ApiError(res.status, data.error ?? "Upload failed", data);
+    }
+
+    return (data as { data: { url: string; key: string } }).data;
+  },
+};
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+export const subscriptionApi = {
+  getCurrent: () => request<any>("/api/subscriptions/current"),
+  createCheckout: (plan: string) =>
+    request<any>("/api/subscriptions/checkout", {
+      method: "POST",
+      body: JSON.stringify({ plan }),
+    }),
+  createPortal: () =>
+    request<any>("/api/subscriptions/portal", { method: "POST" }),
 };
 
 export { ApiError };

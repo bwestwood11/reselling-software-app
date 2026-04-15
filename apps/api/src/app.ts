@@ -9,6 +9,9 @@ import { listingsRoutes } from "./routes/listings";
 import { marketplacesRoutes } from "./routes/marketplaces";
 import { dashboardRoutes } from "./routes/dashboard";
 import { syncRoutes } from "./routes/sync";
+import { uploadRoutes } from "./routes/upload";
+import { subscriptionRoutes } from "./routes/subscriptions";
+import { webhookRoutes } from "./routes/webhooks";
 import { prismaPlugin } from "./plugins/prisma";
 
 export async function buildApp() {
@@ -61,6 +64,7 @@ export async function buildApp() {
 
   // ── Plugins ───────────────────────────────────────────────────────────────
   await app.register(prismaPlugin);
+  await app.register(await import("@fastify/multipart").then((m) => m.default));
 
   // ── Better Auth handler (all /api/auth/* routes) ──────────────────────────
   app.all("/api/auth/*", async (request, reply) => {
@@ -85,6 +89,11 @@ export async function buildApp() {
   await app.register(listingsRoutes, { prefix: "/api/listings" });
   await app.register(marketplacesRoutes, { prefix: "/api/marketplaces" });
   await app.register(syncRoutes, { prefix: "/api/sync" });
+  await app.register(uploadRoutes, { prefix: "/api/upload" });
+  await app.register(subscriptionRoutes, { prefix: "/api/subscriptions" });
+  // Webhook must be registered AFTER other routes so its content-type parser
+  // override is scoped only to the webhook plugin.
+  await app.register(webhookRoutes, { prefix: "/api/webhooks" });
 
   // ── Health check ─────────────────────────────────────────────────────────
   app.get("/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));

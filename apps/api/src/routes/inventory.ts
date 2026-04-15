@@ -3,6 +3,13 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { InventoryService } from "../services/inventory.service";
 
+const imageSchema = z.object({
+  url: z.string().min(1),
+  key: z.string().min(1),
+  isPrimary: z.boolean().default(false),
+  sortOrder: z.number().int().default(0),
+});
+
 const createItemSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().optional(),
@@ -32,6 +39,7 @@ const createItemSchema = z.object({
   attributes: z
     .array(z.object({ name: z.string(), value: z.string() }))
     .optional(),
+  images: z.array(imageSchema).optional(),
 });
 
 export async function inventoryRoutes(fastify: FastifyInstance) {

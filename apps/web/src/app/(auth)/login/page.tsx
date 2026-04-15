@@ -42,6 +42,23 @@ export default function LoginPage(): import("react").JSX.Element {
     router.push("/dashboard");
   }
 
+  async function onGoogleSignIn() {
+    setError(null);
+
+    const webOrigin =
+      typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+
+    const result = await signIn.social({
+      provider: "google",
+      callbackURL: `${webOrigin}/dashboard`,
+      errorCallbackURL: `${webOrigin}/login`,
+    });
+
+    if (result.error) {
+      setError(result.error.message ?? "Google sign in failed");
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
@@ -97,6 +114,16 @@ export default function LoginPage(): import("react").JSX.Element {
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={onGoogleSignIn}
+                disabled={isSubmitting}
+              >
+                Continue with Google
               </Button>
             </form>
 

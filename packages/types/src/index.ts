@@ -6,7 +6,9 @@ export type MarketplaceType =
   | "DEPOP"
   | "MERCARI"
   | "POSHMARK"
-  | "ETSY";
+  | "ETSY"
+  | "WHATNOT"
+  | "GRAILED";
 
 export type InventoryStatus = "DRAFT" | "ACTIVE" | "SOLD" | "ARCHIVED";
 
@@ -148,4 +150,24 @@ export interface AuthUser {
   name: string;
   email: string;
   image?: string | null;
+}
+
+// ─── Subscription & Credits Types ─────────────────────────────────────────────
+
+export type PlanType = "FREE" | "STARTER" | "PRO" | "PREMIUM";
+
+export type SubscriptionStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "PAST_DUE"
+  | "CANCELLED"
+  | "TRIALING";
+
+export interface SubscriptionInfo {
+  plan: PlanType | null;
+  status: SubscriptionStatus;
+  credits: number;
+  monthlyCredits: number;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
 }

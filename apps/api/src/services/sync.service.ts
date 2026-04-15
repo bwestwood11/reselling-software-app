@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@repo/db";
 import { MarketplaceFactory } from "./marketplace/factory";
+import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 
 export class SyncService {
   constructor(private db: PrismaClient) {}
@@ -31,10 +32,11 @@ export class SyncService {
     }
 
     try {
-      const adapter = MarketplaceFactory.create(
-        listing.marketplace,
+      const connection = await refreshConnectionIfNeeded(
+        this.db,
         listing.marketplaceConnection
       );
+      const adapter = MarketplaceFactory.create(listing.marketplace, connection);
 
       const status = await adapter.checkStatus(listing.externalId);
 

@@ -6,6 +6,8 @@ import type {
 } from "@repo/db";
 import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
+import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
+import { SubscriptionService } from "./subscription.service";
 
 interface ListOptions {
   page: number;
@@ -34,7 +36,11 @@ interface UpdateInput {
 }
 
 export class ListingService {
-  constructor(private db: PrismaClient) {}
+  private subscriptionSvc: SubscriptionService;
+
+  constructor(private db: PrismaClient) {
+    this.subscriptionSvc = new SubscriptionService(db);
+  }
 
   async list(userId: string, opts: ListOptions) {
     const { skip, take, page, limit } = getPaginationParams(opts.page, opts.limit);
@@ -145,12 +151,19 @@ export class ListingService {
     const listing = await this.db.listing.findFirst({
       where: { id, userId },
       include: {
-        inventoryItem: { include: { images: true } },
+        inventoryItem: { include: { images: true, attributes: true } },
         marketplaceConnection: true,
       },
     });
 
     if (!listing) throw new Error("Listing not found");
+
+    // Deduct 1 credit (throws if user has no active subscription or no credits)
+    await this.subscriptionSvc.deductCredit(
+      userId,
+      id,
+      listing.marketplace as string
+    );
 
     // Create a sync event
     await this.db.syncEvent.create({
@@ -163,10 +176,11 @@ export class ListingService {
     });
 
     try {
-      const adapter = MarketplaceFactory.create(
-        listing.marketplace,
+      const connection = await refreshConnectionIfNeeded(
+        this.db,
         listing.marketplaceConnection
       );
+      const adapter = MarketplaceFactory.create(listing.marketplace, connection);
       const externalId = await adapter.publish(listing);
 
       const updated = await this.db.listing.update({
@@ -187,6 +201,13 @@ export class ListingService {
 
       return updated;
     } catch (err) {
+      // Refund the credit since the publish failed
+      await this.subscriptionSvc.refundCredit(
+        userId,
+        id,
+        listing.marketplace as string
+      );
+
       const message = err instanceof Error ? err.message : "Unknown error";
       await this.db.listing.update({
         where: { id },
@@ -208,10 +229,11 @@ export class ListingService {
     if (!listing) throw new Error("Listing not found");
 
     if (listing.externalId) {
-      const adapter = MarketplaceFactory.create(
-        listing.marketplace,
+      const connection = await refreshConnectionIfNeeded(
+        this.db,
         listing.marketplaceConnection
       );
+      const adapter = MarketplaceFactory.create(listing.marketplace, connection);
       await adapter.delist(listing.externalId);
     }
 
