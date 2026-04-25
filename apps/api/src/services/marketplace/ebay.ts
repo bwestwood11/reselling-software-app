@@ -24,7 +24,7 @@ function escapeXmlStatic(str: string): string {
 
 const TRADING_API_URL = "https://api.ebay.com/ws/api.dll";
 const TRADING_API_URL_SANDBOX = "https://api.sandbox.ebay.com/ws/api.dll";
-const TRADING_API_VERSION = "967";
+const TRADING_API_VERSION = "1227";
 
 export class EbayAdapter extends BaseMarketplaceAdapter {
   private get tradingUrl() {
@@ -35,19 +35,68 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
 
   /** Build HTTP headers for the Trading API (XML-based). */
   private tradingHeaders(callName: string): Record<string, string> {
-    return {
+    // EBAY_AUTH_TOKEN env var overrides the DB-stored OAuth token (useful for sandbox
+    // testing with a Token Generator token that won't expire between test runs).
+    const iafToken = process.env["EBAY_AUTH_TOKEN"] ?? this.connection.accessToken;
+    const headers: Record<string, string> = {
       "X-EBAY-API-CALL-NAME": callName,
       "X-EBAY-API-SITEID": "0",
       "X-EBAY-API-COMPATIBILITY-LEVEL": TRADING_API_VERSION,
-      "X-EBAY-API-IAF-TOKEN": this.connection.accessToken,
+      "X-EBAY-API-IAF-TOKEN": iafToken,
       "Content-Type": "text/xml",
     };
+    // App credentials — required by the Trading API to identify the application
+    if (process.env["EBAY_CLIENT_ID"]) headers["X-EBAY-API-APP-NAME"] = process.env["EBAY_CLIENT_ID"];
+    if (process.env["EBAY_CLIENT_SECRET"]) headers["X-EBAY-API-CERT-NAME"] = process.env["EBAY_CLIENT_SECRET"];
+    if (process.env["EBAY_DEV_ID"]) headers["X-EBAY-API-DEV-NAME"] = process.env["EBAY_DEV_ID"];
+    return headers;
   }
 
   /** Parse the XML response from the Trading API. Returns the text content of a tag. */
   private xmlValue(xml: string, tag: string): string | undefined {
     const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i").exec(xml);
     return match?.[1]?.trim();
+  }
+
+  /**
+   * Calls GetUser to verify the token is valid and the account is a registered seller.
+   * Throws a descriptive error if the token is invalid or the account has no seller standing.
+   */
+  private async assertSellerAccount(): Promise<void> {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<GetUserRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ErrorLanguage>en_US</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+</GetUserRequest>`;
+
+    const res = await fetch(this.tradingUrl, {
+      method: "POST",
+      headers: this.tradingHeaders("GetUser"),
+      body: xml,
+    });
+
+    const text = await res.text();
+    const ack = this.xmlValue(text, "Ack");
+    console.log("[eBay GetUser] http=%d ack=%s raw=%s", res.status, ack ?? "?", text.slice(0, 1000));
+
+    if (ack === "Failure" || !res.ok) {
+      const errors = this.parseXmlErrors(text);
+      throw new Error(`eBay token/account check failed: ${errors.join(" | ") || text.slice(0, 300)}`);
+    }
+
+    const userId = this.xmlValue(text, "UserID");
+    const sellerLevel = this.xmlValue(text, "SellerLevel");
+    const registrationStatus = this.xmlValue(text, "Status");
+    console.log("[eBay GetUser] userId=%s sellerLevel=%s registrationStatus=%s", userId, sellerLevel ?? "(none)", registrationStatus ?? "(none)");
+
+    // SellerInfo block is only present for registered sellers — its absence means the
+    // account has never completed seller registration on this environment.
+    if (!text.includes("<SellerInfo>")) {
+      throw new Error(
+        `eBay account "${userId}" is not registered as a seller on this environment (${process.env.EBAY_SANDBOX === "true" ? "sandbox" : "production"}). ` +
+        `Complete seller registration at ${process.env.EBAY_SANDBOX === "true" ? "https://sandbox.ebay.com" : "https://ebay.com"} before publishing.`
+      );
+    }
   }
 
   /** Extract all error/warning messages from a Trading API XML response. */
@@ -60,9 +109,12 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       const severity = this.xmlValue(block, "SeverityCode") ?? "";
       const longMsg = this.xmlValue(block, "LongMessage");
       const shortMsg = this.xmlValue(block, "ShortMessage");
+      const errorCode = this.xmlValue(block, "ErrorCode") ?? "?";
+      const classification = this.xmlValue(block, "ErrorClassification") ?? "";
       const msg = longMsg ?? shortMsg ?? "Unknown error";
-      // Only collect errors, not informational warnings
-      if (severity === "Error" || !severity) messages.push(msg);
+      if (severity !== "Warning") {
+        messages.push(`[${errorCode}${classification ? "/" + classification : ""}] ${msg}`);
+      }
     }
     return messages;
   }
@@ -77,23 +129,36 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       .replace(/'/g, "&apos;");
   }
 
-  /** Map our condition enum to eBay Trading API ConditionID.
-   *  Uses only universally valid IDs: 1000 (New w/ tags), 1500 (New w/o tags), 3000 (Pre-owned).
-   *  Category-specific IDs like 4000/5000/6000 are only valid in select categories (electronics, etc.)
-   *  and cause errors on clothing/fashion categories.
-   */
+  /** Map our condition enum to eBay Trading API ConditionID using the full condition grading scale. */
   private mapConditionId(condition?: string): number {
     const map: Record<string, number> = {
-      NEW_WITH_TAGS: 1000,    // New with tags
+      NEW_WITH_TAGS: 1000,    // New
       NEW_WITHOUT_TAGS: 1500, // New without tags / New other
-      VERY_GOOD: 3000,        // Pre-owned (eBay's most compatible used condition)
-      GOOD: 3000,             // Pre-owned
-      SATISFACTORY: 3000,     // Pre-owned
+      VERY_GOOD: 4000,        // Very Good
+      GOOD: 5000,             // Good
+      SATISFACTORY: 6000,     // Acceptable
     };
-    return map[condition ?? "GOOD"] ?? 3000;
+    return map[condition ?? "GOOD"] ?? 5000;
+  }
+
+  /** Return a standardized eBay condition descriptor for the given condition. */
+  private mapConditionDescription(condition?: string): string {
+    const map: Record<string, string> = {
+      NEW_WITH_TAGS: "",
+      NEW_WITHOUT_TAGS: "New item without original tags. Never used or worn.",
+      VERY_GOOD: "Gently used with minor cosmetic imperfections. No functional defects.",
+      GOOD: "Used item in good condition. Shows normal signs of use. Fully functional.",
+      SATISFACTORY: "Shows significant signs of use and wear. Fully functional but may have noticeable cosmetic defects.",
+    };
+    return map[condition ?? "GOOD"] ?? "";
   }
 
   async publish(listing: ListingPayload): Promise<string> {
+    try {
+
+    // Verify token validity and seller registration before building/sending the listing.
+    await this.assertSellerAccount();
+
     const price =
       typeof listing.price === "object"
         ? parseFloat((listing.price as any).toString())
@@ -129,7 +194,19 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       throw new Error("eBay requires a return policy. Select one from your eBay business policies.");
     }
 
-    const conditionId = this.mapConditionId(listing.inventoryItem?.condition);
+    console.log(
+      "[eBay Policies] fulfillmentPolicyId=%s paymentPolicyId=%s returnPolicyId=%s",
+      listingPolicies.fulfillmentPolicyId,
+      listingPolicies.paymentPolicyId,
+      listingPolicies.returnPolicyId,
+    );
+
+    // Allow marketplaceData.conditionId to override the auto-mapped value.
+    // Required for categories that use eBay's Condition Grading system (coins, trading cards, etc.)
+    // which reject the generic 1000/1500/3000 IDs.
+    const conditionId = md?.conditionId != null
+      ? Number(md.conditionId)
+      : this.mapConditionId(listing.inventoryItem?.condition);
     const isUsed = conditionId >= 3000;
     const conditionDescription = listing.description?.trim() || listing.title;
     const postalCode = md?.postalCode as string | undefined;
@@ -153,38 +230,11 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       .map((url) => `    <PictureURL>${this.escapeXml(url)}</PictureURL>`)
       .join("\n");
 
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-<AddItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials>
-    <eBayAuthToken>${this.escapeXml(this.connection.accessToken)}</eBayAuthToken>
-  </RequesterCredentials>
-  <ErrorLanguage>en_US</ErrorLanguage>
-  <WarningLevel>High</WarningLevel>
-  <Item>
-    <Title>${this.escapeXml(listing.title.slice(0, 80))}</Title>
-    <Description><![CDATA[${listing.description ?? listing.title}]]></Description>
-    <PrimaryCategory>
-      <CategoryID>${this.escapeXml(categoryId)}</CategoryID>
-    </PrimaryCategory>
-    <StartPrice>${price.toFixed(2)}</StartPrice>
-    <CategoryMappingAllowed>true</CategoryMappingAllowed>
-    <ConditionID>${conditionId}</ConditionID>
-    ${isUsed ? `<ConditionDescription>${this.escapeXml(conditionDescription.slice(0, 1000))}</ConditionDescription>` : ""}
-    <Country>US</Country>
-    <Currency>USD</Currency>
-    <DispatchTimeMax>3</DispatchTimeMax>
-    <Location>${this.escapeXml(location)}</Location>
-    <ListingDuration>GTC</ListingDuration>
-    <ListingType>FixedPriceItem</ListingType>
-    <PictureDetails>
-${pictureXml}
-    </PictureDetails>
-    ${postalCode ? `<PostalCode>${this.escapeXml(postalCode)}</PostalCode>` : ""}
-    <Quantity>1</Quantity>
-    <ShipToLocations>US</ShipToLocations>
-    <Site>US</Site>
-${itemSpecificsXml}
-    <SellerProfiles>
+    const isSandbox = process.env.EBAY_SANDBOX === "true";
+
+    // The account is opted into eBay business policies, so inline shipping/return fields
+    // are rejected — SellerProfiles with policy IDs must be used in both sandbox and production.
+    const policiesXml = `    <SellerProfiles>
       <SellerShippingProfile>
         <ShippingProfileID>${this.escapeXml(listingPolicies.fulfillmentPolicyId)}</ShippingProfileID>
       </SellerShippingProfile>
@@ -194,23 +244,107 @@ ${itemSpecificsXml}
       <SellerPaymentProfile>
         <PaymentProfileID>${this.escapeXml(listingPolicies.paymentPolicyId)}</PaymentProfileID>
       </SellerPaymentProfile>
-    </SellerProfiles>
+    </SellerProfiles>`;
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<AddItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ErrorLanguage>en_US</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+  <Item>
+    <Title>${this.escapeXml(listing.title.slice(0, 80))}</Title>
+    <Description><![CDATA[${listing.description ?? listing.title}]]></Description>
+    <PrimaryCategory>
+      <CategoryID>${this.escapeXml(categoryId)}</CategoryID>
+    </PrimaryCategory>
+    <StartPrice currencyID="USD">${price.toFixed(2)}</StartPrice>
+    <CategoryMappingAllowed>true</CategoryMappingAllowed>
+    <ConditionID>${conditionId}</ConditionID>
+    ${isUsed && conditionDescription ? `<ConditionDescription>${this.escapeXml(conditionDescription.slice(0, 1000))}</ConditionDescription>` : ""}
+    <Country>US</Country>
+    <Currency>USD</Currency>
+    <Location>${this.escapeXml(location)}</Location>
+    <ListingDuration>GTC</ListingDuration>
+    <ListingType>FixedPriceItem</ListingType>
+    <PictureDetails>
+${pictureXml}
+    </PictureDetails>
+    ${postalCode ? `<PostalCode>${this.escapeXml(postalCode)}</PostalCode>` : ""}
+    <Quantity>1</Quantity>
+    <Site>US</Site>
+${itemSpecificsXml}
+${policiesXml}
   </Item>
 </AddItemRequest>`;
 
+    const headers = this.tradingHeaders("AddItem");
+    console.log("[eBay AddItem XML]\n%s", xml);
+    console.log("[eBay AddItem] sandbox=%s url=%s token_prefix=%s app=%s dev=%s cert=%s",
+      process.env["EBAY_SANDBOX"],
+      this.tradingUrl,
+      process.env["EBAY_SANDBOX"] === "true" ? this.connection.accessToken.slice(0, 20) + "..." : "(redacted)",
+      headers["X-EBAY-API-APP-NAME"] ?? "(missing)",
+      headers["X-EBAY-API-DEV-NAME"] ?? "(missing)",
+      headers["X-EBAY-API-CERT-NAME"] ? "(set)" : "(missing)",
+    );
+
+    // eBay sandbox has known issues with VerifyAddItem returning spurious 10007 errors
+    // even for valid payloads. Skip it in sandbox to unblock testing; keep it in production.
+    if (!isSandbox) {
+      const verifyXml = xml
+        .replace("<AddItemRequest", "<VerifyAddItemRequest")
+        .replace("</AddItemRequest>", "</VerifyAddItemRequest>");
+      const verifyRes = await fetch(this.tradingUrl, {
+        method: "POST",
+        headers: this.tradingHeaders("VerifyAddItem"),
+        body: verifyXml,
+      });
+      const verifyText = await verifyRes.text();
+      const verifyRlogId =
+        verifyRes.headers.get("rlogid") ??
+        verifyRes.headers.get("X-EBAY-REQUEST-ID") ??
+        this.xmlValue(verifyText, "CorrelationID") ??
+        "(not returned)";
+      console.log("[eBay VerifyAddItem] http=%d ack=%s rlogId=%s raw=%s",
+        verifyRes.status,
+        this.xmlValue(verifyText, "Ack") ?? "?",
+        verifyRlogId,
+        verifyText.slice(0, 5000),
+      );
+      const verifyAck = this.xmlValue(verifyText, "Ack");
+      if (verifyAck === "Failure" || verifyAck === "PartialFailure" || !verifyRes.ok) {
+        const errors = this.parseXmlErrors(verifyText);
+        throw new Error(
+          `eBay VerifyAddItem failed (rlogId: ${verifyRlogId}): ${errors.length > 0 ? errors.join(" | ") : verifyText.slice(0, 500)}`
+        );
+      }
+    } else {
+      console.log("[eBay VerifyAddItem] skipped in sandbox mode");
+    }
+
     const res = await fetch(this.tradingUrl, {
       method: "POST",
-      headers: this.tradingHeaders("AddItem"),
+      headers,
       body: xml,
     });
 
     const responseText = await res.text();
+    const rlogId =
+      res.headers.get("rlogid") ??
+      res.headers.get("X-EBAY-REQUEST-ID") ??
+      this.xmlValue(responseText, "CorrelationID") ??
+      "(not returned)";
+    console.log("[eBay AddItem] http=%d ack=%s rlogId=%s raw=%s",
+      res.status,
+      this.xmlValue(responseText, "Ack") ?? "?",
+      rlogId,
+      responseText.slice(0, 2000),
+    );
 
     const ack = this.xmlValue(responseText, "Ack");
     if (ack === "Failure" || ack === "PartialFailure" || !res.ok) {
       const errors = this.parseXmlErrors(responseText);
       throw new Error(
-        `eBay AddItem failed: ${errors.length > 0 ? errors.join(" | ") : responseText.slice(0, 500)}`
+        `eBay AddItem failed (rlogId: ${rlogId}): ${errors.length > 0 ? errors.join(" | ") : responseText.slice(0, 500)}`
       );
     }
 
@@ -220,6 +354,10 @@ ${itemSpecificsXml}
     }
 
     return itemId;
+    } catch (error) {
+      console.error("[eBay Publish] Error publishing listing to eBay:", error);
+      throw error;  
+    }
   }
 
   async update(externalId: string, listing: ListingPayload): Promise<void> {
@@ -230,12 +368,9 @@ ${itemSpecificsXml}
 
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ReviseItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials>
-    <eBayAuthToken>${this.escapeXml(this.connection.accessToken)}</eBayAuthToken>
-  </RequesterCredentials>
   <Item>
     <ItemID>${this.escapeXml(externalId)}</ItemID>
-    <StartPrice>${price.toFixed(2)}</StartPrice>
+    <StartPrice currencyID="USD">${price.toFixed(2)}</StartPrice>
     ${listing.title ? `<Title>${this.escapeXml(listing.title.slice(0, 80))}</Title>` : ""}
     ${listing.description ? `<Description><![CDATA[${listing.description}]]></Description>` : ""}
   </Item>
@@ -258,9 +393,6 @@ ${itemSpecificsXml}
   async delist(externalId: string): Promise<void> {
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <EndItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials>
-    <eBayAuthToken>${this.escapeXml(this.connection.accessToken)}</eBayAuthToken>
-  </RequesterCredentials>
   <ItemID>${this.escapeXml(externalId)}</ItemID>
   <EndingReason>NotAvailable</EndingReason>
 </EndItemRequest>`;
@@ -284,9 +416,6 @@ ${itemSpecificsXml}
   ): Promise<{ status: "active" | "sold" | "ended" | "unknown"; soldPrice?: number }> {
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials>
-    <eBayAuthToken>${this.escapeXml(this.connection.accessToken)}</eBayAuthToken>
-  </RequesterCredentials>
   <ItemID>${this.escapeXml(externalId)}</ItemID>
   <DetailLevel>ReturnAll</DetailLevel>
 </GetItemRequest>`;

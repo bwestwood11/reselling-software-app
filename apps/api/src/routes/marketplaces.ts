@@ -7,6 +7,11 @@ import { refreshConnectionIfNeeded } from "../services/marketplace/token-refresh
 
 const isSandbox = () => process.env.EBAY_SANDBOX === "true";
 
+/** Returns the effective eBay user token — env override takes priority over the DB-stored OAuth token. */
+function effectiveEbayToken(connectionAccessToken: string): string {
+  return process.env["EBAY_AUTH_TOKEN"] ?? connectionAccessToken;
+}
+
 const EBAY_AUTH_BASE = () =>
   isSandbox()
     ? "https://auth.sandbox.ebay.com/oauth2/authorize"
@@ -144,7 +149,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           : "https://api.ebay.com";
 
       const headers: Record<string, string> = {
-        Authorization: `Bearer ${freshConnection.accessToken}`,
+        Authorization: `Bearer ${effectiveEbayToken(freshConnection.accessToken)}`,
         "Content-Type": "application/json",
       };
 
@@ -344,7 +349,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           : "https://api.ebay.com";
 
       const headers = {
-        Authorization: `Bearer ${freshConnection.accessToken}`,
+        Authorization: `Bearer ${effectiveEbayToken(freshConnection.accessToken)}`,
         "Content-Type": "application/json",
       };
 
@@ -489,31 +494,36 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         aspects?: Array<{
           localizedAspectName: string;
           aspectValues?: Array<{ localizedValue: string }>;
-          aspectMetadata?: {
-            aspectConstraint?: {
-              aspectUsage?: string; // "REQUIRED" | "RECOMMENDED" | "OPTIONAL"
-              aspectRequired?: boolean;
-            };
+          aspectConstraint?: {
+            aspectUsage?: string; // "REQUIRED" | "RECOMMENDED" | "OPTIONAL"
+            aspectRequired?: boolean;
           };
         }>;
       };
 
       const allAspects = body.aspects ?? [];
 
-      // Sort: REQUIRED first, then RECOMMENDED, then the rest. Cap at 30 total.
+// Sort: required first, then RECOMMENDED, then OPTIONAL. Cap at 30 total.
       const usageOrder: Record<string, number> = { REQUIRED: 0, RECOMMENDED: 1, OPTIONAL: 2 };
       const aspects = allAspects
         .sort((a, b) => {
-          const au = a.aspectMetadata?.aspectConstraint?.aspectUsage ?? "OPTIONAL";
-          const bu = b.aspectMetadata?.aspectConstraint?.aspectUsage ?? "OPTIONAL";
-          return (usageOrder[au] ?? 2) - (usageOrder[bu] ?? 2);
+          const ac = a.aspectConstraint;
+          const bc = b.aspectConstraint;
+          const aReq = ac?.aspectRequired === true || ac?.aspectUsage === "REQUIRED" ? 0
+            : ac?.aspectUsage === "RECOMMENDED" ? 1 : 2;
+          const bReq = bc?.aspectRequired === true || bc?.aspectUsage === "REQUIRED" ? 0
+            : bc?.aspectUsage === "RECOMMENDED" ? 1 : 2;
+          return aReq - bReq;
         })
         .slice(0, 30)
-        .map((a) => ({
-          name: a.localizedAspectName,
-          required: a.aspectMetadata?.aspectConstraint?.aspectUsage === "REQUIRED",
-          suggestedValues: (a.aspectValues ?? []).slice(0, 30).map((v) => v.localizedValue),
-        }));
+        .map((a) => {
+          const c = a.aspectConstraint;
+          return {
+            name: a.localizedAspectName,
+            required: c?.aspectRequired === true || c?.aspectUsage === "REQUIRED",
+            suggestedValues: (a.aspectValues ?? []).slice(0, 30).map((v) => v.localizedValue),
+          };
+        });
 
       return reply.send({ success: true, data: aspects });
     }

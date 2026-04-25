@@ -151,7 +151,7 @@ export class ListingService {
     const listing = await this.db.listing.findFirst({
       where: { id, userId },
       include: {
-        inventoryItem: { include: { images: true, attributes: true } },
+        inventoryItem: { include: { images: { orderBy: { sortOrder: "asc" } }, attributes: true } },
         marketplaceConnection: true,
       },
     });

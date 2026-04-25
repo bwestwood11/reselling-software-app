@@ -213,6 +213,19 @@ function MarketplacesContent(): React.JSX.Element {
     onError: () => toast.error("Failed to disconnect marketplace"),
   });
 
+  const setupPoliciesMutation = useMutation({
+    mutationFn: marketplacesApi.setupEbayPolicies,
+    onSuccess: (res) => {
+      const errors: string[] = res.errors ?? [];
+      if (errors.length > 0) {
+        toast.error(`Policies setup with errors: ${errors.join(", ")}`);
+      } else {
+        toast.success("eBay policies created successfully");
+      }
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Failed to setup eBay policies"),
+  });
+
   const connections: any[] = connectionsData?.data ?? [];
   const connectedCount = connections.length;
 
@@ -314,8 +327,10 @@ function MarketplacesContent(): React.JSX.Element {
                   disconnectMutation.isPending &&
                   disconnectMutation.variables === connection?.id
                 }
+                isSettingUpPolicies={mp.key === "EBAY" && setupPoliciesMutation.isPending}
                 onConnect={() => handleConnect(mp.key)}
                 onDisconnect={() => disconnectMutation.mutate(connection.id)}
+                onSetupPolicies={mp.key === "EBAY" ? () => setupPoliciesMutation.mutate() : undefined}
               />
             );
           })}
@@ -344,16 +359,20 @@ function MarketplaceCard({
   isConnected,
   isComingSoon,
   isDisconnecting,
+  isSettingUpPolicies,
   onConnect,
   onDisconnect,
+  onSetupPolicies,
 }: {
   meta: MarketplaceMeta;
   connection: any;
   isConnected: boolean;
   isComingSoon: boolean;
   isDisconnecting: boolean;
+  isSettingUpPolicies?: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
+  onSetupPolicies?: () => void;
 }) {
   const logoPath = MARKETPLACE_LOGOS[meta.key];
   const glow = MARKETPLACE_GLOWS[meta.key] ?? "from-zinc-300/20 to-zinc-500/10";
@@ -450,7 +469,16 @@ function MarketplaceCard({
         <div className="flex-1" />
 
         {/* Action button */}
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-2">
+          {isConnected && onSetupPolicies && (
+            <button
+              onClick={onSetupPolicies}
+              disabled={isSettingUpPolicies}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-2 text-xs font-medium text-blue-700 transition-all hover:bg-blue-100 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {isSettingUpPolicies ? "Setting up…" : "Setup Policies"}
+            </button>
+          )}
           {isConnected ? (
             <button
               onClick={onDisconnect}

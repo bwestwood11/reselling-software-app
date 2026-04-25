@@ -169,6 +169,9 @@ importers:
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types

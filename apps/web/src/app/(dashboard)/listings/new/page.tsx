@@ -24,6 +24,27 @@ import { getMarketplaceLabel } from "@repo/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+// Standard eBay condition IDs valid for most non-graded categories (clothing, electronics, etc.)
+const EBAY_CONDITIONS = [
+  { id: "1000", label: "New with tags" },
+  { id: "1500", label: "New without tags" },
+  { id: "2000", label: "New with defects" },
+  { id: "2500", label: "New other" },
+  { id: "3000", label: "Pre-owned" },
+] as const;
+
+// Map our internal condition enum to the nearest eBay condition ID
+function defaultEbayConditionId(condition?: string): string {
+  const map: Record<string, string> = {
+    NEW_WITH_TAGS: "1000",
+    NEW_WITHOUT_TAGS: "1500",
+    VERY_GOOD: "3000",
+    GOOD: "3000",
+    SATISFACTORY: "3000",
+  };
+  return map[condition ?? "GOOD"] ?? "3000";
+}
+
 const schema = z.object({
   inventoryItemId: z.string().min(1, "Select an inventory item"),
   marketplaceConnectionId: z.string().min(1, "Select a marketplace"),
@@ -31,6 +52,7 @@ const schema = z.object({
   title: z.string().min(1, "Title is required").max(80, "eBay titles are max 80 characters"),
   description: z.string().optional(),
   ebayCategoryId: z.string().optional(),
+  ebayConditionId: z.string().optional(),
   ebayFulfillmentPolicyId: z.string().optional(),
   ebayPaymentPolicyId: z.string().optional(),
   ebayReturnPolicyId: z.string().optional(),
@@ -134,6 +156,11 @@ export default function NewListingPage(): import("react").JSX.Element {
     }, 350);
   }, []);
 
+  function resolvedSpecificValue(name: string): string {
+    const val = specificValues[name] ?? "";
+    return val === "__custom__" ? (specificValues[`${name}__custom`] ?? "") : val;
+  }
+
   function validateEbayFields(values: FormValues): boolean {
     if (!values.ebayCategoryId?.trim()) {
       toast.error("Category ID is required for eBay listings");
@@ -149,6 +176,14 @@ export default function NewListingPage(): import("react").JSX.Element {
     }
     if (!values.ebayReturnPolicyId) {
       toast.error("Select a return policy");
+      return false;
+    }
+    // Check required category aspects
+    const missingRequired = aspects
+      .filter((a) => a.required && !resolvedSpecificValue(a.name).trim())
+      .map((a) => a.name);
+    if (missingRequired.length > 0) {
+      toast.error(`Fill in required item specifics: ${missingRequired.join(", ")}`);
       return false;
     }
     return true;
@@ -169,6 +204,7 @@ export default function NewListingPage(): import("react").JSX.Element {
     }
     return {
       categoryId: values.ebayCategoryId,
+      conditionId: values.ebayConditionId ? Number(values.ebayConditionId) : undefined,
       listingPolicies: {
         fulfillmentPolicyId: values.ebayFulfillmentPolicyId,
         paymentPolicyId: values.ebayPaymentPolicyId,
@@ -264,14 +300,21 @@ export default function NewListingPage(): import("react").JSX.Element {
                         setValue("title", item.title);
                         if (item.targetPrice) setValue("price", Number(item.targetPrice));
                         if (item.description) setValue("description", item.description);
+                        // Pre-populate eBay condition from inventory condition
+                        setValue("ebayConditionId", defaultEbayConditionId(item.condition));
                         // Pre-seed specifics from inventory brand/attributes
-                        // (aspects will be loaded when category is selected)
                         const seed: Record<string, string> = {};
                         if (item.brand) seed["Brand"] = item.brand;
                         for (const attr of item.attributes ?? []) {
                           if (attr.name && attr.value) seed[attr.name] = attr.value;
                         }
                         setSpecificValues(seed);
+                        // Auto-search category using item category or title
+                        const searchTerm = item.category?.trim() || item.title;
+                        if (searchTerm) {
+                          setCategoryQuery(searchTerm);
+                          searchCategories(searchTerm);
+                        }
                       }
                     }}
                   >
@@ -485,6 +528,28 @@ export default function NewListingPage(): import("react").JSX.Element {
                     </div>
                   </Field>
 
+                  {/* Condition */}
+                  <Field label="Condition *">
+                    <Select
+                      value={watch("ebayConditionId") ?? ""}
+                      onValueChange={(val) => setValue("ebayConditionId", val)}
+                    >
+                      <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-orange-400">
+                        <SelectValue placeholder="Select condition…" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white text-zinc-900">
+                        {EBAY_CONDITIONS.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-zinc-400">
+                      For most clothing & general items. Specialty categories (coins, cards) may require a different ID — check eBay&apos;s condition page for your category.
+                    </p>
+                  </Field>
+
                   {/* Policies */}
                   {policiesLoading ? (
                     <div className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
@@ -594,8 +659,10 @@ export default function NewListingPage(): import("react").JSX.Element {
                       <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                         Item Specifics
                       </Label>
-                      {selectedCategory && (
-                        <span className="text-xs text-zinc-400">Auto-loaded for this category</span>
+                      {selectedCategory && !aspectsLoading && aspects.length > 0 && (
+                        <span className="text-xs text-zinc-400">
+                          {aspects.filter((a) => a.required).length} required · {aspects.filter((a) => !a.required).length} optional
+                        </span>
                       )}
                     </div>
 
@@ -613,101 +680,112 @@ export default function NewListingPage(): import("react").JSX.Element {
                         {aspectsError}
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {aspects.length === 0 && (
                           <p className="text-xs text-zinc-400">
-                            No standard specifics found for this category. Use the fields below to add them manually.
+                            No standard specifics for this category. Add them manually below.
                           </p>
                         )}
-                        {aspects.map((aspect) => (
-                          <div key={aspect.name} className="flex items-start gap-2">
-                            <div className="w-40 shrink-0 pt-2.5">
-                              <span className="text-xs font-medium text-zinc-700">
-                                {aspect.name}
-                                {aspect.required && (
-                                  <span className="ml-1 text-red-500">*</span>
+
+                        {/* Required aspects */}
+                        {(() => {
+                          const required = aspects.filter((a) => a.required);
+                          if (required.length === 0) return null;
+                          const allFilled = required.every((a) => resolvedSpecificValue(a.name).trim());
+                          return (
+                            <div className={[
+                              "rounded-xl border p-4 transition-colors",
+                              allFilled
+                                ? "border-emerald-100 bg-emerald-50/40"
+                                : "border-orange-100 bg-orange-50/40",
+                            ].join(" ")}>
+                              <p className={[
+                                "mb-3 flex items-center gap-1.5 text-xs font-semibold",
+                                allFilled ? "text-emerald-700" : "text-orange-700",
+                              ].join(" ")}>
+                                {allFilled ? (
+                                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">✓</span>
+                                ) : (
+                                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-orange-400 text-[9px] font-bold text-white">
+                                    {required.filter((a) => !resolvedSpecificValue(a.name).trim()).length}
+                                  </span>
                                 )}
-                              </span>
-                            </div>
-                            {aspect.suggestedValues.length > 0 ? (
-                              <div className="flex-1">
-                                <select
-                                  value={specificValues[aspect.name] ?? ""}
-                                  onChange={(e) =>
-                                    setSpecificValues((prev) => ({
-                                      ...prev,
-                                      [aspect.name]: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                                >
-                                  <option value="">Select…</option>
-                                  {aspect.suggestedValues.map((v) => (
-                                    <option key={v} value={v}>{v}</option>
-                                  ))}
-                                  <option value="__custom__">Other (type below)</option>
-                                </select>
-                                {specificValues[aspect.name] === "__custom__" && (
-                                  <Input
-                                    className="mt-1.5 border-zinc-200 focus-visible:ring-orange-400"
-                                    placeholder={`Enter ${aspect.name}…`}
-                                    onChange={(e) =>
-                                      setSpecificValues((prev) => ({
-                                        ...prev,
-                                        [`${aspect.name}__custom`]: e.target.value,
-                                      }))
-                                    }
+                                {allFilled ? "All required fields complete" : "Required by eBay for this category"}
+                              </p>
+                              <div className="space-y-2.5">
+                                {required.map((aspect) => (
+                                  <AspectRow
+                                    key={aspect.name}
+                                    aspect={aspect}
+                                    value={specificValues[aspect.name] ?? ""}
+                                    customValue={specificValues[`${aspect.name}__custom`] ?? ""}
+                                    onChange={(val) => setSpecificValues((prev) => ({ ...prev, [aspect.name]: val }))}
+                                    onCustomChange={(val) => setSpecificValues((prev) => ({ ...prev, [`${aspect.name}__custom`]: val }))}
+                                    showEmpty
                                   />
-                                )}
+                                ))}
                               </div>
-                            ) : (
-                              <Input
-                                value={specificValues[aspect.name] ?? ""}
-                                onChange={(e) =>
-                                  setSpecificValues((prev) => ({
-                                    ...prev,
-                                    [aspect.name]: e.target.value,
-                                  }))
-                                }
-                                placeholder={`Enter ${aspect.name}…`}
-                                className="flex-1 border-zinc-200 focus-visible:ring-orange-400"
-                              />
-                            )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Optional aspects */}
+                        {aspects.filter((a) => !a.required).length > 0 && (
+                          <div>
+                            <p className="mb-2.5 text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                              Optional — improves search visibility
+                            </p>
+                            <div className="space-y-2">
+                              {aspects.filter((a) => !a.required).map((aspect) => (
+                                <AspectRow
+                                  key={aspect.name}
+                                  aspect={aspect}
+                                  value={specificValues[aspect.name] ?? ""}
+                                  customValue={specificValues[`${aspect.name}__custom`] ?? ""}
+                                  onChange={(val) => setSpecificValues((prev) => ({ ...prev, [aspect.name]: val }))}
+                                  onCustomChange={(val) => setSpecificValues((prev) => ({ ...prev, [`${aspect.name}__custom`]: val }))}
+                                />
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
 
                         {/* Extra free-form rows */}
-                        {extraSpecifics.map((spec, i) => (
-                          <div key={`extra-${i}`} className="flex gap-2">
-                            <Input
-                              value={spec.name}
-                              onChange={(e) => {
-                                const updated = [...extraSpecifics];
-                                updated[i] = { ...updated[i]!, name: e.target.value };
-                                setExtraSpecifics(updated);
-                              }}
-                              placeholder="Attribute name"
-                              className="w-40 shrink-0 border-zinc-200 focus-visible:ring-orange-400"
-                            />
-                            <Input
-                              value={spec.value}
-                              onChange={(e) => {
-                                const updated = [...extraSpecifics];
-                                updated[i] = { ...updated[i]!, value: e.target.value };
-                                setExtraSpecifics(updated);
-                              }}
-                              placeholder="Value"
-                              className="flex-1 border-zinc-200 focus-visible:ring-orange-400"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setExtraSpecifics(extraSpecifics.filter((_, j) => j !== i))}
-                              className="shrink-0 rounded-lg border border-zinc-200 p-2 text-zinc-400 hover:border-red-200 hover:text-red-500"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                        {extraSpecifics.length > 0 && (
+                          <div className="space-y-2">
+                            {extraSpecifics.map((spec, i) => (
+                              <div key={`extra-${i}`} className="flex gap-2">
+                                <Input
+                                  value={spec.name}
+                                  onChange={(e) => {
+                                    const updated = [...extraSpecifics];
+                                    updated[i] = { ...updated[i]!, name: e.target.value };
+                                    setExtraSpecifics(updated);
+                                  }}
+                                  placeholder="Attribute name"
+                                  className="w-40 shrink-0 border-zinc-200 focus-visible:ring-orange-400"
+                                />
+                                <Input
+                                  value={spec.value}
+                                  onChange={(e) => {
+                                    const updated = [...extraSpecifics];
+                                    updated[i] = { ...updated[i]!, value: e.target.value };
+                                    setExtraSpecifics(updated);
+                                  }}
+                                  placeholder="Value"
+                                  className="flex-1 border-zinc-200 focus-visible:ring-orange-400"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setExtraSpecifics(extraSpecifics.filter((_, j) => j !== i))}
+                                  className="shrink-0 rounded-lg border border-zinc-200 p-2 text-zinc-400 hover:border-red-200 hover:text-red-500"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
 
                         <button
                           type="button"
@@ -852,6 +930,72 @@ function Field({
       </Label>
       {children}
       {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+function AspectRow({
+  aspect,
+  value,
+  customValue,
+  onChange,
+  onCustomChange,
+  showEmpty = false,
+}: {
+  aspect: { name: string; required: boolean; suggestedValues: string[] };
+  value: string;
+  customValue: string;
+  onChange: (val: string) => void;
+  onCustomChange: (val: string) => void;
+  showEmpty?: boolean;
+}) {
+  const needsValue = showEmpty && !value.trim();
+  return (
+    <div className="flex items-start gap-2">
+      <div className="w-36 shrink-0 pt-2.5">
+        <span className="text-xs font-medium text-zinc-700">
+          {aspect.name}
+          {aspect.required && <span className="ml-1 text-orange-400">*</span>}
+        </span>
+      </div>
+      <div className="flex-1">
+        {aspect.suggestedValues.length > 0 ? (
+          <>
+            <select
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className={[
+                "w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors",
+                needsValue ? "border-orange-300 bg-orange-50/50" : "border-zinc-200 bg-white",
+              ].join(" ")}
+            >
+              <option value="">Select…</option>
+              {aspect.suggestedValues.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+              <option value="__custom__">Other (type below)</option>
+            </select>
+            {value === "__custom__" && (
+              <Input
+                className="mt-1.5 border-zinc-200 focus-visible:ring-orange-400"
+                placeholder={`Enter ${aspect.name}…`}
+                value={customValue}
+                onChange={(e) => onCustomChange(e.target.value)}
+              />
+            )}
+          </>
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={`Enter ${aspect.name}…`}
+            className={[
+              "focus-visible:ring-orange-400 transition-colors",
+              needsValue ? "border-orange-300 bg-orange-50/50" : "border-zinc-200",
+            ].join(" ")}
+          />
+        )}
+      </div>
     </div>
   );
 }

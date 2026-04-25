@@ -98,6 +98,8 @@ export const marketplacesApi = {
   getAuthUrl: (marketplace: string) =>
     request<any>(`/api/marketplaces/oauth/${marketplace}/authorize`),
   getEbayPolicies: () => request<any>("/api/marketplaces/ebay/policies"),
+  setupEbayPolicies: () =>
+    request<any>("/api/marketplaces/ebay/setup-policies", { method: "POST" }),
   getEbayCategorySuggestions: (q: string) =>
     request<any>(`/api/marketplaces/ebay/category-suggestions?q=${encodeURIComponent(q)}`),
   getEbayCategoryAspects: (categoryId: string) =>
