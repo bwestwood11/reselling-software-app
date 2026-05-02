@@ -30,6 +30,7 @@ const defaultTrustedOrigins = [
   "http://127.0.0.1:3000",
   "relist://",
   "exp://*",
+  "chrome-extension://*", // ReList Chrome extension (Mercari crosslister)
 ];
 
 for (const origin of defaultTrustedOrigins) {

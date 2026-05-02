@@ -104,6 +104,23 @@ export const marketplacesApi = {
     request<any>(`/api/marketplaces/ebay/category-suggestions?q=${encodeURIComponent(q)}`),
   getEbayCategoryAspects: (categoryId: string) =>
     request<any>(`/api/marketplaces/ebay/category-aspects?categoryId=${encodeURIComponent(categoryId)}`),
+  // Store a captured Mercari token (does NOT call Mercari — just stores in DB)
+  connectMercariToken: (accessToken: string, accountId?: string, accountName?: string) =>
+    request<any>("/api/marketplaces/mercari/connect-token", {
+      method: "POST",
+      body: JSON.stringify({ accessToken, accountId, accountName }),
+    }),
+};
+
+// ─── Mercari jobs ─────────────────────────────────────────────────────────────
+
+export const mercariApi = {
+  listJobs: (params?: { status?: string; limit?: string }) => {
+    const qs = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+    return request<any>(`/api/mercari/jobs${qs}`);
+  },
+  getJobForListing: (listingId: string) =>
+    request<any>(`/api/mercari/jobs?listingId=${listingId}&limit=1`),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -118,6 +135,7 @@ export const syncApi = {
   syncAll: () => request<any>("/api/sync/all", { method: "POST" }),
   syncListing: (id: string) =>
     request<any>(`/api/sync/listing/${id}`, { method: "POST" }),
+  importFromEbay: () => request<any>("/api/sync/import-ebay", { method: "POST" }),
   getEvents: (params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
     return request<any>(`/api/sync/events${qs}`);

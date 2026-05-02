@@ -5,6 +5,16 @@ import { SyncService } from "../services/sync.service";
 export async function syncRoutes(fastify: FastifyInstance) {
   const svc = new SyncService(fastify.prisma);
 
+  // POST /api/sync/import-ebay — import active eBay listings into inventory
+  fastify.post(
+    "/import-ebay",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const result = await svc.importFromEbay(request.user!.id);
+      return reply.send({ success: true, data: result });
+    }
+  );
+
   // POST /api/sync/all — trigger sync for all active listings
   fastify.post(
     "/all",

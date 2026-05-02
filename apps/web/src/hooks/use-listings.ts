@@ -2,10 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingsApi } from "@/lib/api";
 import { toast } from "sonner";
 
-export function useListings(params?: Record<string, string>) {
+export function useListings(
+  params?: Record<string, string>,
+  refetchInterval?: number | false | ((data: any) => number | false)
+) {
   return useQuery({
     queryKey: ["listings", params],
     queryFn: () => listingsApi.list(params),
+    refetchInterval,
   });
 }
 

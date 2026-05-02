@@ -2,6 +2,10 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../middleware/auth";
 import { refreshConnectionIfNeeded } from "../services/marketplace/token-refresh";
+import {
+  loginWithGoogleToken,
+  loginWithEmail,
+} from "../services/marketplace/mercari-auth.service";
 
 // ─── eBay constants ───────────────────────────────────────────────────────────
 
@@ -379,6 +383,176 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // POST /api/marketplaces/mercari/google-login — sign in with a Google ID token
+  // The frontend obtains the token via Google Identity Services with Mercari's client ID.
+  fastify.post(
+    "/mercari/google-login",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { idToken } = request.body as { idToken?: string };
+
+      if (!idToken) {
+        return reply.status(400).send({ success: false, error: "idToken is required" });
+      }
+
+      try {
+        const tokens = await loginWithGoogleToken(idToken);
+
+        await fastify.prisma.marketplaceConnection.upsert({
+          where: {
+            userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
+          },
+          update: {
+            accessToken: tokens.accessToken,
+            refreshToken: null,
+            accountId: tokens.accountId ?? null,
+            accountName: tokens.accountName ?? null,
+            isActive: true,
+            expiresAt: null,
+          },
+          create: {
+            userId: request.user!.id,
+            marketplace: "MERCARI",
+            accessToken: tokens.accessToken,
+            refreshToken: null,
+            accountId: tokens.accountId ?? null,
+            accountName: tokens.accountName ?? null,
+          },
+        });
+
+        return reply.send({ success: true, data: { connected: true, accountName: tokens.accountName } });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Google login failed";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
+  // POST /api/marketplaces/mercari/login — email + password login (confirmed endpoint)
+  // recaptchaEnterpriseToken is generated client-side using Mercari's reCAPTCHA site key
+  // and forwarded here — it is NOT generated server-side.
+  fastify.post(
+    "/mercari/login",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { email, password, recaptchaEnterpriseToken } = request.body as {
+        email?: string;
+        password?: string;
+        recaptchaEnterpriseToken?: string;
+      };
+
+      if (!email?.trim() || !password) {
+        return reply
+          .status(400)
+          .send({ success: false, error: "email and password are required" });
+      }
+      if (!recaptchaEnterpriseToken) {
+        return reply
+          .status(400)
+          .send({ success: false, error: "recaptchaEnterpriseToken is required" });
+      }
+
+      try {
+        const tokens = await loginWithEmail(
+          email.trim(),
+          password,
+          recaptchaEnterpriseToken
+        );
+
+        await fastify.prisma.marketplaceConnection.upsert({
+          where: {
+            userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
+          },
+          update: {
+            accessToken: tokens.accessToken,
+            refreshToken: null,
+            accountId: tokens.accountId ?? null,
+            accountName: tokens.accountName ?? null,
+            isActive: true,
+            expiresAt: null,
+          },
+          create: {
+            userId: request.user!.id,
+            marketplace: "MERCARI",
+            accessToken: tokens.accessToken,
+            refreshToken: null,
+            accountId: tokens.accountId ?? null,
+            accountName: tokens.accountName ?? null,
+          },
+        });
+
+        return reply.send({
+          success: true,
+          data: { connected: true, accountName: tokens.accountName },
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Login failed";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
+  // GET /api/marketplaces/mercari/token — returns the stored access token for the WebView publish flow
+  fastify.get(
+    "/mercari/token",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { accessToken: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      return reply.send({ success: true, data: { accessToken: connection.accessToken } });
+    }
+  );
+
+  // POST /api/marketplaces/mercari/connect-token — saves a Mercari session token captured
+  // directly from a WebView (mobile) or extension. The token is extracted from Mercari's
+  // own login response in the client, so no Mercari API call is made server-side here.
+  fastify.post(
+    "/mercari/connect-token",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { accessToken, accountId, accountName } = request.body as {
+        accessToken?: string;
+        accountId?: string;
+        accountName?: string;
+      };
+
+      if (!accessToken?.trim()) {
+        return reply.status(400).send({ success: false, error: "accessToken is required" });
+      }
+
+      await fastify.prisma.marketplaceConnection.upsert({
+        where: {
+          userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
+        },
+        update: {
+          accessToken,
+          refreshToken: null,
+          accountId: accountId ?? null,
+          accountName: accountName ?? null,
+          isActive: true,
+          expiresAt: null,
+        },
+        create: {
+          userId: request.user!.id,
+          marketplace: "MERCARI",
+          accessToken,
+          refreshToken: null,
+          accountId: accountId ?? null,
+          accountName: accountName ?? null,
+        },
+      });
+
+      return reply.send({ success: true, data: { connected: true, accountName: accountName ?? null } });
+    }
+  );
+
   // GET /api/marketplaces/ebay/category-suggestions?q=
   fastify.get(
     "/ebay/category-suggestions",
@@ -588,7 +762,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         },
         update: {
           accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken ?? null,
+          refreshToken: null,
           expiresAt: tokens.expiresAt ?? null,
           accountName: tokens.accountName ?? null,
           accountId: tokens.accountId ?? null,
@@ -598,7 +772,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           userId: stateData.userId,
           marketplace: marketplace.toUpperCase() as any,
           accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken ?? null,
+          refreshToken: null,
           expiresAt: tokens.expiresAt ?? null,
           accountName: tokens.accountName ?? null,
           accountId: tokens.accountId ?? null,

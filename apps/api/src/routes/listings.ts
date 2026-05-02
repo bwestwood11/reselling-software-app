@@ -20,6 +20,22 @@ const createListingSchema = z.object({
   marketplaceData: z.record(z.string(), z.unknown()).optional(),
 });
 
+const crosslistSchema = z.object({
+  inventoryItemId: z.string(),
+  price: z.number().positive(),
+  title: z.string().min(1).max(255),
+  description: z.string().optional(),
+  publishImmediately: z.boolean().default(true),
+  marketplaces: z
+    .array(
+      z.object({
+        connectionId: z.string(),
+        marketplaceData: z.record(z.string(), z.unknown()).optional(),
+      })
+    )
+    .min(1),
+});
+
 export async function listingsRoutes(fastify: FastifyInstance) {
   const svc = new ListingService(fastify.prisma);
 
@@ -75,6 +91,17 @@ export async function listingsRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // POST /api/listings/crosslist
+  fastify.post(
+    "/crosslist",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const body = crosslistSchema.parse(request.body);
+      const results = await svc.crosslist(request.user!.id, body);
+      return reply.status(201).send({ success: true, data: results });
+    }
+  );
+
   // PUT /api/listings/:id
   fastify.put(
     "/:id",
@@ -121,6 +148,23 @@ export async function listingsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = await svc.delist(id, request.user!.id);
+      return reply.send({ success: true, data: result });
+    }
+  );
+
+  // POST /api/listings/:id/record-published  (Mercari WebView flow)
+  fastify.post(
+    "/:id/record-published",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { externalId } = request.body as { externalId?: string };
+
+      if (!externalId?.trim()) {
+        return reply.status(400).send({ success: false, error: "externalId is required" });
+      }
+
+      const result = await svc.recordPublished(id, request.user!.id, externalId.trim());
       return reply.send({ success: true, data: result });
     }
   );

@@ -12,6 +12,7 @@ import { syncRoutes } from "./routes/sync";
 import { uploadRoutes } from "./routes/upload";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { webhookRoutes } from "./routes/webhooks";
+import { mercariRoutes } from "./routes/mercari";
 import { prismaPlugin } from "./plugins/prisma";
 
 export async function buildApp() {
@@ -39,6 +40,8 @@ export async function buildApp() {
   const isAllowedOrigin = (origin?: string): boolean => {
     if (!origin) return true;
     if (allowedOrigins.has(origin)) return true;
+    // Allow Chrome extension origins for the Mercari crosslisting extension
+    if (/^chrome-extension:\/\/[a-z]{32}$/.test(origin)) return true;
 
     return (
       process.env.NODE_ENV !== "production" &&
@@ -67,12 +70,27 @@ export async function buildApp() {
   await app.register(await import("@fastify/multipart").then((m) => m.default));
 
   // ── Better Auth handler (all /api/auth/* routes) ──────────────────────────
+  // toNodeHandler writes directly to reply.raw, bypassing Fastify's onSend
+  // hooks (where @fastify/cors normally injects response headers). We must
+  // write CORS headers to reply.raw ourselves before handing off.
   app.all("/api/auth/*", async (request, reply) => {
     const origin = request.headers.origin;
     if (typeof origin === "string" && isAllowedOrigin(origin)) {
-      reply.header("Access-Control-Allow-Origin", origin);
-      reply.header("Access-Control-Allow-Credentials", "true");
-      reply.header("Vary", "Origin");
+      reply.raw.setHeader("Access-Control-Allow-Origin", origin);
+      reply.raw.setHeader("Access-Control-Allow-Credentials", "true");
+      reply.raw.setHeader("Vary", "Origin");
+    }
+
+    // Handle CORS preflight — toNodeHandler does not respond to OPTIONS.
+    if (request.method === "OPTIONS") {
+      reply.raw.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+      reply.raw.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, Cookie, X-Requested-With"
+      );
+      reply.raw.statusCode = 204;
+      reply.raw.end();
+      return;
     }
 
     // Fastify may consume/parse the body before handing off to node handlers.
@@ -91,6 +109,7 @@ export async function buildApp() {
   await app.register(syncRoutes, { prefix: "/api/sync" });
   await app.register(uploadRoutes, { prefix: "/api/upload" });
   await app.register(subscriptionRoutes, { prefix: "/api/subscriptions" });
+  await app.register(mercariRoutes, { prefix: "/api/mercari" });
   // Webhook must be registered AFTER other routes so its content-type parser
   // override is scoped only to the webhook plugin.
   await app.register(webhookRoutes, { prefix: "/api/webhooks" });

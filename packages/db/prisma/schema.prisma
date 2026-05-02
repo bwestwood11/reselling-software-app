@@ -25,6 +25,7 @@ model User {
   listings               Listing[]
   subscription           Subscription?
   creditTransactions     CreditTransaction[]
+  mercariJobs            MercariJob[]
 }
 
 model Session {
@@ -243,6 +244,29 @@ model CreditTransaction {
   description    String
   listingId      String?
   createdAt      DateTime     @default(now())
+}
+
+// ─── Mercari Extension Jobs ───────────────────────────────────────────────────
+
+enum MercariJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model MercariJob {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId    String?
+  status       MercariJobStatus @default(PENDING)
+  payload      Json // listing data to fill into Mercari form
+  errorMessage String?
+  externalId   String? // Mercari listing ID once created
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  completedAt  DateTime?
 }
 
 // ─── Sync Events ──────────────────────────────────────────────────────────────

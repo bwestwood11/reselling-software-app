@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +12,8 @@ import {
   Unplug,
   ExternalLink,
   Store,
+  X,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MarketplaceType } from "@repo/types";
@@ -91,7 +93,7 @@ const MARKETPLACES: MarketplaceMeta[] = [
     iconText: "text-red-600",
     borderHover: "hover:border-red-300",
     initial: "M",
-    api: "coming_soon",
+    api: "full",
     categories: ["General", "Electronics", "Fashion"],
   },
   {
@@ -179,6 +181,7 @@ function MarketplacesContent(): React.JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<Filter>("all");
+  const [mercariModal, setMercariModal] = useState(false);
 
   // Handle OAuth callback result (?connected=ebay or ?error=...)
   useEffect(() => {
@@ -230,6 +233,10 @@ function MarketplacesContent(): React.JSX.Element {
   const connectedCount = connections.length;
 
   async function handleConnect(key: string) {
+    if (key === "MERCARI") {
+      setMercariModal(true);
+      return;
+    }
     try {
       const res = await marketplacesApi.getAuthUrl(key.toLowerCase());
       window.location.href = res.data.url;
@@ -347,6 +354,18 @@ function MarketplacesContent(): React.JSX.Element {
           can still manage them manually in the meantime.
         </p>
       </div>
+
+      {/* Mercari connect modal */}
+      {mercariModal && (
+        <MercariConnectModal
+          onClose={() => setMercariModal(false)}
+          onConnected={() => {
+            setMercariModal(false);
+            qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+            toast.success("Mercari connected successfully!");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -507,6 +526,351 @@ function MarketplaceCard({
               Connect
             </button>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mercari connect modal ─────────────────────────────────────────────────────
+// Mercari has no public OAuth API. The only reliable connection path on web is
+// via the ReList Chrome extension, which opens mercari.com/login in a real
+// browser tab (bypassing CORS + Cloudflare Bot Management), waits for the user
+// to log in, then reads the auth token from the page's localStorage/cookies and
+// POSTs it to /api/marketplaces/mercari/connect-token.
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (cfg: {
+            client_id: string;
+            callback: (resp: { credential: string }) => void;
+            nonce?: string;
+          }) => void;
+          renderButton: (
+            el: HTMLElement,
+            cfg: { theme: string; size: string; width: number; text?: string }
+          ) => void;
+        };
+      };
+    };
+    grecaptcha?: {
+      enterprise: {
+        ready: (cb: () => void) => void;
+        execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      };
+    };
+  }
+}
+
+const MERCARI_GOOGLE_CLIENT_ID =
+  "900288721633-70umose0g8lcfh663hhjpj8q3rk9tud4.apps.googleusercontent.com";
+const MERCARI_RECAPTCHA_SITE_KEY =
+  process.env.NEXT_PUBLIC_MERCARI_RECAPTCHA_SITE_KEY ?? "";
+
+type MercariTab = "google" | "email";
+
+const EXTENSION_STEPS = [
+  "Install the ReList Chrome Extension from the Chrome Web Store.",
+  "Click the ReList icon in your browser toolbar to open the popup.",
+  'Click "Connect Mercari Account" — a Mercari login tab will open.',
+  "Sign in with your Mercari credentials. The tab closes automatically once done.",
+];
+
+function MercariConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: () => void;
+}) {
+  const qc = useQueryClient();
+  const [checking, setChecking] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+
+  // Fallback direct-login state (experimental — may fail due to Mercari CORS policy)
+  const [tab, setTab] = useState<MercariTab>("google");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [gsiReady, setGsiReady] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  // GSI script (only loaded when the fallback section is open)
+  useEffect(() => {
+    if (!showFallback) return;
+    if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
+      setGsiReady(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => setGsiReady(true);
+    document.head.appendChild(script);
+  }, [showFallback]);
+
+  // reCAPTCHA Enterprise script (only needed for email/password fallback)
+  useEffect(() => {
+    if (!showFallback || !MERCARI_RECAPTCHA_SITE_KEY || tab !== "email") return;
+    if (document.querySelector('script[src*="recaptcha/enterprise.js"]')) return;
+    const script = document.createElement("script");
+    script.src = `https://www.google.com/recaptcha/enterprise.js?render=${MERCARI_RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    document.head.appendChild(script);
+  }, [showFallback, tab]);
+
+  // Render Google Sign-In button inside the fallback section
+  useEffect(() => {
+    if (!showFallback || !gsiReady || tab !== "google" || !googleBtnRef.current || !window.google)
+      return;
+    window.google.accounts.id.initialize({
+      client_id: MERCARI_GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        setLoading(true);
+        setError("");
+        try {
+          const res = await fetch("https://www.mercari.com/v1/login_google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ idToken: response.credential }),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error((body as any).message ?? `Mercari login failed (${res.status})`);
+          const { accessToken } = body as { accessToken: string };
+          const user = ((body as any).user ?? {}) as Record<string, unknown>;
+          await marketplacesApi.connectMercariToken(
+            accessToken,
+            user.userId != null ? String(user.userId) : undefined,
+            ((user.name as string) || (user.username as string)) || undefined
+          );
+          qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+          onConnected();
+        } catch (err: any) {
+          setError(err?.message ?? "Google sign-in failed. This may be a CORS issue — use the extension instead.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      theme: "outline",
+      size: "large",
+      width: googleBtnRef.current.offsetWidth || 280,
+      text: "signin_with",
+    });
+  }, [showFallback, gsiReady, tab, onConnected, qc]);
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (!MERCARI_RECAPTCHA_SITE_KEY) {
+        setError("Missing reCAPTCHA site key — add NEXT_PUBLIC_MERCARI_RECAPTCHA_SITE_KEY to .env.local.");
+        return;
+      }
+      if (!window.grecaptcha?.enterprise) {
+        setError("reCAPTCHA is still loading — try again in a moment.");
+        return;
+      }
+      const recaptchaToken = await window.grecaptcha.enterprise.execute(
+        MERCARI_RECAPTCHA_SITE_KEY,
+        { action: "login" }
+      );
+      const res = await fetch("https://www.mercari.com/v1/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email_address: email.trim(), password, recaptchaEnterpriseToken: recaptchaToken }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((body as any).message ?? `Login failed (${res.status})`);
+      const { accessToken } = body as { accessToken: string };
+      const user = ((body as any).user ?? {}) as Record<string, unknown>;
+      await marketplacesApi.connectMercariToken(
+        accessToken,
+        user.userId != null ? String(user.userId) : undefined,
+        ((user.name as string) || (user.username as string)) || undefined
+      );
+      qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+      onConnected();
+    } catch (err: any) {
+      setError(err?.message ?? "Login failed. This may be a CORS issue — use the extension instead.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyConnection() {
+    setChecking(true);
+    try {
+      const res = await marketplacesApi.listConnections();
+      const connections: any[] = res.data ?? [];
+      if (connections.some((c: any) => c.marketplace === "MERCARI")) {
+        qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+        onConnected();
+      } else {
+        toast.error("Mercari not connected yet — complete the login in the extension popup.");
+      }
+    } catch {
+      toast.error("Could not verify connection. Check your network and try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-zinc-100 px-6 py-5">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-red-50">
+            <span className="text-sm font-bold text-red-600">M</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-zinc-900">Connect Mercari</p>
+            <p className="text-xs text-zinc-500">Via the ReList Chrome Extension</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 pb-6 pt-5">
+          {/* Why the extension */}
+          <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" />
+            <p className="text-xs text-sky-800">
+              Mercari has no public API. The extension logs in through Mercari&apos;s real website
+              — the same way you&apos;d do it manually — so there are no bot-detection issues.
+            </p>
+          </div>
+
+          {/* Step-by-step guide */}
+          <div>
+            <p className="mb-2.5 text-xs font-semibold text-zinc-700">How to connect</p>
+            <ol className="space-y-2">
+              {EXTENSION_STEPS.map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-600">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs leading-relaxed text-zinc-600">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Verify button */}
+          <button
+            onClick={verifyConnection}
+            disabled={checking}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-medium text-zinc-700 transition-all hover:bg-zinc-100 disabled:opacity-50"
+          >
+            {checking ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+            )}
+            {checking ? "Checking…" : "I've connected — verify"}
+          </button>
+
+          {/* Experimental fallback */}
+          <div className="border-t border-zinc-100 pt-3">
+            <button
+              type="button"
+              onClick={() => { setShowFallback(!showFallback); setError(""); }}
+              className="text-[11px] text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline"
+            >
+              {showFallback ? "Hide" : "Alternative: direct browser login (experimental)"}
+            </button>
+
+            {showFallback && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                  <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
+                  <p className="text-[11px] text-amber-800">
+                    This calls Mercari&apos;s API from your browser. May fail due to CORS
+                    restrictions or reCAPTCHA. Use the extension for reliable connection.
+                  </p>
+                </div>
+
+                <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100/80 p-1">
+                  {(["google", "email"] as MercariTab[]).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setTab(key); setError(""); }}
+                      className={[
+                        "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+                        tab === key ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700",
+                      ].join(" ")}
+                    >
+                      {key === "google" ? "Google" : "Email & Password"}
+                    </button>
+                  ))}
+                </div>
+
+                {tab === "google" ? (
+                  <div className="space-y-2">
+                    <div
+                      ref={googleBtnRef}
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-zinc-50"
+                    >
+                      {!gsiReady && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+                    </div>
+                    {loading && (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" />
+                        <span className="text-xs text-zinc-500">Connecting…</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleEmailLogin} className="space-y-2">
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
+                    />
+                    <input
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    >
+                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {loading ? "Signing in…" : "Sign in"}
+                    </button>
+                  </form>
+                )}
+
+                {error && (
+                  <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

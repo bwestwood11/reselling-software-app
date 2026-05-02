@@ -45,6 +45,8 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="mercari-login" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="mercari-publish" options={{ headerShown: false }} />
         </Stack>
       </AuthProvider>
     </QueryClientProvider>

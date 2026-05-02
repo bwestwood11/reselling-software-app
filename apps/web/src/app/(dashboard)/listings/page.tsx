@@ -9,7 +9,7 @@ import {
   useMarkSold,
 } from "@/hooks/use-listings";
 import { Button, Badge, Card, CardContent } from "@repo/ui";
-import { Plus, Tag, ExternalLink } from "lucide-react";
+import { Plus, Tag, ExternalLink, Loader2 } from "lucide-react";
 import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -29,7 +29,11 @@ export default function ListingsPage(): import("react").JSX.Element {
   if (marketplace) params.marketplace = marketplace;
   if (status) params.status = status;
 
-  const { data, isLoading } = useListings(params);
+  // Poll every 5 s while any Mercari listing is PENDING (extension is processing it in the background)
+  const { data, isLoading } = useListings(params, (d: any) => {
+    const items: any[] = d?.data ?? [];
+    return items.some((l) => l.marketplace === "MERCARI" && l.status === "PENDING") ? 5000 : false;
+  });
   const publishMutation = usePublishListing();
   const delistMutation = useDelistListing();
   const markSoldMutation = useMarkSold();
@@ -168,6 +172,12 @@ export default function ListingsPage(): import("react").JSX.Element {
                     >
                       Publish
                     </Button>
+                  )}
+                  {listing.status === "PENDING" && listing.marketplace === "MERCARI" && (
+                    <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Extension posting…
+                    </span>
                   )}
                   {listing.status === "ACTIVE" && (
                     <>

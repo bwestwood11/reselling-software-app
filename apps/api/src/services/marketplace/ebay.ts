@@ -1,5 +1,17 @@
 import { BaseMarketplaceAdapter, type ListingPayload } from "./base";
 
+export interface EbayImportedListing {
+  itemId: string;
+  title: string;
+  price: number;
+  quantity: number;
+  conditionId: number;
+  categoryId: string;
+  categoryName: string;
+  imageUrls: string[];
+  listedAt: Date | null;
+}
+
 /** Build eBay <ItemSpecifics> XML from a key→value map. */
 function buildItemSpecificsXml(specifics: Record<string, string>): string {
   const entries = Object.entries(specifics).filter(([, v]) => v?.trim());
@@ -409,6 +421,119 @@ ${policiesXml}
       const errors = this.parseXmlErrors(responseText);
       throw new Error(`eBay EndItem failed: ${errors.join(" | ") || responseText.slice(0, 500)}`);
     }
+  }
+
+  /** Extract all occurrences of a tag value (for repeated tags like PictureURL). */
+  private xmlValues(xml: string, tag: string): string[] {
+    const values: string[] = [];
+    const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "gi");
+    let match;
+    while ((match = regex.exec(xml)) !== null) {
+      const v = match[1]?.trim();
+      if (v) values.push(v);
+    }
+    return values;
+  }
+
+  /** Split an XML string into individual <Item>…</Item> blocks. */
+  private parseItemBlocks(xml: string): string[] {
+    const blocks: string[] = [];
+    const regex = /<Item>([\s\S]*?)<\/Item>/gi;
+    let match;
+    while ((match = regex.exec(xml)) !== null) {
+      if (match[1]) blocks.push(match[1]);
+    }
+    return blocks;
+  }
+
+  /** Parse a single <Item> block from GetMyeBaySelling into our import shape. */
+  private parseImportedItem(itemXml: string): EbayImportedListing | null {
+    const itemId = this.xmlValue(itemXml, "ItemID");
+    const title = this.xmlValue(itemXml, "Title");
+    if (!itemId || !title) return null;
+
+    const priceStr =
+      this.xmlValue(itemXml, "CurrentPrice") ??
+      this.xmlValue(itemXml, "BuyItNowPrice") ??
+      this.xmlValue(itemXml, "StartPrice") ??
+      "0";
+    const price = parseFloat(priceStr) || 0;
+
+    const quantityStr =
+      this.xmlValue(itemXml, "QuantityAvailable") ??
+      this.xmlValue(itemXml, "Quantity") ??
+      "1";
+    const quantity = Math.max(1, parseInt(quantityStr) || 1);
+
+    const conditionId = parseInt(this.xmlValue(itemXml, "ConditionID") ?? "3000") || 3000;
+
+    const categoryId = this.xmlValue(itemXml, "CategoryID") ?? "";
+    const categoryName = this.xmlValue(itemXml, "CategoryName") ?? "";
+
+    const imageUrls = this.xmlValues(itemXml, "PictureURL").filter(
+      (u) => u.startsWith("http")
+    );
+
+    const startTimeStr = this.xmlValue(itemXml, "StartTime");
+    const listedAt = startTimeStr ? new Date(startTimeStr) : null;
+
+    return { itemId, title, price, quantity, conditionId, categoryId, categoryName, imageUrls, listedAt };
+  }
+
+  /**
+   * Fetches all active listings from eBay using GetMyeBaySelling.
+   * Handles pagination automatically (up to 1 000 items as a safety cap).
+   */
+  async getSellerListings(): Promise<EbayImportedListing[]> {
+    const all: EbayImportedListing[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>
+<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ErrorLanguage>en_US</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+  <ActiveList>
+    <Include>true</Include>
+    <Pagination>
+      <EntriesPerPage>200</EntriesPerPage>
+      <PageNumber>${page}</PageNumber>
+    </Pagination>
+  </ActiveList>
+</GetMyeBaySellingRequest>`;
+
+      const res = await fetch(this.tradingUrl, {
+        method: "POST",
+        headers: this.tradingHeaders("GetMyeBaySelling"),
+        body: xml,
+      });
+
+      const text = await res.text();
+      const ack = this.xmlValue(text, "Ack");
+      console.log("[eBay GetMyeBaySelling] page=%d http=%d ack=%s", page, res.status, ack ?? "?");
+
+      if (ack === "Failure" || !res.ok) {
+        const errors = this.parseXmlErrors(text);
+        throw new Error(`eBay GetMyeBaySelling failed: ${errors.join(" | ") || text.slice(0, 300)}`);
+      }
+
+      const items = this.parseItemBlocks(text);
+      for (const block of items) {
+        const listing = this.parseImportedItem(block);
+        if (listing) all.push(listing);
+      }
+
+      const totalPagesStr = this.xmlValue(text, "TotalNumberOfPages") ?? "1";
+      const totalPages = parseInt(totalPagesStr) || 1;
+      hasMore = page < totalPages;
+      page++;
+
+      if (all.length >= 1000) break;
+    }
+
+    console.log("[eBay GetMyeBaySelling] fetched %d active listings", all.length);
+    return all;
   }
 
   async checkStatus(

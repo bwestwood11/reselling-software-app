@@ -175,6 +175,54 @@ export class ListingService {
       },
     });
 
+    // Mercari cannot be published server-side (Cloudflare Bot Management blocks Node.js
+    // requests by TLS fingerprint). Instead, queue a MercariJob for the Chrome extension,
+    // which runs in a real browser context and calls Mercari's API directly.
+    if (listing.marketplace === "MERCARI") {
+      const images =
+        listing.inventoryItem?.images?.map((img) => img.url) ?? [];
+
+      const mpData = listing.marketplaceData as Record<string, unknown> | null;
+
+      const job = await this.db.mercariJob.create({
+        data: {
+          userId,
+          listingId: id,
+          payload: {
+            listingId: id,
+            title: listing.title,
+            description: listing.description ?? "",
+            // Mercari accepts price in cents (confirmed from API response)
+            price: Math.round(Number(listing.price)),
+            condition: listing.inventoryItem?.condition ?? "GOOD",
+            images,
+            categoryId: mpData?.categoryId ?? null,
+            brandId: mpData?.brandId ?? null,
+            sizeId: mpData?.sizeId ?? null,
+            shippingPayerId: mpData?.shippingPayerId ?? 1,
+            shippingClassIds: mpData?.shippingClassIds ?? [2376],
+            shippingPackageWeight: mpData?.shippingPackageWeight ?? 16,
+            zipCode: mpData?.zipCode ?? null,
+          },
+        },
+      });
+
+      const updated = await this.db.listing.update({
+        where: { id },
+        data: { status: "PENDING", lastSyncAt: new Date(), syncError: null },
+      });
+
+      await this.db.syncEvent.updateMany({
+        where: { listingId: id, type: "PUBLISH", status: "pending" },
+        data: {
+          status: "success",
+          message: `Mercari job queued (${job.id}) — extension will post directly`,
+        },
+      });
+
+      return updated;
+    }
+
     try {
       const connection = await refreshConnectionIfNeeded(
         this.db,
@@ -248,6 +296,110 @@ export class ListingService {
         type: "DELIST",
         status: "success",
         message: "Listing delisted",
+      },
+    });
+
+    return updated;
+  }
+
+  async crosslist(
+    userId: string,
+    input: {
+      inventoryItemId: string;
+      price: number;
+      title: string;
+      description?: string;
+      publishImmediately: boolean;
+      marketplaces: Array<{
+        connectionId: string;
+        marketplaceData?: Record<string, unknown>;
+      }>;
+    }
+  ) {
+    const item = await this.db.inventoryItem.findFirst({
+      where: { id: input.inventoryItemId, userId },
+      include: { images: { orderBy: { sortOrder: "asc" } }, attributes: true },
+    });
+    if (!item) throw new Error("Inventory item not found");
+
+    const results: Array<{
+      marketplace: string;
+      listingId?: string;
+      status: string;
+      error?: string;
+    }> = [];
+
+    for (const mp of input.marketplaces) {
+      const connection = await this.db.marketplaceConnection.findFirst({
+        where: { id: mp.connectionId, userId },
+      });
+      if (!connection) {
+        results.push({ marketplace: mp.connectionId, status: "error", error: "Connection not found" });
+        continue;
+      }
+
+      try {
+        const listing = await this.db.listing.create({
+          data: {
+            userId,
+            inventoryItemId: input.inventoryItemId,
+            marketplaceConnectionId: mp.connectionId,
+            marketplace: connection.marketplace,
+            price: input.price,
+            title: input.title,
+            description: input.description,
+            marketplaceData: mp.marketplaceData as import("@repo/db").Prisma.InputJsonValue | undefined,
+            status: "DRAFT",
+          },
+        });
+
+        if (!input.publishImmediately) {
+          results.push({ marketplace: connection.marketplace, listingId: listing.id, status: "DRAFT" });
+          continue;
+        }
+
+        if (connection.marketplace === "MERCARI") {
+          // Mercari's API is Cloudflare-protected; publish via WebView on the device instead
+          results.push({ marketplace: "MERCARI", listingId: listing.id, status: "NEEDS_WEBVIEW" });
+        } else {
+          await this.publish(listing.id, userId);
+          results.push({ marketplace: connection.marketplace, listingId: listing.id, status: "ACTIVE" });
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Failed";
+        results.push({ marketplace: connection.marketplace, status: "error", error });
+      }
+    }
+
+    return results;
+  }
+
+  async recordPublished(id: string, userId: string, externalId: string) {
+    const listing = await this.db.listing.findFirst({
+      where: { id, userId, marketplace: "MERCARI", status: "DRAFT" },
+    });
+    if (!listing) throw new Error("Listing not found or already published");
+
+    await this.subscriptionSvc.deductCredit(userId, id, "MERCARI");
+
+    const updated = await this.db.listing.update({
+      where: { id },
+      data: {
+        status: "ACTIVE",
+        externalId,
+        externalUrl: `https://www.mercari.com/item/${externalId}/`,
+        listedAt: new Date(),
+        lastSyncAt: new Date(),
+        syncError: null,
+      },
+    });
+
+    await this.db.syncEvent.create({
+      data: {
+        listingId: id,
+        type: "PUBLISH",
+        status: "success",
+        message: `Published via WebView with ID: ${externalId}`,
       },
     });
 

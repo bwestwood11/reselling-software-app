@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -15,7 +16,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { cn } from "@repo/ui";
-import { signOut } from "@repo/auth/client";
+import { signOut, useSession } from "@repo/auth/client";
 import { useRouter } from "next/navigation";
 import { useSubscription } from "@/hooks/use-subscription";
 
@@ -24,7 +25,7 @@ const navItems = [
   { href: "/inventory", label: "Inventory", Icon: Package },
   { href: "/listings", label: "Listings", Icon: Tag },
   { href: "/marketplaces", label: "Marketplaces", Icon: Store },
-  { href: "/sync", label: "Sync", Icon: RefreshCw },
+  { href: "/dashboard/sync", label: "Sync", Icon: RefreshCw },
   { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
@@ -32,6 +33,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: subData } = useSubscription();
+  const { data: sessionData } = useSession();
+
+  useEffect(() => {
+    if (sessionData?.user) {
+      console.log("Current user:", sessionData.user);
+    }
+  }, [sessionData?.user]);
   const subscription = subData?.data;
 
   const isActive =
