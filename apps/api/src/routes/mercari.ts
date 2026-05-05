@@ -2,8 +2,84 @@ import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
+import {
+  seedMercariCategories,
+  bulkUpsertCategories,
+  isSeedRunning,
+  type RawCategory,
+} from "../jobs/mercari-categories.worker";
 
 export async function mercariRoutes(fastify: FastifyInstance) {
+  // POST /api/mercari/categories/seed — fetch all categories from Vendoo and upsert into DB
+  fastify.post("/categories/seed", { preHandler: [requireAuth] }, async (request, reply) => {
+    if (isSeedRunning()) {
+      return reply.status(409).send({ success: false, error: "Category seed is already running" });
+    }
+
+    const body = request.body as { marketplace?: string; sessionId?: string } | undefined;
+
+    // Fire-and-forget — returns 202 immediately so the client isn't waiting on a long crawl
+    seedMercariCategories(fastify.prisma, {
+      marketplace: body?.marketplace,
+      sessionId: body?.sessionId,
+    })
+      .then(({ total }) =>
+        fastify.log.info(`[mercari-categories] Seed complete: ${total} categories`)
+      )
+      .catch((err: unknown) =>
+        fastify.log.error({ err }, "[mercari-categories] Seed failed")
+      );
+
+    return reply.status(202).send({ success: true, data: { message: "Category seed started" } });
+  });
+
+  // GET /api/mercari/categories/seed/status — check whether a seed is currently running
+  fastify.get("/categories/seed/status", { preHandler: [requireAuth] }, async (_request, reply) => {
+    const count = await fastify.prisma.mercariCategory.count();
+    return reply.send({ success: true, data: { running: isSeedRunning(), total: count } });
+  });
+
+  // GET /api/mercari/categories — browse categories
+  // ?parentId=        filter by parent (pass "root" for top-level)
+  // ?search=          case-insensitive label search
+  // ?isLeaf=true      only leaf nodes (selectable categories)
+  // ?limit=100
+  fastify.get("/categories", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as {
+      parentId?: string;
+      search?: string;
+      isLeaf?: string;
+      limit?: string;
+    };
+    const limit = Math.min(parseInt(query.limit ?? "100", 10), 500);
+
+    const categories = await fastify.prisma.mercariCategory.findMany({
+      where: {
+        ...(query.parentId !== undefined
+          ? { parentId: query.parentId === "root" ? null : query.parentId }
+          : {}),
+        ...(query.search
+          ? { label: { contains: query.search, mode: "insensitive" } }
+          : {}),
+        ...(query.isLeaf === "true" ? { isLeaf: true } : {}),
+      },
+      orderBy: [{ depth: "asc" }, { label: "asc" }],
+      take: limit,
+    });
+
+    return reply.send({ success: true, data: categories });
+  });
+
+  // POST /api/mercari/categories/bulk — accept a pre-fetched array of categories and upsert them
+  fastify.post("/categories/bulk", { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = request.body as { categories?: RawCategory[] };
+    if (!Array.isArray(body?.categories) || body.categories.length === 0) {
+      return reply.status(400).send({ success: false, error: "categories array is required" });
+    }
+    const total = await bulkUpsertCategories(fastify.prisma, body.categories);
+    return reply.send({ success: true, data: { total } });
+  });
+
   // POST /api/mercari/jobs — enqueue a new crosslisting job
   fastify.post("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
     const body = request.body as {

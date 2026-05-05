@@ -269,6 +269,22 @@ model MercariJob {
   completedAt  DateTime?
 }
 
+// ─── Mercari Categories ───────────────────────────────────────────────────────
+
+model MercariCategory {
+  id          String    @id // Vendoo/Mercari category slug (e.g. "men_tops")
+  label       String
+  parentId    String?   // null = root-level category
+  isLeaf      Boolean   @default(false)
+  hasChildren Boolean   @default(false)
+  depth       Int       @default(0)
+  fullPath    String[]  // breadcrumb labels ["Men", "Tops", "T-Shirts"]
+  payload     Json?     // parsed payload_text from Vendoo (may contain mercariCategoryId etc.)
+  lastSyncAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 // ─── Sync Events ──────────────────────────────────────────────────────────────
 
 enum SyncEventType {

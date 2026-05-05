@@ -1,0 +1,132 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: R
+        - generic [ref=e6]:
+          - paragraph [ref=e7]: ResellerOS
+          - paragraph [ref=e8]: Crosslist smarter
+      - navigation [ref=e9]:
+        - link "Product" [ref=e10] [cursor=pointer]:
+          - /url: "#features"
+        - link "Marketplaces" [ref=e11] [cursor=pointer]:
+          - /url: "#marketplaces"
+        - link "Inventory" [ref=e12] [cursor=pointer]:
+          - /url: "#inventory"
+        - link "Pricing" [ref=e13] [cursor=pointer]:
+          - /url: "#pricing"
+      - generic [ref=e14]:
+        - link "Login" [ref=e15] [cursor=pointer]:
+          - /url: /sign-in
+        - link "Start Free" [ref=e16] [cursor=pointer]:
+          - /url: /sign-up
+    - main [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: Purpose-built for full-time and side-hustle resellers
+          - heading "List once. Sync like a pro. Sell on every marketplace." [level=1] [ref=e22]:
+            - text: List once.
+            - text: Sync like a pro.
+            - text: Sell on every
+            - generic [ref=e23]: marketplace.
+          - paragraph [ref=e24]: ResellerOS is built for modern resellers who juggle drops, thrift finds, and premium inventory. Connect channels, cross-post in a click, and keep stock accurate everywhere.
+          - generic [ref=e25]:
+            - link "Get Started Free" [ref=e26] [cursor=pointer]:
+              - /url: /sign-up
+            - link "Explore Integrations" [ref=e27] [cursor=pointer]:
+              - /url: /dashboard/marketplaces
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - paragraph [ref=e30]: 8+
+              - paragraph [ref=e31]: Marketplace channels
+            - generic [ref=e32]:
+              - paragraph [ref=e33]: 2m
+              - paragraph [ref=e34]: Typical post time
+            - generic [ref=e35]:
+              - paragraph [ref=e36]: 24/7
+              - paragraph [ref=e37]: Inventory sync
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - paragraph [ref=e40]: Daily activity
+            - paragraph [ref=e41]: +42 listings
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - paragraph [ref=e45]: Live crosslisting queue
+              - generic [ref=e46]: 8 active
+            - generic [ref=e47]:
+              - generic [ref=e49]:
+                - img "Vintage Denim Jacket" [ref=e50]
+                - generic [ref=e51]:
+                  - paragraph [ref=e52]: Vintage Denim Jacket
+                  - paragraph [ref=e53]: eBay + Poshmark + Depop
+                  - paragraph [ref=e54]: Publishing
+              - generic [ref=e56]:
+                - img "Nike Dunk Low Panda" [ref=e57]
+                - generic [ref=e58]:
+                  - paragraph [ref=e59]: Nike Dunk Low Panda
+                  - paragraph [ref=e60]: eBay + Facebook + Mercari
+                  - paragraph [ref=e61]: Synced
+              - generic [ref=e63]:
+                - img "Coach Mini Backpack" [ref=e64]
+                - generic [ref=e65]:
+                  - paragraph [ref=e66]: Coach Mini Backpack
+                  - paragraph [ref=e67]: Poshmark + Whatnot
+                  - paragraph [ref=e68]: Needs review
+      - generic [ref=e69]:
+        - heading "One dashboard. Multi-marketplace reach." [level=2] [ref=e70]
+        - paragraph [ref=e71]: Connect your channels and keep inventory aligned automatically across your storefronts.
+        - generic [ref=e72]:
+          - img "eBay logo" [ref=e74]
+          - img "Etsy logo" [ref=e76]
+          - img "Poshmark logo" [ref=e78]
+          - img "Facebook logo" [ref=e80]
+          - img "Whatnot logo" [ref=e82]
+          - img "Mercari logo" [ref=e84]
+          - paragraph [ref=e86]: Depop
+          - paragraph [ref=e88]: Grailed
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - heading "Built for what resellers actually sell" [level=2] [ref=e92]
+            - paragraph [ref=e93]: Vintage clothing, sneakers, bags, and collectibles all in one workflow.
+          - link "Start listing" [ref=e94] [cursor=pointer]:
+            - /url: /sign-up
+        - generic [ref=e95]:
+          - article [ref=e96]:
+            - img "Vintage Denim Jacket" [ref=e97]
+            - generic [ref=e98]:
+              - paragraph [ref=e99]: Vintage Denim Jacket
+              - paragraph [ref=e100]: Outerwear
+          - article [ref=e101]:
+            - img "Sneaker Flip" [ref=e102]
+            - generic [ref=e103]:
+              - paragraph [ref=e104]: Sneaker Flip
+              - paragraph [ref=e105]: Footwear
+          - article [ref=e106]:
+            - img "Designer Bag" [ref=e107]
+            - generic [ref=e108]:
+              - paragraph [ref=e109]: Designer Bag
+              - paragraph [ref=e110]: Accessories
+          - article [ref=e111]:
+            - img "Retro Watch" [ref=e112]
+            - generic [ref=e113]:
+              - paragraph [ref=e114]: Retro Watch
+              - paragraph [ref=e115]: Collectibles
+      - generic [ref=e116]:
+        - article [ref=e117]:
+          - heading "Unified Inventory" [level=3] [ref=e118]
+          - paragraph [ref=e119]: Track quantity and pricing changes in one place, then push updates everywhere with confidence.
+        - article [ref=e120]:
+          - heading "Faster Cross-Posting" [level=3] [ref=e121]
+          - paragraph [ref=e122]: Use one listing form and map product details to each marketplace without duplicate work.
+        - article [ref=e123]:
+          - heading "Profit Visibility" [level=3] [ref=e124]
+          - paragraph [ref=e125]: See platform fees, margins, and trends so you know which channels drive real returns.
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - paragraph [ref=e129]: Launch Offer
+          - heading "Start crosslisting in under 10 minutes." [level=3] [ref=e130]
+          - paragraph [ref=e131]: Connect your first marketplace now and grow from there.
+        - link "Create Account" [ref=e132] [cursor=pointer]:
+          - /url: /sign-up
+  - region "Notifications alt+T"

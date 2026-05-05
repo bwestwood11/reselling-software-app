@@ -180,8 +180,19 @@ async function postToMercariApi(job) {
     shippingPayerId,
     shippingClassIds,
     shippingPackageWeight,
+    shippingWeightUnit,
+    shippingPackageWidth,
+    shippingPackageHeight,
+    shippingPackageLength,
+    shippingDimensionUnit,
+    isShippingSoyo,
+    offerConfig,
     zipCode,
   } = job.payload;
+
+  if (!categoryId) {
+    throw new Error("categoryId is required for Mercari listings — select a category before publishing");
+  }
 
   // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
   const photoIds = await uploadImagesToMercari(images);
@@ -199,6 +210,13 @@ async function postToMercariApi(job) {
     shippingPayerId,
     shippingClassIds,
     shippingPackageWeight,
+    shippingWeightUnit,
+    shippingPackageWidth,
+    shippingPackageHeight,
+    shippingPackageLength,
+    shippingDimensionUnit,
+    isShippingSoyo,
+    offerConfig,
     zipCode,
   });
 }
@@ -308,6 +326,13 @@ async function createMercariListing(params) {
     shippingPayerId = 1,
     shippingClassIds = [2376],
     shippingPackageWeight = 16,
+    shippingWeightUnit = "OUNCE",
+    shippingPackageWidth = null,
+    shippingPackageHeight = null,
+    shippingPackageLength = null,
+    shippingDimensionUnit = "INCH",
+    isShippingSoyo = false,
+    offerConfig = null,
     zipCode = null,
   } = params;
 
@@ -326,12 +351,21 @@ async function createMercariListing(params) {
         conditionId,
         salesFee,
         minPriceForAutoPriceDrop,
+        categoryId: parseInt(String(categoryId), 10),
         shippingPayerId,
         shippingClassIds,
         suggestedShippingClassIds: shippingClassIds,
         shippingPackageWeight,
+        shippingWeightUnit,
+        isShippingSoyo,
+        ...(shippingPackageWidth != null ? { shippingPackageWidth } : {}),
+        ...(shippingPackageHeight != null ? { shippingPackageHeight } : {}),
+        ...(shippingPackageLength != null ? { shippingPackageLength } : {}),
+        ...(shippingPackageWidth != null || shippingPackageHeight != null || shippingPackageLength != null
+          ? { shippingDimensionUnit }
+          : {}),
+        ...(offerConfig ? { offerConfig } : {}),
         ...(zipCode ? { zipCode } : {}),
-        ...(categoryId ? { categoryId: String(categoryId) } : {}),
         ...(brandId ? { brandId: String(brandId) } : {}),
         ...(sizeId ? { sizeId: String(sizeId) } : {}),
       },

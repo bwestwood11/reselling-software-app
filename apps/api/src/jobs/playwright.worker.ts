@@ -16,7 +16,7 @@ export function startPlaywrightWorker() {
   // Run every 2 minutes. Jobs enqueued between ticks wait at most ~2 min.
   cron.schedule("*/2 * * * *", async () => {
     const jobs = await prisma.mercariJob.findMany({
-      where: { status: "PENDING" },
+      where: { status: "PENDING", createdAt: { lte: new Date(Date.now() - 60 * 2 * 1000) } }, // only pick jobs older than 2 min to avoid
       orderBy: { createdAt: "asc" },
       take: BATCH_SIZE,
     });

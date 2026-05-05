@@ -1,0 +1,551 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Privacy settings" [level=1] [ref=e5]
+      - img "mercari-lock-icon" [ref=e7]
+    - generic [ref=e8]:
+      - text: We use cookies to improve site experience, advertising, and other purposes. By continuing, you agree to the use of cookies.
+      - link "Privacy Policy" [ref=e9] [cursor=pointer]:
+        - /url: https://www.mercari.com/us/help_center/topics/account/policies/mercari-privacy-policy/
+    - generic [ref=e10]:
+      - button "Review details" [ref=e11] [cursor=pointer]
+      - button "Got it" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - button "Skip to content" [ref=e14] [cursor=pointer]
+    - generic [ref=e15]:
+      - heading "Your Go-to Marketplace for Deals on Used & Secondhand Items" [level=1] [ref=e16]
+      - banner [ref=e17]:
+        - generic [ref=e18]:
+          - link "Mercari Logo" [ref=e20] [cursor=pointer]:
+            - /url: /
+            - img "Mercari Logo" [ref=e21]
+          - generic [ref=e26]:
+            - searchbox "Search for anything" [ref=e27]
+            - button "Search" [ref=e28] [cursor=pointer]:
+              - img [ref=e29]
+          - navigation [ref=e32]:
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - button "Download app" [ref=e35] [cursor=pointer]
+                - button "Sign up" [ref=e36] [cursor=pointer]
+                - button "Log in" [ref=e37] [cursor=pointer]
+              - button "Notifications" [ref=e39] [cursor=pointer]:
+                - generic "notifications" [ref=e40]:
+                  - img [ref=e41]
+              - button "Cart" [ref=e45] [cursor=pointer]:
+                - generic "cart" [ref=e46]:
+                  - img [ref=e47]
+            - button "Sell" [ref=e52] [cursor=pointer]
+      - navigation [ref=e54]:
+        - generic [ref=e55]:
+          - link "Women Women" [ref=e57] [cursor=pointer]:
+            - /url: /us/category/women-1/
+            - generic [ref=e58]:
+              - img "Women" [ref=e59]
+              - heading "Women" [level=6] [ref=e60]
+          - link "Men Men" [ref=e62] [cursor=pointer]:
+            - /url: /us/category/men-2/
+            - generic [ref=e63]:
+              - img "Men" [ref=e64]
+              - heading "Men" [level=6] [ref=e65]
+          - link "Electronics Electronics" [ref=e67] [cursor=pointer]:
+            - /url: /us/category/electronics-7/
+            - generic [ref=e68]:
+              - img "Electronics" [ref=e69]
+              - heading "Electronics" [level=6] [ref=e70]
+          - link "Toys Toys" [ref=e72] [cursor=pointer]:
+            - /url: /us/category/toys-1611/
+            - generic [ref=e73]:
+              - img "Toys" [ref=e74]
+              - heading "Toys" [level=6] [ref=e75]
+          - link "Gaming Gaming" [ref=e77] [cursor=pointer]:
+            - /url: /us/category/gaming-84/
+            - generic [ref=e78]:
+              - img "Gaming" [ref=e79]
+              - heading "Gaming" [level=6] [ref=e80]
+          - link "Handbags Handbags" [ref=e82] [cursor=pointer]:
+            - /url: /us/category/handbags-21/
+            - generic [ref=e83]:
+              - img "Handbags" [ref=e84]
+              - heading "Handbags" [level=6] [ref=e85]
+          - link "Home Home" [ref=e87] [cursor=pointer]:
+            - /url: /us/category/home-4/
+            - generic [ref=e88]:
+              - img "Home" [ref=e89]
+              - heading "Home" [level=6] [ref=e90]
+          - link "Vintage Vintage" [ref=e92] [cursor=pointer]:
+            - /url: /us/category/vintage-5/
+            - generic [ref=e93]:
+              - img "Vintage" [ref=e94]
+              - heading "Vintage" [level=6] [ref=e95]
+          - link "Beauty Beauty" [ref=e97] [cursor=pointer]:
+            - /url: /us/category/beauty-6/
+            - generic [ref=e98]:
+              - img "Beauty" [ref=e99]
+              - heading "Beauty" [level=6] [ref=e100]
+          - link "Kids Kids" [ref=e102] [cursor=pointer]:
+            - /url: /us/category/kids-3/
+            - generic [ref=e103]:
+              - img "Kids" [ref=e104]
+              - heading "Kids" [level=6] [ref=e105]
+          - link "Sports Sports" [ref=e107] [cursor=pointer]:
+            - /url: /us/category/sports-8/
+            - generic [ref=e108]:
+              - img "Sports" [ref=e109]
+              - heading "Sports" [level=6] [ref=e110]
+          - link "Handmade Handmade" [ref=e112] [cursor=pointer]:
+            - /url: /us/category/handmade-9/
+            - generic [ref=e113]:
+              - img "Handmade" [ref=e114]
+              - heading "Handmade" [level=6] [ref=e115]
+          - link "Office Office" [ref=e117] [cursor=pointer]:
+            - /url: /us/category/office-2882/
+            - generic [ref=e118]:
+              - img "Office" [ref=e119]
+              - heading "Office" [level=6] [ref=e120]
+          - link "Pet Pet" [ref=e122] [cursor=pointer]:
+            - /url: /us/category/pet-143/
+            - generic [ref=e123]:
+              - img "Pet" [ref=e124]
+              - heading "Pet" [level=6] [ref=e125]
+          - link "Outdoor Outdoor" [ref=e127] [cursor=pointer]:
+            - /url: /us/category/outdoor-2633/
+            - generic [ref=e128]:
+              - img "Outdoor" [ref=e129]
+              - heading "Outdoor" [level=6] [ref=e130]
+          - link "View all View all" [ref=e132] [cursor=pointer]:
+            - /url: /us/browse-categories/
+            - generic [ref=e133]:
+              - img "View all" [ref=e134]
+              - heading "View all" [level=6] [ref=e135]
+      - link "Daily Deals Await. Fresh finds with built-in savings* Mercari has selected items with seller-applied discounts that satisfy certain selection criteria. Offer expiration times may vary. Deals are updated daily. Limited quantities available. Learn more" [ref=e138] [cursor=pointer]:
+        - /url: /search/?withDealsOnly=true
+        - img "Daily Deals Await. Fresh finds with built-in savings* Mercari has selected items with seller-applied discounts that satisfy certain selection criteria. Offer expiration times may vary. Deals are updated daily. Limited quantities available. Learn more" [ref=e139]
+      - main [ref=e140]:
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - link "gaming" [ref=e145] [cursor=pointer]:
+              - /url: /search/?categoryIds=797-796-1593&itemConditions=1-2&itemStatuses=1
+              - img "gaming" [ref=e146]
+            - link "figurines" [ref=e148] [cursor=pointer]:
+              - /url: /search/?categoryIds=1613&itemConditions=1-2&itemStatuses=1
+              - img "figurines" [ref=e149]
+            - link "tradingcards" [ref=e151] [cursor=pointer]:
+              - /url: /search/?categoryIds=1780-1642-3511&itemConditions=1-2&itemStatuses=1
+              - img "tradingcards" [ref=e152]
+          - generic [ref=e153]:
+            - link "electronics" [ref=e155] [cursor=pointer]:
+              - /url: /search/?categoryIds=2145-778-769&itemConditions=2-1&itemStatuses=1
+              - img "electronics" [ref=e156]
+            - link "toys" [ref=e158] [cursor=pointer]:
+              - /url: /search/?categoryIds=1611&itemConditions=2-1&itemStatuses=1
+              - img "toys" [ref=e159]
+            - link "beauty" [ref=e161] [cursor=pointer]:
+              - /url: /search/?categoryIds=6&itemConditions=2-1&itemStatuses=1
+              - img "beauty" [ref=e162]
+            - link "handbags" [ref=e164] [cursor=pointer]:
+              - /url: /search/?authenticity=lux&itemConditions=1-2&itemStatuses=1
+              - img "handbags" [ref=e165]
+          - generic [ref=e166]:
+            - link "downloadtheapp" [ref=e168] [cursor=pointer]:
+              - /url: /us/mercariapp/
+              - img "downloadtheapp" [ref=e169]
+            - link "athleticapparel" [ref=e171] [cursor=pointer]:
+              - /url: /search/?categoryIds=36-19&itemConditions=2-1&itemStatuses=1&keyword=athletic%20apparel
+              - img "athleticapparel" [ref=e172]
+            - link "sneakers" [ref=e174] [cursor=pointer]:
+              - /url: /search/?categoryIds=397-399-283-285&itemConditions=1-2&itemStatuses=1&keyword=sneakers
+              - img "sneakers" [ref=e175]
+          - generic [ref=e176]:
+            - link "women" [ref=e178] [cursor=pointer]:
+              - /url: /search/?categoryIds=1&itemConditions=2-1&itemStatuses=1
+              - img "women" [ref=e179]
+            - link "men" [ref=e181] [cursor=pointer]:
+              - /url: /search/?categoryIds=2&itemConditions=2-1&itemStatuses=1
+              - img "men" [ref=e182]
+            - link "kids" [ref=e184] [cursor=pointer]:
+              - /url: /search/?categoryIds=3&itemConditions=2-1&itemStatuses=1
+              - img "kids" [ref=e185]
+            - link "home" [ref=e187] [cursor=pointer]:
+              - /url: /search/?categoryIds=4&itemConditions=2-1&itemStatuses=1
+              - img "home" [ref=e188]
+        - generic [ref=e189]:
+          - heading "Top brands" [level=2] [ref=e191]
+          - generic [ref=e192]:
+            - generic [ref=e194]:
+              - link "Apple Apple" [ref=e196] [cursor=pointer]:
+                - /url: /search/?brandIds=319&itemConditions=1-2&itemStatuses=1&minPrice=9000
+                - img "Apple" [ref=e199]
+                - heading "Apple" [level=5] [ref=e200]
+              - link "Sony Sony" [ref=e202] [cursor=pointer]:
+                - /url: /search/?brandIds=5937&itemConditions=1-2&itemStatuses=1&minPrice=7000
+                - img "Sony" [ref=e205]
+                - heading "Sony" [level=5] [ref=e206]
+              - link "Nike Nike" [ref=e208] [cursor=pointer]:
+                - /url: /search/?brandIds=4578&itemConditions=1-2&itemStatuses=1&minPrice=3000
+                - img "Nike" [ref=e211]
+                - heading "Nike" [level=5] [ref=e212]
+              - link "Nintendo Nintendo" [ref=e214] [cursor=pointer]:
+                - /url: /search/?brandIds=4591&itemConditions=1-2&itemStatuses=1&minPrice=4000
+                - img "Nintendo" [ref=e217]
+                - heading "Nintendo" [level=5] [ref=e218]
+              - link "Funko Funko" [ref=e220] [cursor=pointer]:
+                - /url: /search/?brandIds=2506&itemConditions=1-2&itemStatuses=1&minPrice=3000
+                - img "Funko" [ref=e223]
+                - heading "Funko" [level=5] [ref=e224]
+              - link "Pokemon Pokemon" [ref=e226] [cursor=pointer]:
+                - /url: /search/?brandIds=5074&itemConditions=1-2&itemStatuses=1&minPrice=2000
+                - img "Pokemon" [ref=e229]
+                - heading "Pokemon" [level=5] [ref=e230]
+              - link "Loungefly Loungefly" [ref=e232] [cursor=pointer]:
+                - /url: /search/?brandIds=3909&itemConditions=1-2&itemStatuses=1&minPrice=5000
+                - img "Loungefly" [ref=e235]
+                - heading "Loungefly" [level=5] [ref=e236]
+              - link "LEGO LEGO" [ref=e238] [cursor=pointer]:
+                - /url: /search/?brandIds=3752&itemConditions=1-2&itemStatuses=1&minPrice=1000
+                - img "LEGO" [ref=e241]
+                - heading "LEGO" [level=5] [ref=e242]
+            - img [ref=e244] [cursor=pointer]
+        - generic [ref=e246]:
+          - generic [ref=e247]:
+            - heading "See what’s selling" [level=2] [ref=e248]
+            - paragraph [ref=e249]:
+              - link "See all" [ref=e250] [cursor=pointer]:
+                - /url: /search/?brandIds=319-9318-4578-115-3370-7199-112-54-55-56-8924-7485-10954-2506-4591-3908-5937-7190-115-3370-7199-6027-7019-2766-5016-1805-1811-7224-1816-1806-6848-1808-3752-4239-5609-1400-5074-3153-3909-6771-6483-1099-10954-2859-6027-7189-7192-586-4254-5504&itemStatuses=2&minPrice=3500&sortBy=2
+          - generic [ref=e251]:
+            - generic [ref=e253]:
+              - link "Pre-Loved Vintage Legacy Holiday Patchwork Demi Shoulder Bag - Coach SOLD Pre-Loved Vintage Coach Legacy Holiday Patchwork Demi Shoulder Bag $120.00" [ref=e256] [cursor=pointer]:
+                - /url: /us/item/m28402350980/
+                - generic [ref=e257]:
+                  - generic [ref=e258]:
+                    - img [ref=e261]
+                    - generic [ref=e263]:
+                      - img "Pre-Loved Vintage Legacy Holiday Patchwork Demi Shoulder Bag - Coach" [ref=e265]
+                      - paragraph [ref=e268]: SOLD
+                  - generic [ref=e269]:
+                    - paragraph [ref=e271]: Pre-Loved Vintage Coach Legacy Holiday Patchwork Demi Shoulder Bag
+                    - paragraph [ref=e273]: $120.00
+              - link "Padmé Amidala Ear Headband for Adults by BaubleBar – Star Wars - Disney SOLD Disney Padmé Amidala Ear Headband for Adults by BaubleBar – Star Wars $95.00" [ref=e276] [cursor=pointer]:
+                - /url: /us/item/m31285612101/
+                - generic [ref=e277]:
+                  - generic [ref=e278]:
+                    - img [ref=e281]
+                    - generic [ref=e283]:
+                      - img "Padmé Amidala Ear Headband for Adults by BaubleBar – Star Wars - Disney" [ref=e285]
+                      - paragraph [ref=e288]: SOLD
+                  - generic [ref=e289]:
+                    - paragraph [ref=e291]: Disney Padmé Amidala Ear Headband for Adults by BaubleBar – Star Wars
+                    - paragraph [ref=e293]: $95.00
+              - link "Disney Parks 2025 May The 4th Star Wars Discovery Mug Set 3x IN HAND - Starbucks SOLD Disney Parks 2025 Starbucks May The 4th Star Wars Discovery Mug Set 3x IN HAND $75.00 $102.50" [ref=e296] [cursor=pointer]:
+                - /url: /us/item/m34286740270/
+                - generic [ref=e297]:
+                  - generic [ref=e298]:
+                    - img [ref=e301]
+                    - generic [ref=e303]:
+                      - img "Disney Parks 2025 May The 4th Star Wars Discovery Mug Set 3x IN HAND - Starbucks" [ref=e305]
+                      - paragraph [ref=e308]: SOLD
+                  - generic [ref=e309]:
+                    - paragraph [ref=e311]: Disney Parks 2025 Starbucks May The 4th Star Wars Discovery Mug Set 3x IN HAND
+                    - paragraph [ref=e313]:
+                      - text: $75.00
+                      - generic [ref=e314]: $102.50
+              - link "♥️reserved for Shasta♥️ - Rae Dunn SOLD ♥️reserved for Shasta♥️ $152.00" [ref=e317] [cursor=pointer]:
+                - /url: /us/item/m26372774793/
+                - generic [ref=e318]:
+                  - generic [ref=e319]:
+                    - img [ref=e322]
+                    - generic [ref=e324]:
+                      - img "♥️reserved for Shasta♥️ - Rae Dunn" [ref=e326]
+                      - paragraph [ref=e329]: SOLD
+                  - generic [ref=e330]:
+                    - paragraph [ref=e332]: ♥️reserved for Shasta♥️
+                    - paragraph [ref=e334]: $152.00
+              - link "New 3DS LL - Nintendo SOLD New Nintendo 3DS LL $170.00" [ref=e337] [cursor=pointer]:
+                - /url: /us/item/m41088393806/
+                - generic [ref=e338]:
+                  - generic [ref=e339]:
+                    - img [ref=e342]
+                    - generic [ref=e344]:
+                      - img "New 3DS LL - Nintendo" [ref=e346]
+                      - paragraph [ref=e349]: SOLD
+                  - generic [ref=e350]:
+                    - paragraph [ref=e352]: New Nintendo 3DS LL
+                    - paragraph [ref=e354]: $170.00
+              - link "Lot of 9 Pokémon cards - Pokemon SOLD Lot of 9 Pokémon cards $40.00" [ref=e357] [cursor=pointer]:
+                - /url: /us/item/m69175129690/
+                - generic [ref=e358]:
+                  - generic [ref=e359]:
+                    - img [ref=e362]
+                    - generic [ref=e364]:
+                      - img "Lot of 9 Pokémon cards - Pokemon" [ref=e366]
+                      - paragraph [ref=e369]: SOLD
+                  - generic [ref=e370]:
+                    - paragraph [ref=e372]: Lot of 9 Pokémon cards
+                    - paragraph [ref=e374]: $40.00
+              - link "40oz HJ Stella Sport Brand new tags - Starbucks SOLD 40oz HJ Stella Sport Brand new tags $325.00" [ref=e377] [cursor=pointer]:
+                - /url: /us/item/m31783012024/
+                - generic [ref=e378]:
+                  - generic [ref=e379]:
+                    - img [ref=e382]
+                    - generic [ref=e384]:
+                      - img "40oz HJ Stella Sport Brand new tags - Starbucks" [ref=e386]
+                      - paragraph [ref=e389]: SOLD
+                  - generic [ref=e390]:
+                    - paragraph [ref=e392]: 40oz HJ Stella Sport Brand new tags
+                    - paragraph [ref=e394]: $325.00
+              - link "ascended heroes pin collection - Pokemon SOLD Pokemon ascended heroes pin collection $48.00" [ref=e397] [cursor=pointer]:
+                - /url: /us/item/m92948134625/
+                - generic [ref=e398]:
+                  - generic [ref=e399]:
+                    - img [ref=e402]
+                    - generic [ref=e404]:
+                      - img "ascended heroes pin collection - Pokemon" [ref=e406]
+                      - paragraph [ref=e409]: SOLD
+                  - generic [ref=e410]:
+                    - paragraph [ref=e412]: Pokemon ascended heroes pin collection
+                    - paragraph [ref=e414]: $48.00
+              - link "ascended heroes pin collection - Pokemon SOLD Pokemon ascended heroes pin collection $48.00" [ref=e417] [cursor=pointer]:
+                - /url: /us/item/m81952279707/
+                - generic [ref=e418]:
+                  - generic [ref=e419]:
+                    - img [ref=e422]
+                    - generic [ref=e424]:
+                      - img "ascended heroes pin collection - Pokemon" [ref=e426]
+                      - paragraph [ref=e429]: SOLD
+                  - generic [ref=e430]:
+                    - paragraph [ref=e432]: Pokemon ascended heroes pin collection
+                    - paragraph [ref=e434]: $48.00
+              - link "Prada PR17 Sunglasses - Coach SOLD Prada PR17 Sunglasses $42.00" [ref=e437] [cursor=pointer]:
+                - /url: /us/item/m81145722256/
+                - generic [ref=e438]:
+                  - generic [ref=e439]:
+                    - img [ref=e442]
+                    - generic [ref=e444]:
+                      - img "Prada PR17 Sunglasses - Coach" [ref=e446]
+                      - paragraph [ref=e449]: SOLD
+                  - generic [ref=e450]:
+                    - paragraph [ref=e452]: Prada PR17 Sunglasses
+                    - paragraph [ref=e454]: $42.00
+              - link "Transformers Megatron Godzilla - Hasbro SOLD Transformers Megatron Godzilla $50.00" [ref=e457] [cursor=pointer]:
+                - /url: /us/item/m37179729855/
+                - generic [ref=e458]:
+                  - generic [ref=e459]:
+                    - img [ref=e462]
+                    - generic [ref=e464]:
+                      - img "Transformers Megatron Godzilla - Hasbro" [ref=e466]
+                      - paragraph [ref=e469]: SOLD
+                  - generic [ref=e470]:
+                    - paragraph [ref=e472]: Transformers Megatron Godzilla
+                    - paragraph [ref=e474]: $50.00
+              - link "See all" [ref=e477] [cursor=pointer]:
+                - /url: /search/?brandIds=319-9318-4578-115-3370-7199-112-54-55-56-8924-7485-10954-2506-4591-3908-5937-7190-115-3370-7199-6027-7019-2766-5016-1805-1811-7224-1816-1806-6848-1808-3752-4239-5609-1400-5074-3153-3909-6771-6483-1099-10954-2859-6027-7189-7192-586-4254-5504&itemStatuses=2&minPrice=3500&sortBy=2
+                - generic [ref=e479]:
+                  - generic [ref=e480]:
+                    - img
+                  - generic [ref=e481]: See all
+            - button [ref=e482] [cursor=pointer]
+      - generic [ref=e485]:
+        - generic [ref=e486]: Get the app.
+        - paragraph [ref=e487]: Sell or buy. Almost anything.
+        - generic [ref=e488]:
+          - link "Download the Mercari App on the App Store" [ref=e489] [cursor=pointer]:
+            - /url: https://app.adjust.io/4n19o6?campaign=web_desktop.common&adgroup=common.desktop_foot_banner
+            - img "Download the Mercari App on the App Store" [ref=e490]
+          - link "Download the Mercari App on the App Store" [ref=e491] [cursor=pointer]:
+            - /url: https://app.adjust.io/j63wrk?campaign=web_desktop.common&adgroup=common.desktop_foot_banner
+            - img "Download the Mercari App on the App Store" [ref=e492]
+      - contentinfo [ref=e494]:
+        - generic [ref=e496]:
+          - generic [ref=e497]:
+            - generic [ref=e499]:
+              - generic [ref=e500]:
+                - generic [ref=e501]: SHOP
+                - list [ref=e502]:
+                  - listitem [ref=e503]:
+                    - link "Trending" [ref=e504] [cursor=pointer]:
+                      - /url: /search/?brandIds=4578-1805-2506-5074-16037-4591-25117-9318-23753-6472-54-6771-4086-5937-5016-4239-1400-3752-319-586-6027-115-6334-3909-561-1442-6036-6625-7189-2859-4127-1566-1480-4878-25259-3803-549-5058-4554-9548-404-18428-7188-4254&itemConditions=1-2&itemStatuses=1&minPrice=1500&sortBy=1
+                  - listitem [ref=e505]:
+                    - link "Brands" [ref=e506] [cursor=pointer]:
+                      - /url: /us/brand/
+                  - listitem [ref=e507]:
+                    - link "Categories" [ref=e508] [cursor=pointer]:
+                      - /url: /us/category/
+                  - listitem [ref=e509]:
+                    - link "Deals" [ref=e510] [cursor=pointer]:
+                      - /url: /us/featured/mercari_us_deals/
+                  - listitem [ref=e511]:
+                    - link "How it works" [ref=e512] [cursor=pointer]:
+                      - /url: /us/help_center/topics/purchase/guides/making-a-purchase/
+                  - listitem [ref=e513]:
+                    - link "Gift card exchange" [ref=e514] [cursor=pointer]:
+                      - /url: /us/try-gift-card-exchange/
+                  - listitem [ref=e515]:
+                    - link "Coupons and Promotions" [ref=e516] [cursor=pointer]:
+                      - /url: https://lp.us.mercari.com/coupons-and-promotions
+                  - listitem [ref=e517]:
+                    - link "Create an account" [ref=e518] [cursor=pointer]:
+                      - /url: /signup/
+              - generic [ref=e519]:
+                - generic [ref=e520]: SELL
+                - list [ref=e521]:
+                  - listitem [ref=e522]:
+                    - link "How to sell" [ref=e523] [cursor=pointer]:
+                      - /url: /us/how-to-sell/
+                  - listitem [ref=e524]:
+                    - link "Packaging" [ref=e525] [cursor=pointer]:
+                      - /url: /us/help_center/article/334/
+                  - listitem [ref=e526]:
+                    - link "Shipping" [ref=e527] [cursor=pointer]:
+                      - /url: /shipping/
+                  - listitem [ref=e528]:
+                    - link "Getting paid" [ref=e529] [cursor=pointer]:
+                      - /url: /us/help_center/topics/payouts/guides/getting-paid/
+                  - listitem [ref=e530]:
+                    - link "Authenticate" [ref=e531] [cursor=pointer]:
+                      - /url: /us/authenticate/
+              - generic [ref=e532]:
+                - generic [ref=e533]: SUPPORT
+                - list [ref=e534]:
+                  - listitem [ref=e535]:
+                    - link "Contact Us" [ref=e536] [cursor=pointer]:
+                      - /url: /us/help_center/contact/
+                  - listitem [ref=e537]:
+                    - link "Help Center" [ref=e538] [cursor=pointer]:
+                      - /url: /us/help_center/
+                  - listitem [ref=e539]:
+                    - link "Service Status" [ref=e540] [cursor=pointer]:
+                      - /url: https://status.mercari.com
+                  - listitem [ref=e541]:
+                    - link "Marketplace Guidelines" [ref=e542] [cursor=pointer]:
+                      - /url: /us/help_center/article/407/
+                  - listitem [ref=e543]:
+                    - link "Safety Guidelines" [ref=e544] [cursor=pointer]:
+                      - /url: /us/help_center/topics/trust/policies/safety-guidelines/
+                  - listitem [ref=e545]:
+                    - link "Buyer Protection" [ref=e546] [cursor=pointer]:
+                      - /url: /us/help_center/article/235/
+                  - listitem [ref=e547]:
+                    - link "Seller Protection" [ref=e548] [cursor=pointer]:
+                      - /url: /us/help_center/topics/account/policies/seller-protection/
+                  - listitem [ref=e549]:
+                    - link "Refunds and Returns" [ref=e550] [cursor=pointer]:
+                      - /url: /us/help_center/topics/returns/policies/refunds-and-returns/
+              - generic [ref=e551]:
+                - generic [ref=e552]: COMPANY & POLICIES
+                - list [ref=e553]:
+                  - listitem [ref=e554]:
+                    - link "About Us" [ref=e555] [cursor=pointer]:
+                      - /url: https://www.mercari.com/about/
+                  - listitem [ref=e556]:
+                    - link "Blog" [ref=e557] [cursor=pointer]:
+                      - /url: https://blog.mercari.com
+                  - listitem [ref=e558]:
+                    - link "Careers" [ref=e559] [cursor=pointer]:
+                      - /url: /careers/
+                  - listitem [ref=e560]:
+                    - link "Policy Center" [ref=e561] [cursor=pointer]:
+                      - /url: /us/help_center/topics/trust/
+            - generic [ref=e562]:
+              - generic [ref=e563]: We accept
+              - list [ref=e564]:
+                - listitem [ref=e565]:
+                  - link "Navigate to support" [ref=e566] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "Visa Logo" [ref=e567]
+                - listitem [ref=e568]:
+                  - link "Navigate to support" [ref=e569] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "Paypal Logo" [ref=e570]
+                - listitem [ref=e571]:
+                  - link "Navigate to support" [ref=e572] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "MasterCard Logo" [ref=e573]
+                - listitem [ref=e574]:
+                  - link "Navigate to support" [ref=e575] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "American Express Logo" [ref=e576]
+                - listitem [ref=e577]:
+                  - link "Navigate to support" [ref=e578] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "Discover Logo" [ref=e579]
+                - listitem [ref=e580]:
+                  - link "Navigate to support" [ref=e581] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/venmo/
+                    - img "Venmo Logo" [ref=e582]
+                - listitem [ref=e583]:
+                  - link "Navigate to support" [ref=e584] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/enjoy-now-pay-later/
+                    - img "Zip Logo" [ref=e585]
+                - listitem [ref=e586]:
+                  - link "Navigate to support" [ref=e587] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "Paypal Pay in 4 Logo" [ref=e588]
+                - listitem [ref=e589]:
+                  - link "Navigate to support" [ref=e590] [cursor=pointer]:
+                    - /url: https://www.mercari.com/us/help_center/article/40/
+                    - img "Apple Pay Logo" [ref=e591]
+              - generic [ref=e592]: Find us on
+              - list [ref=e594]:
+                - listitem [ref=e595]:
+                  - link "Navigate to Facebook" [ref=e596] [cursor=pointer]:
+                    - /url: https://www.facebook.com/MercariApp
+                    - img "Facebook" [ref=e597]
+                - listitem [ref=e598]:
+                  - link "Navigate to Twitter" [ref=e599] [cursor=pointer]:
+                    - /url: https://twitter.com/mercari_app
+                    - img "Twitter" [ref=e600]
+                - listitem [ref=e601]:
+                  - link "Navigate to Instagram" [ref=e602] [cursor=pointer]:
+                    - /url: https://www.instagram.com/mercari
+                    - img "Instagram" [ref=e603]
+                - listitem [ref=e604]:
+                  - link "Navigate to TikTok" [ref=e605] [cursor=pointer]:
+                    - /url: https://www.tiktok.com/@mercari
+                    - img "TikTok" [ref=e606]
+                - listitem [ref=e607]:
+                  - link "Navigate to YouTube" [ref=e608] [cursor=pointer]:
+                    - /url: https://www.youtube.com/@mercari_app/shorts
+                    - img "YouTube" [ref=e609]
+                - listitem [ref=e610]:
+                  - link "Navigate to Pintrest" [ref=e611] [cursor=pointer]:
+                    - /url: https://www.pinterest.com/mercarius
+                    - img "Pintrest" [ref=e612]
+                - listitem [ref=e613]:
+                  - link "Navigate to Threads" [ref=e614] [cursor=pointer]:
+                    - /url: https://www.threads.net/@mercari
+                    - img "Threads" [ref=e615]
+                - listitem [ref=e616]:
+                  - link "Navigate to Snapchat" [ref=e617] [cursor=pointer]:
+                    - /url: https://www.snapchat.com/add/mercariofficial
+                    - img "Snapchat" [ref=e618]
+              - generic [ref=e619]: Get the app
+              - generic [ref=e620]:
+                - link "Download the Mercari App on the App Store" [ref=e621] [cursor=pointer]:
+                  - /url: https://app.adjust.io/4n19o6?campaign=web_desktop.common&adgroup=common.main_footer
+                  - img "Download the Mercari App on the App Store" [ref=e622]
+                - link "Download the Mercari App on the App Store" [ref=e623] [cursor=pointer]:
+                  - /url: https://app.adjust.io/j63wrk?campaign=web_desktop.common&adgroup=common.main_footer
+                  - img "Download the Mercari App on the App Store" [ref=e624]
+          - link "Mercari homepage" [ref=e626] [cursor=pointer]:
+            - /url: /
+            - img "Mercari Logo" [ref=e627]
+        - generic [ref=e629]:
+          - paragraph [ref=e630]: Copyright © 2026 Mercari, Inc.
+          - list [ref=e631]:
+            - listitem [ref=e632]:
+              - link "Privacy Policy" [ref=e633] [cursor=pointer]:
+                - /url: /privacy/
+            - listitem [ref=e634]:
+              - link "Terms of Service" [ref=e635] [cursor=pointer]:
+                - /url: /tos/
+            - listitem [ref=e636]:
+              - link "Licenses / Disclosures" [ref=e637] [cursor=pointer]:
+                - /url: /licenses_disclosures/
+            - listitem [ref=e638]:
+              - complementary "Open Cookie Preferences Modal" [ref=e639] [cursor=pointer]:
+                - link "Cookie Preferences, opens a dedicated popup modal window" [ref=e640]: Cookie Preferences
+          - paragraph [ref=e641]: "NMLS ID: 1486447 PO Box 60178, Palo Alto, CA 94306"
+          - link "Navigatge to TRUSTe" [ref=e642] [cursor=pointer]:
+            - /url: https://privacy.truste.com/privacy-seal/validation?rid=c909a10f-2ad3-440d-960b-0565fc72f06b
+            - img "TRUSTe Logo" [ref=e643]
+  - alert [ref=e644]
