@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { buildApp } from "./app";
+import { startSyncJob } from "./jobs/sync.job";
+import { startPlaywrightWorker } from "./jobs/playwright.worker";
 
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -14,6 +16,9 @@ async function main() {
     app.log.error(err);
     process.exit(1);
   }
+
+  startSyncJob();
+  startPlaywrightWorker();
 }
 
 main();
