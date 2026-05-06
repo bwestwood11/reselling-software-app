@@ -253,6 +253,10 @@ async function withMercariTab(fn) {
     });
   }
 
+  // Pre-populate the browser's cookie jar from the stored session so the tab
+  // is authenticated even if the user hasn't visited mercari.com recently.
+  await restoreMercariCookies();
+
   try {
     return await fn(tab.id);
   } finally {
@@ -518,8 +522,8 @@ async function connectMercari() {
   });
 }
 
-// Injects extractMercariTokenFromPage() into the mercari.com tab, falls back
-// to chrome.cookies, then POSTs the token to the ReList API.
+// Injects extractMercariTokenFromPage() into the mercari.com tab, captures the full
+// cookie jar, then POSTs everything to the ReList API for later re-injection.
 async function captureMercariToken(tabId, relistToken) {
   let tokenData = null;
 
@@ -532,19 +536,17 @@ async function captureMercariToken(tabId, relistToken) {
     tokenData = injection?.result ?? null;
   } catch {}
 
-  // Strategy 2: chrome.cookies API (catches httpOnly auth cookies)
-  // MERCARI_API: verify cookie names against live DevTools → Application → Cookies
-  if (!tokenData?.accessToken) {
-    try {
-      const cookies = await chrome.cookies.getAll({ url: "https://www.mercari.com" });
-      const authCookie = cookies.find((c) =>
+  // Strategy 2: chrome.cookies API — captures ALL cookies including httpOnly ones
+  let allCookies = [];
+  try {
+    allCookies = await chrome.cookies.getAll({ url: "https://www.mercari.com" });
+    if (!tokenData?.accessToken) {
+      const authCookie = allCookies.find((c) =>
         ["access_token", "accessToken", "auth_token", "Authorization"].includes(c.name)
       );
-      if (authCookie?.value) {
-        tokenData = { accessToken: authCookie.value };
-      }
-    } catch {}
-  }
+      if (authCookie?.value) tokenData = { accessToken: authCookie.value };
+    }
+  } catch {}
 
   if (!tokenData?.accessToken) {
     throw new Error(
@@ -554,6 +556,9 @@ async function captureMercariToken(tabId, relistToken) {
         "Application → LocalStorage for an access token key, and let the dev team know."
     );
   }
+
+  // Strip read-only fields that chrome.cookies.set does not accept
+  const cookiesPayload = allCookies.map(({ hostOnly, session, ...c }) => c);
 
   const res = await fetch(`${API_BASE}/api/marketplaces/mercari/connect-token`, {
     method: "POST",
@@ -565,11 +570,53 @@ async function captureMercariToken(tabId, relistToken) {
       accessToken: tokenData.accessToken,
       accountId: tokenData.accountId ?? null,
       accountName: tokenData.accountName ?? null,
+      cookies: cookiesPayload,
     }),
   });
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? "Failed to save Mercari connection");
+}
+
+// Fetches the stored cookie jar from the API and injects each cookie into the
+// browser via chrome.cookies.set() so mercari.com tabs are pre-authenticated
+// even when the user hasn't recently visited mercari.com.
+async function restoreMercariCookies() {
+  const token = await getToken();
+  if (!token) return;
+
+  let cookies = [];
+  try {
+    const res = await fetch(`${API_BASE}/api/marketplaces/mercari/session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    cookies = data.data?.cookies ?? [];
+  } catch {
+    return;
+  }
+
+  for (const cookie of cookies) {
+    try {
+      const domain = cookie.domain ?? ".mercari.com";
+      const host = domain.startsWith(".") ? domain.slice(1) : domain;
+      const url = `${cookie.secure ? "https" : "http"}://${host}${cookie.path ?? "/"}`;
+
+      await chrome.cookies.set({
+        url,
+        name: cookie.name,
+        value: cookie.value,
+        domain: cookie.domain,
+        path: cookie.path ?? "/",
+        secure: cookie.secure ?? false,
+        httpOnly: cookie.httpOnly ?? false,
+        sameSite: cookie.sameSite ?? "unspecified",
+        ...(cookie.expirationDate ? { expirationDate: cookie.expirationDate } : {}),
+      });
+    } catch {
+      // Some cookies may fail (partitioned cookies, scheme mismatch) — skip silently
+    }
+  }
 }
 
 // Runs inside the mercari.com page context (no Chrome API access here).

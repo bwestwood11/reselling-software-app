@@ -19,7 +19,7 @@ import Link from "next/link";
 import { useCreateListing } from "@/hooks/use-listings";
 import { useInventory } from "@/hooks/use-inventory";
 import { useQuery } from "@tanstack/react-query";
-import { listingsApi, marketplacesApi } from "@/lib/api";
+import { listingsApi, marketplacesApi, mercariApi } from "@/lib/api";
 import { getMarketplaceLabel } from "@repo/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -58,6 +58,7 @@ const schema = z.object({
   ebayReturnPolicyId: z.string().optional(),
   ebayPostalCode: z.string().optional(),
   ebayLocation: z.string().optional(),
+  mercariCategoryId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -89,6 +90,7 @@ export default function NewListingPage(): import("react").JSX.Element {
   const selectedConnectionId = watch("marketplaceConnectionId");
   const selectedConnection = connections.find((c: any) => c.id === selectedConnectionId);
   const isEbay = selectedConnection?.marketplace === "EBAY";
+  const isMercari = selectedConnection?.marketplace === "MERCARI";
 
   const {
     data: policiesData,
@@ -113,6 +115,69 @@ export default function NewListingPage(): import("react").JSX.Element {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Mercari category drill-down ──────────────────────────────────────────
+  type MercariCat = { id: string; label: string; isLeaf: boolean; hasChildren: boolean; fullPath: string[] };
+  const [mercariStack, setMercariStack] = useState<Array<{ id: string | null; label: string }>>([]);
+  const [mercariChildren, setMercariChildren] = useState<MercariCat[]>([]);
+  const [mercariLoading, setMercariLoading] = useState(false);
+  const [selectedMercariCat, setSelectedMercariCat] = useState<MercariCat | null>(null);
+  const [mercariSearch, setMercariSearch] = useState("");
+  const [mercariSearchResults, setMercariSearchResults] = useState<MercariCat[]>([]);
+  const [mercariSearching, setMercariSearching] = useState(false);
+  const mercariDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function loadMercariChildren(parentId: string | null) {
+    setMercariLoading(true);
+    try {
+      const param = parentId === null ? "root" : parentId;
+      const res = await mercariApi.getCategories(param, undefined, 200);
+      setMercariChildren(res?.data ?? []);
+    } catch {
+      setMercariChildren([]);
+    } finally {
+      setMercariLoading(false);
+    }
+  }
+
+  function mercariDrillInto(cat: MercariCat) {
+    setMercariStack((prev) => [...prev, { id: cat.id, label: cat.label }]);
+    loadMercariChildren(cat.id);
+    setMercariSearch("");
+    setMercariSearchResults([]);
+  }
+
+  function mercariGoBack(toIndex: number) {
+    const newStack = mercariStack.slice(0, toIndex);
+    setMercariStack(newStack);
+    const parentId = newStack.length > 0 ? newStack[newStack.length - 1]!.id : null;
+    loadMercariChildren(parentId);
+    setMercariSearch("");
+    setMercariSearchResults([]);
+  }
+
+  function searchMercariCategories(q: string) {
+    if (mercariDebounceRef.current) clearTimeout(mercariDebounceRef.current);
+    if (!q.trim()) { setMercariSearchResults([]); return; }
+    mercariDebounceRef.current = setTimeout(async () => {
+      setMercariSearching(true);
+      try {
+        const res = await mercariApi.getCategories(undefined, q, 50);
+        setMercariSearchResults(res?.data ?? []);
+      } catch {
+        setMercariSearchResults([]);
+      } finally {
+        setMercariSearching(false);
+      }
+    }, 350);
+  }
+
+  useEffect(() => {
+    if (isMercari && mercariChildren.length === 0 && !mercariLoading) {
+      loadMercariChildren(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMercari]);
 
   // Item specifics — driven by eBay category aspects
   type Aspect = { name: string; required: boolean; suggestedValues: string[] };
@@ -190,6 +255,13 @@ export default function NewListingPage(): import("react").JSX.Element {
   }
 
   function buildMarketplaceData(values: FormValues) {
+    if (isMercari) {
+      if (!selectedMercariCat) return undefined;
+      return {
+        categoryId: selectedMercariCat.id,
+        categoryPath: selectedMercariCat.fullPath,
+      };
+    }
     if (!isEbay) return undefined;
     // Merge aspect values + extra free-form rows into one object
     // Resolve "__custom__" sentinel: use the typed value stored under `name__custom`
@@ -416,6 +488,158 @@ export default function NewListingPage(): import("react").JSX.Element {
                 </Field>
               </div>
             </section>
+
+            {/* Mercari-specific */}
+            {isMercari && (
+              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+                <SectionHeader step="03" title="Mercari Settings">
+                  <span className="ml-2 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-semibold text-red-700">
+                    Mercari
+                  </span>
+                </SectionHeader>
+
+                <div className="mt-5">
+                  <Field label="Category">
+                    {selectedMercariCat ? (
+                      /* Selected state */
+                      <div className="flex items-center justify-between rounded-xl border border-red-300 bg-red-50 px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-900">
+                            {selectedMercariCat.label}
+                          </p>
+                          <p className="truncate text-xs text-zinc-400">
+                            {selectedMercariCat.fullPath.join(" › ")}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMercariCat(null);
+                            setValue("mercariCategoryId", "");
+                            setMercariStack([]);
+                            loadMercariChildren(null);
+                          }}
+                          className="ml-2 shrink-0 rounded-md p-0.5 text-zinc-400 hover:text-zinc-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Search input */}
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                          <Input
+                            value={mercariSearch}
+                            onChange={(e) => {
+                              setMercariSearch(e.target.value);
+                              searchMercariCategories(e.target.value);
+                            }}
+                            placeholder="Search categories…"
+                            className="border-zinc-200 pl-9 focus-visible:ring-red-400"
+                          />
+                          {mercariSearching && (
+                            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-red-500" />
+                          )}
+                        </div>
+
+                        {/* Search results */}
+                        {mercariSearch.trim() ? (
+                          <div className="rounded-xl border border-zinc-200 bg-white">
+                            {mercariSearchResults.length === 0 && !mercariSearching ? (
+                              <p className="px-3 py-3 text-xs text-zinc-400">
+                                No categories found for &ldquo;{mercariSearch}&rdquo;
+                              </p>
+                            ) : (
+                              <ul className="max-h-56 overflow-y-auto py-1">
+                                {mercariSearchResults.map((cat) => (
+                                  <li key={cat.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedMercariCat(cat);
+                                        setValue("mercariCategoryId", cat.id);
+                                        setMercariSearch("");
+                                        setMercariSearchResults([]);
+                                      }}
+                                      className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-red-50"
+                                    >
+                                      <span className="text-sm font-medium text-zinc-900">{cat.label}</span>
+                                      <span className="text-xs text-zinc-400">{cat.fullPath.join(" › ")}</span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ) : (
+                          /* Drill-down browser */
+                          <div className="rounded-xl border border-zinc-200 bg-white">
+                            {/* Breadcrumb */}
+                            {mercariStack.length > 0 && (
+                              <div className="flex items-center gap-1 border-b border-zinc-100 px-3 py-2 text-xs text-zinc-500">
+                                <button
+                                  type="button"
+                                  onClick={() => mercariGoBack(0)}
+                                  className="hover:text-zinc-900"
+                                >
+                                  All
+                                </button>
+                                {mercariStack.map((crumb, i) => (
+                                  <span key={i} className="flex items-center gap-1">
+                                    <ChevronRight className="h-3 w-3" />
+                                    <button
+                                      type="button"
+                                      onClick={() => mercariGoBack(i + 1)}
+                                      className="hover:text-zinc-900"
+                                    >
+                                      {crumb.label}
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {mercariLoading ? (
+                              <div className="flex items-center gap-2 px-3 py-3 text-sm text-zinc-500">
+                                <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                                Loading…
+                              </div>
+                            ) : mercariChildren.length === 0 ? (
+                              <p className="px-3 py-3 text-xs text-zinc-400">No categories found.</p>
+                            ) : (
+                              <ul className="max-h-64 overflow-y-auto py-1">
+                                {mercariChildren.map((cat) => (
+                                  <li key={cat.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (cat.hasChildren) {
+                                          mercariDrillInto(cat);
+                                        } else {
+                                          setSelectedMercariCat(cat);
+                                          setValue("mercariCategoryId", cat.id);
+                                        }
+                                      }}
+                                      className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-red-50"
+                                    >
+                                      <span className="text-sm text-zinc-900">{cat.label}</span>
+                                      {cat.hasChildren && (
+                                        <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
+                                      )}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Field>
+                </div>
+              </section>
+            )}
 
             {/* eBay-specific */}
             {isEbay && (

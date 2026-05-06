@@ -13,27 +13,62 @@ interface VendooCategory {
   status: string;
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 async function fetchVendooCategories(
   marketplace: string,
   parentId: string,
-  sessionId?: string
+  sessionId?: string,
+  retries = 4
 ): Promise<VendooCategory[]> {
   let url =
     `${VENDOO_BASE}/api/category/${encodeURIComponent(marketplace)}` +
     `?parent_category_id=${encodeURIComponent(parentId)}&text=`;
   if (sessionId) url += `&sessionId=${encodeURIComponent(sessionId)}`;
 
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching parentId=${parentId}`);
+  const headers = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+    "Sec-GPC": "1",
+    "Alt-Used": "api.web.vendoo.co",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Priority": "u=0, i",
+    ...(process.env.VENDOO_COOKIE ? { "Cookie": process.env.VENDOO_COOKIE } : {}),
+  };
 
-  const data: unknown = await res.json();
-  if (Array.isArray(data)) return data as VendooCategory[];
-  if (data && typeof data === "object") {
-    const d = data as Record<string, unknown>;
-    if (Array.isArray(d["results"])) return d["results"] as VendooCategory[];
-    if (Array.isArray(d["data"])) return d["data"] as VendooCategory[];
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, { headers });
+
+    if (res.status === 429) {
+      const retryAfter = res.headers.get("Retry-After");
+      const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : 2000 * 2 ** attempt;
+      console.warn(`[fetchVendooCategories] 429 on parentId=${parentId}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
+      await sleep(delay);
+      continue;
+    }
+
+    if (!res.ok) {
+      console.error(`[fetchVendooCategories] HTTP ${res.status} fetching parentId=${parentId}:`, await res.text());
+      throw new Error(`HTTP ${res.status} fetching parentId=${parentId}`);
+    }
+
+    const data: unknown = await res.json();
+    if (Array.isArray(data)) return data as VendooCategory[];
+    if (data && typeof data === "object") {
+      const d = data as Record<string, unknown>;
+      if (Array.isArray(d["results"])) return d["results"] as VendooCategory[];
+      if (Array.isArray(d["data"])) return d["data"] as VendooCategory[];
+    }
+    return [];
   }
-  return [];
+
+  throw new Error(`Rate-limited after ${retries} retries for parentId=${parentId}`);
 }
 
 export interface RawCategory {
@@ -140,6 +175,9 @@ export async function seedMercariCategories(
                 // leave null if payload_text is malformed
               }
             }
+
+
+            console.log(`[mercari-categories] Upserting category id=${cat.id} parentId=${cat.parent_category_id} depth=${depth} fullPath=${fullPath.join(" > ")}`);
 
             await db.mercariCategory.upsert({
               where: { id: cat.id },

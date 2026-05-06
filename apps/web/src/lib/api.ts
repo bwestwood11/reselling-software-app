@@ -121,6 +121,13 @@ export const mercariApi = {
   },
   getJobForListing: (listingId: string) =>
     request<any>(`/api/mercari/jobs?listingId=${listingId}&limit=1`),
+  getCategories: (parentId?: string, search?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (parentId !== undefined) params.set("parentId", parentId);
+    if (search) params.set("search", search);
+    if (limit) params.set("limit", String(limit));
+    return request<any>(`/api/mercari/categories?${params.toString()}`);
+  },
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

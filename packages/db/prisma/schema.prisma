@@ -84,11 +84,12 @@ model MarketplaceConnection {
   userId       String
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   marketplace  MarketplaceType
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime?
-  accountId    String? // external account ID
-  accountName  String?
+  accessToken     String
+  refreshToken    String?
+  sessionCookies  String?   // JSON array of Chrome cookie objects captured at connect time
+  expiresAt       DateTime?
+  accountId       String? // external account ID
+  accountName     String?
   isActive     Boolean         @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt

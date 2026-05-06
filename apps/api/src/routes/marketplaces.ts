@@ -510,22 +510,26 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // POST /api/marketplaces/mercari/connect-token — saves a Mercari session token captured
-  // directly from a WebView (mobile) or extension. The token is extracted from Mercari's
-  // own login response in the client, so no Mercari API call is made server-side here.
+  // POST /api/marketplaces/mercari/connect-token — saves a Mercari session token + full
+  // cookie jar captured by the extension after the user logs in.
   fastify.post(
     "/mercari/connect-token",
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const { accessToken, accountId, accountName } = request.body as {
+      const { accessToken, accountId, accountName, cookies } = request.body as {
         accessToken?: string;
         accountId?: string;
         accountName?: string;
+        cookies?: unknown[];
       };
 
       if (!accessToken?.trim()) {
         return reply.status(400).send({ success: false, error: "accessToken is required" });
       }
+
+      const cookiesJson = Array.isArray(cookies) && cookies.length > 0
+        ? JSON.stringify(cookies)
+        : undefined;
 
       await fastify.prisma.marketplaceConnection.upsert({
         where: {
@@ -533,7 +537,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         },
         update: {
           accessToken,
-          refreshToken: null,
+          ...(cookiesJson !== undefined ? { sessionCookies: cookiesJson } : {}),
           accountId: accountId ?? null,
           accountName: accountName ?? null,
           isActive: true,
@@ -543,13 +547,40 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           userId: request.user!.id,
           marketplace: "MERCARI",
           accessToken,
-          refreshToken: null,
+          sessionCookies: cookiesJson ?? null,
           accountId: accountId ?? null,
           accountName: accountName ?? null,
         },
       });
 
       return reply.send({ success: true, data: { connected: true, accountName: accountName ?? null } });
+    }
+  );
+
+  // GET /api/marketplaces/mercari/session — returns stored cookies for the extension to
+  // re-inject into a mercari.com tab before making API calls.
+  fastify.get(
+    "/mercari/session",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { accessToken: true, sessionCookies: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      let cookies: unknown[] = [];
+      if (connection.sessionCookies) {
+        try { cookies = JSON.parse(connection.sessionCookies); } catch {}
+      }
+
+      return reply.send({
+        success: true,
+        data: { accessToken: connection.accessToken, cookies },
+      });
     }
   );
 

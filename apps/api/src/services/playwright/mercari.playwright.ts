@@ -6,7 +6,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { writeFileSync, unlinkSync } from "fs";
 import type { BrowserContext, Page } from "playwright";
-import type { PrismaClient } from "@repo/db";
+import { prisma, type PrismaClient } from "@repo/db";
 import { browserManager } from "./browser-manager";
 
 const MERCARI_BASE = "https://www.mercari.com";
@@ -38,6 +38,49 @@ export interface MercariJobPayload {
 
 export class MercariPlaywrightService {
   constructor(private readonly db: PrismaClient) {}
+
+  static async testBrowser() {    
+    const connection = await prisma.marketplaceConnection.findFirst({
+      where: { marketplace: "MERCARI", isActive: true },
+    });
+
+    if(!connection) {
+      console.error("No active Mercari connection found. Please connect your Mercari account first.");
+      return;
+    }
+
+    const browser = await browserManager.getBrowser();
+    const context = await browser.newContext({
+      // Match a recent Chrome desktop UA to reduce bot-detection signals
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      viewport: { width: 1280, height: 900 },
+      locale: "en-US",
+      timezoneId: "America/New_York",
+    });
+    
+
+        // Restore stored browser session (cookies saved from a prior authenticated run)
+    if (connection.refreshToken) {
+      try {
+        const cookies = JSON.parse(connection.refreshToken) as Parameters<
+          BrowserContext["addCookies"]
+        >[0];
+        await context.addCookies(cookies);
+      } catch {
+        // Malformed cookie JSON — proceed without; will likely fail auth check
+      }
+    }
+
+    
+
+    const page = await browser.newPage();
+    await page.goto(MERCARI_BASE, { waitUntil: "domcontentloaded" });
+    const title = await page.title();
+
+    console.log(`Mercari homepage title: ${title}`);
+    return title;
+  }
 
   async processJob(
     jobId: string,
@@ -126,7 +169,7 @@ export class MercariPlaywrightService {
   ): Promise<{ externalId?: string }> {
     await this.assertLoggedIn(page);
 
-    await page.goto(`${MERCARI_BASE}/sell/`, { waitUntil: "networkidle", timeout: 30_000 });
+    await page.goto(`${MERCARI_BASE}/sell/`, { waitUntil:"domcontentloaded" });
 
     // Photos — must be uploaded before filling in other fields
     if (payload.images && payload.images.length > 0) {
