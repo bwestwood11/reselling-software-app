@@ -59,6 +59,9 @@ const schema = z.object({
   ebayPostalCode: z.string().optional(),
   ebayLocation: z.string().optional(),
   mercariCategoryId: z.string().optional(),
+  mercariBrandId: z.string().optional(),
+  mercariSizeId: z.coerce.number().int().positive().optional(),
+  mercariZipCode: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -117,7 +120,7 @@ export default function NewListingPage(): import("react").JSX.Element {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Mercari category drill-down ──────────────────────────────────────────
-  type MercariCat = { id: string; label: string; isLeaf: boolean; hasChildren: boolean; fullPath: string[] };
+  type MercariCat = { id: string; label: string; isLeaf: boolean; hasChildren: boolean; fullPath: string[]; isSizeRequired: boolean; sizeSchemaId: string | null };
   const [mercariStack, setMercariStack] = useState<Array<{ id: string | null; label: string }>>([]);
   const [mercariChildren, setMercariChildren] = useState<MercariCat[]>([]);
   const [mercariLoading, setMercariLoading] = useState(false);
@@ -260,6 +263,11 @@ export default function NewListingPage(): import("react").JSX.Element {
       return {
         categoryId: selectedMercariCat.id,
         categoryPath: selectedMercariCat.fullPath,
+        ...(values.mercariBrandId?.trim()
+          ? { brandId: parseInt(values.mercariBrandId.trim(), 10) }
+          : {}),
+        ...(values.mercariSizeId ? { sizeId: values.mercariSizeId } : {}),
+        ...(values.mercariZipCode?.trim() ? { zipCode: values.mercariZipCode.trim() } : {}),
       };
     }
     if (!isEbay) return undefined;
@@ -516,6 +524,7 @@ export default function NewListingPage(): import("react").JSX.Element {
                           onClick={() => {
                             setSelectedMercariCat(null);
                             setValue("mercariCategoryId", "");
+                            setValue("mercariSizeId", undefined);
                             setMercariStack([]);
                             loadMercariChildren(null);
                           }}
@@ -637,6 +646,45 @@ export default function NewListingPage(): import("react").JSX.Element {
                       </div>
                     )}
                   </Field>
+
+                  {selectedMercariCat?.isSizeRequired && (
+                    <div className="mt-5">
+                      <Field label="Size ID *">
+                        <Input
+                          type="number"
+                          placeholder="e.g. 11"
+                          className="border-zinc-200 focus-visible:ring-red-400"
+                          {...register("mercariSizeId")}
+                        />
+                        <p className="text-xs text-zinc-400">
+                          Required for this category
+                          {selectedMercariCat.sizeSchemaId
+                            ? ` (schema ${selectedMercariCat.sizeSchemaId})`
+                            : ""}
+                          . Enter the Mercari size ID integer.
+                        </p>
+                      </Field>
+                    </div>
+                  )}
+
+                  <div className="mt-5 grid grid-cols-2 gap-4">
+                    <Field label="Brand ID">
+                      <Input
+                        type="number"
+                        placeholder="e.g. 2618"
+                        className="border-zinc-200 focus-visible:ring-red-400"
+                        {...register("mercariBrandId")}
+                      />
+                    </Field>
+                    <Field label="Zip Code">
+                      <Input
+                        placeholder="e.g. 33625"
+                        maxLength={10}
+                        className="border-zinc-200 focus-visible:ring-red-400"
+                        {...register("mercariZipCode")}
+                      />
+                    </Field>
+                  </div>
                 </div>
               </section>
             )}

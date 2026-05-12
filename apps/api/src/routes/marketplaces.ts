@@ -516,11 +516,12 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     "/mercari/connect-token",
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const { accessToken, accountId, accountName, cookies } = request.body as {
+      const { accessToken, accountId, accountName, cookies, csrfToken } = request.body as {
         accessToken?: string;
         accountId?: string;
         accountName?: string;
         cookies?: unknown[];
+        csrfToken?: string;
       };
 
       if (!accessToken?.trim()) {
@@ -531,6 +532,8 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         ? JSON.stringify(cookies)
         : undefined;
 
+      const metadata = csrfToken ? { csrfToken } : undefined;
+
       await fastify.prisma.marketplaceConnection.upsert({
         where: {
           userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
@@ -538,6 +541,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         update: {
           accessToken,
           ...(cookiesJson !== undefined ? { sessionCookies: cookiesJson } : {}),
+          ...(metadata !== undefined ? { metadata } : {}),
           accountId: accountId ?? null,
           accountName: accountName ?? null,
           isActive: true,
@@ -548,6 +552,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           marketplace: "MERCARI",
           accessToken,
           sessionCookies: cookiesJson ?? null,
+          metadata: metadata ?? null,
           accountId: accountId ?? null,
           accountName: accountName ?? null,
         },
@@ -565,7 +570,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-        select: { accessToken: true, sessionCookies: true, isActive: true },
+        select: { accessToken: true, sessionCookies: true, metadata: true, isActive: true },
       });
 
       if (!connection?.isActive) {
@@ -577,9 +582,12 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         try { cookies = JSON.parse(connection.sessionCookies); } catch {}
       }
 
+      const meta = (connection.metadata ?? {}) as Record<string, unknown>;
+      const csrfToken = typeof meta.csrfToken === "string" ? meta.csrfToken : null;
+
       return reply.send({
         success: true,
-        data: { accessToken: connection.accessToken, cookies },
+        data: { accessToken: connection.accessToken, cookies, csrfToken },
       });
     }
   );

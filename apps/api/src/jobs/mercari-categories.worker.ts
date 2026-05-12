@@ -15,6 +15,16 @@ interface VendooCategory {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+function extractSizeInfo(payload: unknown): { isSizeRequired: boolean; sizeSchemaId: string | null } {
+  if (!payload || typeof payload !== "object") return { isSizeRequired: false, sizeSchemaId: null };
+  const p = payload as Record<string, unknown>;
+  const schemaId = p["sizesSchemaId"] ?? p["sizeSchemaId"] ?? p["sizes_schema_id"] ?? p["size_schema_id"];
+  if (schemaId !== null && schemaId !== undefined) {
+    return { isSizeRequired: true, sizeSchemaId: String(schemaId) };
+  }
+  return { isSizeRequired: false, sizeSchemaId: null };
+}
+
 async function fetchVendooCategories(
   marketplace: string,
   parentId: string,
@@ -95,6 +105,7 @@ export async function bulkUpsertCategories(
     if (cat.payload_text) {
       try { payload = JSON.parse(cat.payload_text); } catch {}
     }
+    const { isSizeRequired, sizeSchemaId } = extractSizeInfo(payload);
     await db.mercariCategory.upsert({
       where: { id: cat.id },
       create: {
@@ -105,6 +116,8 @@ export async function bulkUpsertCategories(
         hasChildren: cat.has_children,
         depth: cat.depth ?? 0,
         fullPath,
+        isSizeRequired,
+        sizeSchemaId,
         payload: payload as Parameters<typeof db.mercariCategory.create>[0]["data"]["payload"],
         lastSyncAt: new Date(),
       },
@@ -113,6 +126,8 @@ export async function bulkUpsertCategories(
         isLeaf: cat.is_leaf,
         hasChildren: cat.has_children,
         fullPath,
+        isSizeRequired,
+        sizeSchemaId,
         payload: payload as Parameters<typeof db.mercariCategory.create>[0]["data"]["payload"],
         lastSyncAt: new Date(),
       },
@@ -179,6 +194,8 @@ export async function seedMercariCategories(
 
             console.log(`[mercari-categories] Upserting category id=${cat.id} parentId=${cat.parent_category_id} depth=${depth} fullPath=${fullPath.join(" > ")}`);
 
+            const { isSizeRequired, sizeSchemaId } = extractSizeInfo(payload);
+
             await db.mercariCategory.upsert({
               where: { id: cat.id },
               create: {
@@ -189,6 +206,8 @@ export async function seedMercariCategories(
                 hasChildren: cat.has_children,
                 depth,
                 fullPath,
+                isSizeRequired,
+                sizeSchemaId,
                 payload: payload as Parameters<typeof db.mercariCategory.create>[0]["data"]["payload"],
                 lastSyncAt: new Date(),
               },
@@ -197,6 +216,8 @@ export async function seedMercariCategories(
                 isLeaf: cat.is_leaf,
                 hasChildren: cat.has_children,
                 fullPath,
+                isSizeRequired,
+                sizeSchemaId,
                 payload: payload as Parameters<typeof db.mercariCategory.create>[0]["data"]["payload"],
                 lastSyncAt: new Date(),
               },

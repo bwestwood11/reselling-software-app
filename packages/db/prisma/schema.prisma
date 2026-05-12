@@ -87,6 +87,7 @@ model MarketplaceConnection {
   accessToken     String
   refreshToken    String?
   sessionCookies  String?   // JSON array of Chrome cookie objects captured at connect time
+  metadata        Json?     // marketplace-specific metadata (e.g. { csrfToken } for Mercari)
   expiresAt       DateTime?
   accountId       String? // external account ID
   accountName     String?
@@ -273,17 +274,19 @@ model MercariJob {
 // ─── Mercari Categories ───────────────────────────────────────────────────────
 
 model MercariCategory {
-  id          String    @id // Vendoo/Mercari category slug (e.g. "men_tops")
-  label       String
-  parentId    String?   // null = root-level category
-  isLeaf      Boolean   @default(false)
-  hasChildren Boolean   @default(false)
-  depth       Int       @default(0)
-  fullPath    String[]  // breadcrumb labels ["Men", "Tops", "T-Shirts"]
-  payload     Json?     // parsed payload_text from Vendoo (may contain mercariCategoryId etc.)
-  lastSyncAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id // Vendoo/Mercari category slug (e.g. "men_tops")
+  label          String
+  parentId       String?   // null = root-level category
+  isLeaf         Boolean   @default(false)
+  hasChildren    Boolean   @default(false)
+  depth          Int       @default(0)
+  fullPath       String[]  // breadcrumb labels ["Men", "Tops", "T-Shirts"]
+  isSizeRequired Boolean   @default(false) // whether listings in this category require a sizeId
+  sizeSchemaId   String?   // Mercari size schema ID (sizesSchemaId from Vendoo payload)
+  payload        Json?     // parsed payload_text from Vendoo (may contain mercariCategoryId etc.)
+  lastSyncAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // ─── Sync Events ──────────────────────────────────────────────────────────────
