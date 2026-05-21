@@ -131,6 +131,19 @@ export default function NewListingPage(): import("react").JSX.Element {
   const [mercariSearchResults, setMercariSearchResults] = useState<MercariCat[]>([]);
   const [mercariSearching, setMercariSearching] = useState(false);
   const mercariDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shippingFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mercari shipping state
+  const [mercariShipMethod, setMercariShipMethod] = useState<"SOYO" | "PREPAID">("SOYO");
+  const [mercariWeightLb, setMercariWeightLb] = useState("");
+  const [mercariWeightOz, setMercariWeightOz] = useState("");
+  const [mercariDimL, setMercariDimL] = useState("");
+  const [mercariDimW, setMercariDimW] = useState("");
+  const [mercariDimH, setMercariDimH] = useState("");
+  const [mercariSelectedCarrierId, setMercariSelectedCarrierId] = useState("");
+  const [mercariCarriers, setMercariCarriers] = useState<any[]>([]);
+  const [mercariCarriersLoading, setMercariCarriersLoading] = useState(false);
+  const [mercariCarriersError, setMercariCarriersError] = useState<string | null>(null);
 
   async function loadMercariChildren(parentId: string | null) {
     setMercariLoading(true);
@@ -183,6 +196,40 @@ export default function NewListingPage(): import("react").JSX.Element {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMercari]);
+
+  useEffect(() => {
+    if (!isMercari || mercariShipMethod !== "PREPAID") return;
+    if (shippingFetchRef.current) clearTimeout(shippingFetchRef.current);
+    const lb = parseFloat(mercariWeightLb) || 0;
+    const oz = parseFloat(mercariWeightOz) || 0;
+    const totalOz = lb * 16 + oz;
+    if (totalOz <= 0) { setMercariCarriers([]); return; }
+    const dimL = parseFloat(mercariDimL) || 0;
+    const dimW = parseFloat(mercariDimW) || 0;
+    const dimH = parseFloat(mercariDimH) || 0;
+    const hasDims = dimL > 0 && dimW > 0 && dimH > 0;
+    const categoryId = selectedMercariCat?.id;
+    setMercariCarriersError(null);
+    shippingFetchRef.current = setTimeout(async () => {
+      setMercariCarriersLoading(true);
+      try {
+        const res = await mercariApi.getShippingCarriers({
+          ...(categoryId ? { categoryId: parseInt(categoryId, 10) } : {}),
+          packageWeight: Math.round(totalOz),
+          ...(hasDims ? { dimension: { length: dimL, width: dimW, height: dimH } } : {}),
+        });
+        const carriers = res?.data?.data?.availableShippingClassesV2?.shippingClasses ?? [];
+        setMercariCarriers(Array.isArray(carriers) ? carriers : []);
+      } catch (err: unknown) {
+        setMercariCarriers([]);
+        setMercariCarriersError(err instanceof Error ? err.message : "Failed to load carriers");
+      } finally {
+        setMercariCarriersLoading(false);
+      }
+    }, 600);
+    return () => { if (shippingFetchRef.current) clearTimeout(shippingFetchRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMercari, mercariShipMethod, mercariWeightLb, mercariWeightOz, mercariDimL, mercariDimW, mercariDimH, selectedMercariCat?.id]);
 
   // Item specifics — driven by eBay category aspects
   type Aspect = { name: string; required: boolean; suggestedValues: string[] };
@@ -262,6 +309,12 @@ export default function NewListingPage(): import("react").JSX.Element {
   function buildMarketplaceData(values: FormValues) {
     if (isMercari) {
       if (!selectedMercariCat) return undefined;
+      const totalWeightOz =
+        (parseFloat(mercariWeightLb) || 0) * 16 + (parseFloat(mercariWeightOz) || 0);
+      const dimL = parseFloat(mercariDimL) || 0;
+      const dimW = parseFloat(mercariDimW) || 0;
+      const dimH = parseFloat(mercariDimH) || 0;
+      const hasDims = dimL > 0 && dimW > 0 && dimH > 0;
       return {
         categoryId: selectedMercariCat.id,
         categoryPath: selectedMercariCat.fullPath,
@@ -270,6 +323,16 @@ export default function NewListingPage(): import("react").JSX.Element {
           : {}),
         ...(values.mercariSizeId ? { sizeId: values.mercariSizeId } : {}),
         ...(values.mercariZipCode?.trim() ? { zipCode: values.mercariZipCode.trim() } : {}),
+        shipping: {
+          method: mercariShipMethod,
+          ...(mercariShipMethod === "PREPAID" && totalWeightOz > 0
+            ? {
+                weightOz: Math.round(totalWeightOz),
+                ...(hasDims ? { dimension: { length: dimL, width: dimW, height: dimH } } : {}),
+                ...(mercariSelectedCarrierId ? { shippingClassId: parseInt(mercariSelectedCarrierId, 10) } : {}),
+              }
+            : {}),
+        },
       };
     }
     if (!isEbay) return undefined;
@@ -697,6 +760,197 @@ export default function NewListingPage(): import("react").JSX.Element {
                         {...register("mercariZipCode")}
                       />
                     </Field>
+                  </div>
+
+                  {/* Shipping */}
+                  <div className="mt-5">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Shipping Method
+                    </Label>
+                    <div className="mt-1.5 flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+                      {(["SOYO", "PREPAID"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setMercariShipMethod(m);
+                            setMercariCarriers([]);
+                            setMercariSelectedCarrierId("");
+                            setMercariCarriersError(null);
+                          }}
+                          className={[
+                            "flex-1 rounded-lg py-2 text-xs font-semibold transition-all",
+                            mercariShipMethod === m
+                              ? "bg-white text-zinc-900 shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-700",
+                          ].join(" ")}
+                        >
+                          {m === "SOYO" ? "Ship on Your Own" : "Prepaid Label"}
+                        </button>
+                      ))}
+                    </div>
+
+                    {mercariShipMethod === "PREPAID" && (
+                      <div className="mt-4 space-y-4">
+                        {/* Weight */}
+                        <div>
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                            Package Weight *
+                          </Label>
+                          <div className="mt-1.5 flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={mercariWeightLb}
+                                onChange={(e) => setMercariWeightLb(e.target.value)}
+                                className="w-20 border-zinc-200 text-center focus-visible:ring-red-400"
+                              />
+                              <span className="text-xs text-zinc-500">lb</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="0"
+                                value={mercariWeightOz}
+                                onChange={(e) => setMercariWeightOz(e.target.value)}
+                                className="w-20 border-zinc-200 text-center focus-visible:ring-red-400"
+                              />
+                              <span className="text-xs text-zinc-500">oz</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dimensions */}
+                        <div>
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                            Dimensions (inches) — optional
+                          </Label>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              placeholder="L"
+                              value={mercariDimL}
+                              onChange={(e) => setMercariDimL(e.target.value)}
+                              className="w-16 border-zinc-200 text-center focus-visible:ring-red-400"
+                            />
+                            <span className="text-xs text-zinc-400">×</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              placeholder="W"
+                              value={mercariDimW}
+                              onChange={(e) => setMercariDimW(e.target.value)}
+                              className="w-16 border-zinc-200 text-center focus-visible:ring-red-400"
+                            />
+                            <span className="text-xs text-zinc-400">×</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              placeholder="H"
+                              value={mercariDimH}
+                              onChange={(e) => setMercariDimH(e.target.value)}
+                              className="w-16 border-zinc-200 text-center focus-visible:ring-red-400"
+                            />
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-400">
+                            Length × Width × Height — narrows the carrier list.
+                          </p>
+                        </div>
+
+                        {/* Carrier list */}
+                        {mercariCarriersLoading ? (
+                          <div className="flex items-center gap-2 text-sm text-zinc-500">
+                            <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                            Loading available carriers…
+                          </div>
+                        ) : mercariCarriers.length > 0 ? (
+                          <div>
+                            <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                              Select Carrier
+                            </Label>
+                            <div className="mt-1.5 space-y-2">
+                              {mercariCarriers.map((carrier: any) => {
+                                const carrierId: string = String(carrier.id ?? "");
+                                const label: string =
+                                  carrier.requestClassDisplayName ?? carrier.name ?? "Unknown";
+                                const carrierName: string =
+                                  carrier.carrierDisplayName ?? carrier.carrier ?? "";
+                                const rawFee: number | undefined = carrier.fee;
+                                const priceStr =
+                                  typeof rawFee === "number"
+                                    ? `$${(rawFee / 100).toFixed(2)}`
+                                    : "";
+                                const eta: string = carrier.etaForSeller ?? "";
+                                const isSelected = mercariSelectedCarrierId === carrierId;
+                                return (
+                                  <button
+                                    key={carrierId}
+                                    type="button"
+                                    onClick={() =>
+                                      setMercariSelectedCarrierId(isSelected ? "" : carrierId)
+                                    }
+                                    className={[
+                                      "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all",
+                                      isSelected
+                                        ? "border-red-400 bg-red-50 ring-1 ring-red-200"
+                                        : "border-zinc-200 bg-white hover:border-zinc-300",
+                                    ].join(" ")}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={[
+                                          "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2",
+                                          isSelected ? "border-red-500" : "border-zinc-300",
+                                        ].join(" ")}
+                                      >
+                                        {isSelected && (
+                                          <div className="h-2 w-2 rounded-full bg-red-500" />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-zinc-900">
+                                          {label}
+                                        </p>
+                                        {carrierName && (
+                                          <p className="text-xs text-zinc-400">{carrierName}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      {priceStr && (
+                                        <p className="text-sm font-semibold text-zinc-900">
+                                          {priceStr}
+                                        </p>
+                                      )}
+                                      {eta && (
+                                        <p className="text-xs text-zinc-400">{eta}</p>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : mercariCarriersError ? (
+                          <p className="rounded-xl border border-dashed border-red-200 bg-red-50 px-4 py-3 text-xs text-red-500">
+                            {mercariCarriersError}
+                          </p>
+                        ) : (parseFloat(mercariWeightOz) > 0 ||
+                            parseFloat(mercariWeightLb) > 0) ? (
+                          <p className="rounded-xl border border-dashed border-zinc-200 px-4 py-3 text-xs text-zinc-400">
+                            No carriers available for this weight. Try adjusting the package weight or dimensions.
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>

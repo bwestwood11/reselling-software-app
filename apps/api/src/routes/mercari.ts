@@ -1,5 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import {
@@ -181,5 +185,101 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, data: job });
+  });
+
+  // POST /api/mercari/shipping/carriers — proxy Mercari availableShippingClassesV2
+  fastify.post("/shipping/carriers", { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = request.body as {
+      categoryId?: number;
+      packageWeight: number;
+      dimension?: { length: number; width: number; height: number };
+    };
+
+    if (!body?.packageWeight || body.packageWeight <= 0) {
+      return reply.status(400).send({ success: false, error: "packageWeight is required" });
+    }
+
+    const connection = await fastify.prisma.marketplaceConnection.findFirst({
+      where: { userId: request.user!.id, marketplace: "MERCARI", isActive: true },
+      select: { accessToken: true, sessionCookies: true },
+    });
+
+    if (!connection) {
+      return reply
+        .status(422)
+        .send({ success: false, error: "No active Mercari connection. Connect your Mercari account first." });
+    }
+
+    // Build cookie string from stored cf_clearance + session cookies
+    let cookieArg = "";
+    if (connection.sessionCookies) {
+      try {
+        const cookies = JSON.parse(connection.sessionCookies) as Array<{ name: string; value: string }>;
+        cookieArg = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+      } catch {
+        // malformed — proceed without cookies
+      }
+    }
+
+    const packageSize = body.dimension
+      ? body.dimension.length * body.dimension.width * body.dimension.height
+      : 0;
+
+    const gqlBody = {
+      operationName: "availableShippingClassesV2",
+      variables: {
+        input: {
+          ...(body.categoryId ? { categoryId: body.categoryId } : {}),
+          packageSize,
+          ...(body.dimension ? { dimension: body.dimension } : {}),
+          packageWeight: body.packageWeight,
+        },
+      },
+      extensions: {
+        persistedQuery: {
+          version: 1,
+          sha256Hash: "032c65b73bb96c49c78809a6155de5a56d9d967956c448c6cca5f81defbfd690",
+        },
+      },
+    };
+
+    // Node.js fetch (undici) is blocked by Cloudflare TLS fingerprinting.
+    // curl uses a different TLS stack that Cloudflare accepts.
+    // Chrome UA requires cf_clearance cookie; pass it if stored at connect time.
+    let stdout: string;
+    try {
+      ({ stdout } = await execFileAsync("curl", [
+        "-s",
+        "--max-time", "10",
+        "-X", "POST",
+        "-H", `Authorization: Bearer ${connection.accessToken}`,
+        "-H", "Content-Type: application/json",
+        "-H", "Accept: */*",
+        "-H", "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+        ...(cookieArg ? ["-b", cookieArg] : []),
+        "--data-raw", JSON.stringify(gqlBody),
+        "https://www.mercari.com/v1/api",
+      ], { maxBuffer: 2 * 1024 * 1024 }));
+    } catch (err) {
+      fastify.log.warn("curl to Mercari failed: %s", (err as Error).message);
+      return reply.status(502).send({ success: false, error: "Failed to reach Mercari shipping API" });
+    }
+
+    let json: any;
+    try {
+      json = JSON.parse(stdout);
+    } catch {
+      fastify.log.warn("Mercari returned non-JSON: %s", stdout.slice(0, 200));
+      return reply.status(502).send({ success: false, error: "Unexpected response from Mercari" });
+    }
+
+    // GraphQL always returns HTTP 200; real errors live inside the body
+    if (json?.errors?.length) {
+      const msg: string = json.errors[0]?.message ?? "Mercari API error";
+      fastify.log.warn("Mercari shipping API error: %s", msg);
+      return reply.status(502).send({ success: false, error: `Mercari: ${msg}` });
+    }
+
+    return reply.send({ success: true, data: json });
   });
 }

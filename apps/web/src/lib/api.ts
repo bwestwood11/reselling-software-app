@@ -128,6 +128,15 @@ export const mercariApi = {
     if (limit) params.set("limit", String(limit));
     return request<any>(`/api/mercari/categories?${params.toString()}`);
   },
+  getShippingCarriers: (params: {
+    categoryId?: number;
+    packageWeight: number;
+    dimension?: { length: number; width: number; height: number };
+  }) =>
+    request<any>("/api/mercari/shipping/carriers", {
+      method: "POST",
+      body: JSON.stringify(params),
+    }),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
