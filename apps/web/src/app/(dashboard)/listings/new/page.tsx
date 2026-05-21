@@ -16,6 +16,7 @@ import {
 } from "@repo/ui";
 import { ArrowLeft, ChevronRight, Loader2, Plus, Search, Tag, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { useCreateListing } from "@/hooks/use-listings";
 import { useInventory } from "@/hooks/use-inventory";
 import { useQuery } from "@tanstack/react-query";
@@ -682,12 +683,10 @@ export default function NewListingPage(): import("react").JSX.Element {
                   })()}
 
                   <div className="mt-5 grid grid-cols-2 gap-4">
-                    <Field label="Brand ID">
-                      <Input
-                        type="number"
-                        placeholder="e.g. 2618"
-                        className="border-zinc-200 focus-visible:ring-red-400"
-                        {...register("mercariBrandId")}
+                    <Field label="Brand">
+                      <MercariBrandCombobox
+                        value={watch("mercariBrandId")}
+                        onChange={(id) => setValue("mercariBrandId", id)}
                       />
                     </Field>
                     <Field label="Zip Code">
