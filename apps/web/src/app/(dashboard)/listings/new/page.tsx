@@ -20,6 +20,7 @@ import { useCreateListing } from "@/hooks/use-listings";
 import { useInventory } from "@/hooks/use-inventory";
 import { useQuery } from "@tanstack/react-query";
 import { listingsApi, marketplacesApi, mercariApi } from "@/lib/api";
+import { getMercariSizes, MERCARI_SIZE_SCHEMAS } from "@repo/types";
 import { getMarketplaceLabel } from "@repo/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -568,6 +569,7 @@ export default function NewListingPage(): import("react").JSX.Element {
                                       onClick={() => {
                                         setSelectedMercariCat(cat);
                                         setValue("mercariCategoryId", cat.id);
+                                        setValue("mercariSizeId", undefined);
                                         setMercariSearch("");
                                         setMercariSearchResults([]);
                                       }}
@@ -628,6 +630,7 @@ export default function NewListingPage(): import("react").JSX.Element {
                                         } else {
                                           setSelectedMercariCat(cat);
                                           setValue("mercariCategoryId", cat.id);
+                                          setValue("mercariSizeId", undefined);
                                         }
                                       }}
                                       className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-red-50"
@@ -647,25 +650,36 @@ export default function NewListingPage(): import("react").JSX.Element {
                     )}
                   </Field>
 
-                  {selectedMercariCat?.isSizeRequired && (
-                    <div className="mt-5">
-                      <Field label="Size ID *">
-                        <Input
-                          type="number"
-                          placeholder="e.g. 11"
-                          className="border-zinc-200 focus-visible:ring-red-400"
-                          {...register("mercariSizeId")}
-                        />
-                        <p className="text-xs text-zinc-400">
-                          Required for this category
-                          {selectedMercariCat.sizeSchemaId
-                            ? ` (schema ${selectedMercariCat.sizeSchemaId})`
-                            : ""}
-                          . Enter the Mercari size ID integer.
-                        </p>
-                      </Field>
-                    </div>
-                  )}
+                  {selectedMercariCat?.isSizeRequired && (() => {
+                    const sizeOptions = getMercariSizes(selectedMercariCat.sizeSchemaId);
+                    const schemaLabel = selectedMercariCat.sizeSchemaId
+                      ? (MERCARI_SIZE_SCHEMAS[selectedMercariCat.sizeSchemaId]?.label ?? selectedMercariCat.sizeSchemaId)
+                      : "";
+                    return (
+                      <div className="mt-5">
+                        <Field label="Size *">
+                          <Select
+                            value={watch("mercariSizeId")?.toString() ?? ""}
+                            onValueChange={(val) => setValue("mercariSizeId", Number(val))}
+                          >
+                            <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-red-400">
+                              <SelectValue placeholder="Select a size…" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white text-zinc-900">
+                              {sizeOptions.map((opt) => (
+                                <SelectItem key={opt.id} value={String(opt.id)}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {schemaLabel && (
+                            <p className="text-xs text-zinc-400">{schemaLabel}</p>
+                          )}
+                        </Field>
+                      </div>
+                    );
+                  })()}
 
                   <div className="mt-5 grid grid-cols-2 gap-4">
                     <Field label="Brand ID">

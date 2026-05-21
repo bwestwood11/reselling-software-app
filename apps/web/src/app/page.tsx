@@ -103,13 +103,13 @@ export default function Home() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/sign-in"
+            href="/login"
             className="text-sm font-medium text-zinc-700 transition-colors hover:text-zinc-900"
           >
             Login
           </Link>
           <Link
-            href="/sign-up"
+            href="/register"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500"
           >
             Start Free
@@ -145,7 +145,7 @@ export default function Home() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                href="/sign-up"
+                href="/register"
                 className="rounded-xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500"
               >
                 Get Started Free
@@ -261,7 +261,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/sign-up"
+              href="/register"
               className="hidden rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 md:inline-flex"
             >
               Start listing
@@ -326,7 +326,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/sign-up"
+              href="/register"
               className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-orange-700 transition-all hover:-translate-y-0.5"
             >
               Create Account

@@ -1,3 +1,5 @@
+export * from "./mercari-sizes";
+
 // ─── Marketplace Types ────────────────────────────────────────────────────────
 
 export type MarketplaceType =

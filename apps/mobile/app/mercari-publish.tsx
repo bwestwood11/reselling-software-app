@@ -6,31 +6,26 @@ import type { WebViewMessageEvent } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { api } from "../src/lib/api";
+import { MERCARI_CONDITION_MAP } from "@repo/types";
 
 // Mercari uses GraphQL at POST /v1/api (confirmed from network logs).
 // Mutations confirmed: uploadTempListingPhotos, createListing.
 // Running inside www.mercari.com WebView = session cookies + no Cloudflare blocking.
 
-const CONDITION_MAP: Record<string, number> = {
-  NEW_WITH_TAGS: 1,
-  NEW_WITHOUT_TAGS: 2,
-  VERY_GOOD: 3,
-  GOOD: 4,
-  SATISFACTORY: 5,
-};
-
 function buildPublishScript(listing: any, token: string): string {
   const title = listing.title ?? "";
   const description = listing.description ?? "";
   const price = Math.round(Number(listing.price));
-  const condition = CONDITION_MAP[listing.inventoryItem?.condition ?? "GOOD"] ?? 4;
+  const condition = MERCARI_CONDITION_MAP[listing.inventoryItem?.condition ?? "GOOD"] ?? 4;
   const imageUrls: string[] = (listing.inventoryItem?.images ?? [])
     .map((img: any) => String(img.url))
     .filter(Boolean);
-  // categoryId stored in marketplaceData when the listing was created
+  // categoryId / sizeId / zipCode stored in marketplaceData when the listing was created
   const categoryId: number | null =
-    Number((listing.marketplaceData as any)?.mercariCategoryId) || null;
-  const fallbackZip: string = (listing.marketplaceData as any)?.mercariZipCode ?? "";
+    Number((listing.marketplaceData as any)?.categoryId) || null;
+  const sizeId: number | null =
+    Number((listing.marketplaceData as any)?.sizeId) || null;
+  const fallbackZip: string = (listing.marketplaceData as any)?.zipCode ?? "";
 
   return `
 (async function() {
@@ -45,6 +40,7 @@ function buildPublishScript(listing: any, token: string): string {
   var price       = ${price};
   var condition   = ${condition};
   var categoryId  = ${categoryId ?? "null"};
+  var sizeId      = ${sizeId ?? "null"};
   var zipCode     = ${JSON.stringify(fallbackZip)};
 
   log('Starting Mercari publish via GraphQL...');
@@ -182,6 +178,7 @@ function buildPublishScript(listing: any, token: string): string {
       zipCode: zipCode,
     };
     if (categoryId !== null) createInput.categoryId = categoryId;
+    if (sizeId !== null) createInput.sizeId = sizeId;
 
     var createRes = await fetch('/v1/api', {
       method: 'POST',

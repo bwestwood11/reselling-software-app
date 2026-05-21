@@ -43,6 +43,6 @@ export async function POST(
 	request: Request,
 	context: { params: Promise<{ all: string[] }> }
 ): Promise<Response> {
-	const { all } = await context.params;
-	return proxyAuth(request, all);
+		const { all } = await context.params;
+		return proxyAuth(request, all);
 }
