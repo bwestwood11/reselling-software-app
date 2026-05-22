@@ -178,7 +178,6 @@ async function postToMercariApi(job) {
     brandId,
     sizeId,
     shippingPayerId,
-    shippingClassIds,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -196,7 +195,7 @@ async function postToMercariApi(job) {
 
   // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
   const photoIds = await uploadImagesToMercari(images);
- console.log("[relist] Uploaded images, got photoIds:", photoIds);
+  console.log("[relist] Uploaded images, got photoIds:", photoIds);
   // Step 2 — create the listing via Mercari's GraphQL API
   return createMercariListing({
     title,
@@ -208,7 +207,6 @@ async function postToMercariApi(job) {
     brandId,
     sizeId,
     shippingPayerId,
-    shippingClassIds,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -525,9 +523,9 @@ async function createMercariListing(params) {
   } = params;
 
   const conditionId = MERCARI_CONDITION_IDS[condition] ?? 4;
-  const priceInCents = Math.round(price * 100);
+  const priceInCents = price;
   // salesFee is always 0 — Mercari calculates and ignores the client value
-  const salesFee = 0;
+  const salesFee = Math.round(priceInCents * 0.10);;
   const minPriceForAutoPriceDrop = Math.ceil(priceInCents * 0.85);
 
   // Resolve shipping class from weight; SOYO overrides to class [0]
