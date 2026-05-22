@@ -482,6 +482,26 @@ async function getMercariCsrfToken() {
 //   Uses Apollo Automatic Persisted Queries — NO inline query string.
 //   photoIds = UUID strings; conditionId/brandId/sizeId/categoryId = integers; price = cents.
 //   salesFee ≈ price * 0.10; minPriceForAutoPriceDrop ≈ price * 0.80 (confirmed from traffic).
+// USPS Ground Advantage shipping class IDs by weight range (oz).
+// Confirmed from Mercari's shipping class table (2025-05).
+// minWeight is inclusive, maxWeight is inclusive (oz).
+const MERCARI_SHIPPING_CLASSES = [
+  { id: 2549, maxWeightOz: 4 },   // 0.25 lb (0–4 oz)
+  { id: 2550, maxWeightOz: 8 },   // 0.5 lb  (5–8 oz)
+  { id: 2509, maxWeightOz: 12 },  // 0.75 lb (9–12 oz)
+  { id: 2552, maxWeightOz: 16 },  // 1 lb    (13–16 oz)
+  { id: 2553, maxWeightOz: 32 },  // 2 lb    (17–32 oz)
+  { id: 2554, maxWeightOz: 48 },  // 3 lb    (33–48 oz)
+  { id: 2555, maxWeightOz: 64 },  // 4 lb    (49–64 oz)
+  { id: 2556, maxWeightOz: 80 },  // 5 lb    (65–80 oz)
+  { id: 2557, maxWeightOz: 96 },  // 6 lb    (81–96 oz)
+];
+
+function getShippingClassId(weightOz = 0) {
+  const match = MERCARI_SHIPPING_CLASSES.find((c) => weightOz <= c.maxWeightOz);
+  return match ? match.id : 2557; // fall back to 6 lb for heavier items
+}
+
 async function createMercariListing(params) {
   const {
     title,
@@ -491,11 +511,9 @@ async function createMercariListing(params) {
     photoIds,
     categoryId,
     brandId,
-    
-    
+    sizeId,
     shippingPayerId = 1,
-    shippingClassIds = [2376],
-    shippingPackageWeight = 16,
+    shippingPackageWeight = 8,
     shippingWeightUnit = "OUNCE",
     shippingPackageWidth = null,
     shippingPackageHeight = null,
@@ -507,9 +525,16 @@ async function createMercariListing(params) {
   } = params;
 
   const conditionId = MERCARI_CONDITION_IDS[condition] ?? 4;
-  const priceInCents = price * 100
-  const salesFee = Math.round(priceInCents * 0.10);
-  const minPriceForAutoPriceDrop = Math.round(priceInCents * 0.80);
+  const priceInCents = Math.round(price * 100);
+  // salesFee is always 0 — Mercari calculates and ignores the client value
+  const salesFee = 0;
+  const minPriceForAutoPriceDrop = Math.ceil(priceInCents * 0.85);
+
+  // Resolve shipping class from weight; SOYO overrides to class [0]
+  const resolvedClassId = getShippingClassId(shippingPackageWeight);
+  const resolvedClassIds = isShippingSoyo ? [0] : [resolvedClassId];
+  // When SOYO, Mercari requires shippingPayerId=2 regardless of the job payload
+  const resolvedPayerId = isShippingSoyo ? 2 : (shippingPayerId ?? 1);
 
   const bearerToken = await getMercariBearerToken();
   const storedCsrf = await getMercariCsrfToken();
@@ -524,27 +549,24 @@ async function createMercariListing(params) {
         price: priceInCents,
         conditionId,
         salesFee,
-        categoryId: parseInt(String(categoryId), 10),
-        shippingPayerId: 2,
-        shippingClassIds: [2550],
-        suggestedShippingClassIds: [],
-            "shippingPackageWeight": 8,
-       
-            "sizeId": 11,
-        // shippingPackageWeight,
-        // shippingWeightUnit,
+        categoryId: Number.parseInt(String(categoryId), 10),
+        shippingPayerId: resolvedPayerId,
+        shippingClassIds: resolvedClassIds,
+        suggestedShippingClassIds: resolvedClassIds,
+        shippingPackageWeight,
+        shippingWeightUnit,
+        minPriceForAutoPriceDrop,
         ...(isShippingSoyo ? { isShippingSoyo } : {}),
-        // ...(shippingPackageWidth != null ? { shippingPackageWidth } : {}),
-        // ...(shippingPackageHeight != null ? { shippingPackageHeight } : {}),
-        // ...(shippingPackageLength != null ? { shippingPackageLength } : {}),
-        // ...(shippingPackageWidth != null || shippingPackageHeight != null || shippingPackageLength != null
-        //   ? { shippingDimensionUnit }
-        //   : {}),
-
-        ...(offerConfig ? { offerConfig } : {}),
+        ...(shippingPackageLength == null ? {} : { shippingPackageLength }),
+        ...(shippingPackageHeight == null ? {} : { shippingPackageHeight }),
+        ...(shippingPackageWidth == null ? {} : { shippingPackageWidth }),
+        ...(shippingPackageLength == null && shippingPackageHeight == null && shippingPackageWidth == null
+          ? {}
+          : { shippingDimensionUnit }),
+        ...(offerConfig ? { offerConfig } : { offerConfig: { minPriceForSmartOffer: 0 } }),
         ...(zipCode ? { zipCode } : {}),
-        ...(brandId ? { brandId: parseInt(String(brandId), 10) } : {}),
-        ...(sizeId ? { sizeId: parseInt(String(sizeId), 10) } : {}),
+        ...(brandId ? { brandId: Number.parseInt(String(brandId), 10) } : {}),
+        ...(sizeId ? { sizeId: Number.parseInt(String(sizeId), 10) } : {}),
       },
     },
     extensions: {
