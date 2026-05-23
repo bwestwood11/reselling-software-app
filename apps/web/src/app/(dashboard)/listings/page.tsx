@@ -29,10 +29,11 @@ export default function ListingsPage(): import("react").JSX.Element {
   if (marketplace) params.marketplace = marketplace;
   if (status) params.status = status;
 
-  // Poll every 5 s while any Mercari listing is PENDING (extension is processing it in the background)
-  const { data, isLoading } = useListings(params, (d: any) => {
-    const items: any[] = d?.data ?? [];
-    return items.some((l) => l.marketplace === "MERCARI" && l.status === "PENDING") ? 5000 : false;
+  // Poll every 15 s while any listing is PENDING (extension is processing it in the background).
+  // React Query v5: the refetchInterval callback receives the Query object, not the data directly.
+  const { data, isLoading } = useListings(params, (query: any) => {
+    const items: any[] = query.state?.data?.data ?? [];
+    return items.some((l) => l.status === "PENDING") ? 15_000 : false;
   });
   const publishMutation = usePublishListing();
   const delistMutation = useDelistListing();

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 export function useListings(
   params?: Record<string, string>,
-  refetchInterval?: number | false | ((data: any) => number | false)
+  refetchInterval?: number | false | ((query: any) => number | false)
 ) {
   return useQuery({
     queryKey: ["listings", params],

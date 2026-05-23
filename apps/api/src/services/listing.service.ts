@@ -183,6 +183,8 @@ export class ListingService {
         listing.inventoryItem?.images?.map((img) => img.url) ?? [];
 
       const mpData = listing.marketplaceData as Record<string, unknown> | null;
+      const shipping = (mpData?.shipping ?? {}) as Record<string, unknown>;
+      const dim = (shipping.dimension ?? {}) as Record<string, unknown>;
 
       const job = await this.db.mercariJob.create({
         data: {
@@ -199,15 +201,17 @@ export class ListingService {
             categoryId: mpData?.categoryId ?? null,
             brandId: mpData?.brandId ?? null,
             sizeId: mpData?.sizeId ?? null,
-            shippingPayerId: mpData?.shippingPayerId ?? 1,
+            shippingPayerId: (shipping.shippingPayerId as number) ?? 1,
+            // shippingCost in cents — carrier fee; used to compute salesFee when buyer pays
+            shippingCost: (shipping.shippingCost as number) ?? null,
             // shippingClassIds omitted — extension derives it from shippingPackageWeight
-            shippingPackageWeight: mpData?.shippingPackageWeight ?? 8,
+            shippingPackageWeight: (shipping.weightOz as number) ?? 8,
             shippingWeightUnit: "OUNCE",
-            shippingPackageLength: mpData?.shippingPackageLength ?? null,
-            shippingPackageWidth: mpData?.shippingPackageWidth ?? null,
-            shippingPackageHeight: mpData?.shippingPackageHeight ?? null,
+            shippingPackageLength: (dim.length as number) ?? null,
+            shippingPackageWidth: (dim.width as number) ?? null,
+            shippingPackageHeight: (dim.height as number) ?? null,
             shippingDimensionUnit: "INCH",
-            isShippingSoyo: mpData?.isShippingSoyo ?? false,
+            isShippingSoyo: shipping.method === "SOYO",
             offerConfig: mpData?.offerConfig ?? null,
             zipCode: mpData?.zipCode ?? null,
           },

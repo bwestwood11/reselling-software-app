@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   View,
   Text,
@@ -28,6 +29,11 @@ export default function ListingsScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["mobile-listings"],
     queryFn: () => api.getListings(),
+    // Poll every 15 s while any listing is PENDING so the status updates without a manual pull-to-refresh
+    refetchInterval: (query) => {
+      const items: any[] = query.state.data?.data ?? [];
+      return items.some((l) => l.status === "PENDING") ? 15_000 : false;
+    },
   });
   const delistMutation = useDelistListing();
   const markSoldMutation = useMarkSold();
@@ -105,6 +111,12 @@ export default function ListingsScreen() {
               {getMarketplaceLabel(item.marketplace)} ·{" "}
               {formatCurrency(Number(item.price))}
             </Text>
+            {item.status === "PENDING" && (
+              <View style={styles.pendingRow}>
+                <ActivityIndicator size="small" color="#ca8a04" style={styles.pendingSpinner} />
+                <Text style={styles.pendingText}>Posting…</Text>
+              </View>
+            )}
           </View>
           <View
             style={[
@@ -167,4 +179,7 @@ const styles = StyleSheet.create({
   badge: { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: "600", color: "#374151" },
   separator: { height: 8 },
+  pendingRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  pendingSpinner: { marginRight: 4 },
+  pendingText: { fontSize: 11, color: "#ca8a04", fontWeight: "500" },
 });

@@ -128,6 +128,22 @@ export const api = {
       body: JSON.stringify({ accessToken, accountId, accountName }),
     }),
   getMercariToken: () => request<any>("/api/marketplaces/mercari/token"),
+  getMercariCategories: (parentId?: string, search?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (parentId !== undefined) params.set("parentId", parentId);
+    if (search) params.set("search", search);
+    if (limit) params.set("limit", String(limit));
+    return request<any>(`/api/mercari/categories?${params.toString()}`);
+  },
+  getMercariShippingCarriers: (params: {
+    categoryId?: number;
+    packageWeight: number;
+    dimension?: { length: number; width: number; height: number };
+  }) =>
+    request<any>("/api/mercari/shipping/carriers", {
+      method: "POST",
+      body: JSON.stringify(params),
+    }),
   recordMercariPublished: (listingId: string, externalId: string) =>
     request<any>(`/api/listings/${listingId}/record-published`, {
       method: "POST",

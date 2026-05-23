@@ -140,7 +140,9 @@ export default function NewListingPage(): import("react").JSX.Element {
   const [mercariDimL, setMercariDimL] = useState("");
   const [mercariDimW, setMercariDimW] = useState("");
   const [mercariDimH, setMercariDimH] = useState("");
+  const [mercariShippingPayerId, setMercariShippingPayerId] = useState<1 | 2>(1);
   const [mercariSelectedCarrierId, setMercariSelectedCarrierId] = useState("");
+  const [mercariSelectedCarrier, setMercariSelectedCarrier] = useState<any>(null);
   const [mercariCarriers, setMercariCarriers] = useState<any[]>([]);
   const [mercariCarriersLoading, setMercariCarriersLoading] = useState(false);
   const [mercariCarriersError, setMercariCarriersError] = useState<string | null>(null);
@@ -330,6 +332,10 @@ export default function NewListingPage(): import("react").JSX.Element {
                 weightOz: Math.round(totalWeightOz),
                 ...(hasDims ? { dimension: { length: dimL, width: dimW, height: dimH } } : {}),
                 ...(mercariSelectedCarrierId ? { shippingClassId: parseInt(mercariSelectedCarrierId, 10) } : {}),
+                shippingPayerId: mercariShippingPayerId,
+                ...(typeof mercariSelectedCarrier?.fee === "number"
+                  ? { shippingCost: mercariSelectedCarrier.fee }
+                  : {}),
               }
             : {}),
         },
@@ -776,6 +782,7 @@ export default function NewListingPage(): import("react").JSX.Element {
                             setMercariShipMethod(m);
                             setMercariCarriers([]);
                             setMercariSelectedCarrierId("");
+                            setMercariSelectedCarrier(null);
                             setMercariCarriersError(null);
                           }}
                           className={[
@@ -792,6 +799,30 @@ export default function NewListingPage(): import("react").JSX.Element {
 
                     {mercariShipMethod === "PREPAID" && (
                       <div className="mt-4 space-y-4">
+                        {/* Shipping payer */}
+                        <div>
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                            Who Pays Shipping?
+                          </Label>
+                          <div className="mt-1.5 flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+                            {([1, 2] as const).map((payerId) => (
+                              <button
+                                key={payerId}
+                                type="button"
+                                onClick={() => setMercariShippingPayerId(payerId)}
+                                className={[
+                                  "flex-1 rounded-lg py-2 text-xs font-semibold transition-all",
+                                  mercariShippingPayerId === payerId
+                                    ? "bg-white text-zinc-900 shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700",
+                                ].join(" ")}
+                              >
+                                {payerId === 1 ? "Buyer Pays" : "Seller Pays"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         {/* Weight */}
                         <div>
                           <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -894,9 +925,15 @@ export default function NewListingPage(): import("react").JSX.Element {
                                   <button
                                     key={carrierId}
                                     type="button"
-                                    onClick={() =>
-                                      setMercariSelectedCarrierId(isSelected ? "" : carrierId)
-                                    }
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setMercariSelectedCarrierId("");
+                                        setMercariSelectedCarrier(null);
+                                      } else {
+                                        setMercariSelectedCarrierId(carrierId);
+                                        setMercariSelectedCarrier(carrier);
+                                      }
+                                    }}
                                     className={[
                                       "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all",
                                       isSelected
@@ -1374,6 +1411,64 @@ export default function NewListingPage(): import("react").JSX.Element {
                 </div>
               </section>
             )}
+
+            {/* Mercari fee breakdown */}
+            {isMercari && (() => {
+              const price = watch("price") || 0;
+              const priceInCents = Math.round(price * 100);
+              const buyerPaysShipping =
+                mercariShipMethod === "PREPAID" && mercariShippingPayerId === 1;
+              const shippingCostInCents =
+                buyerPaysShipping && typeof mercariSelectedCarrier?.fee === "number"
+                  ? mercariSelectedCarrier.fee
+                  : 0;
+              const salesFeeInCents = Math.floor((priceInCents + shippingCostInCents) * 0.10);
+              const earningsInCents = priceInCents - salesFeeInCents +
+                (mercariShipMethod === "PREPAID" && mercariShippingPayerId === 2
+                  ? -(mercariSelectedCarrier?.fee ?? 0)
+                  : 0);
+              const fmt = (cents: number) =>
+                `$${(cents / 100).toFixed(2)}`;
+              return priceInCents > 0 ? (
+                <section className="rounded-2xl border border-red-100 bg-red-50/60 p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.08)]">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-red-400">
+                    Fee Breakdown
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-zinc-700">
+                      <span>Listing price</span>
+                      <span className="font-medium">{fmt(priceInCents)}</span>
+                    </div>
+                    {buyerPaysShipping && shippingCostInCents > 0 && (
+                      <div className="flex justify-between text-zinc-500">
+                        <span>+ Buyer shipping</span>
+                        <span>{fmt(shippingCostInCents)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-red-600">
+                      <span>Mercari fee (10%)</span>
+                      <span className="font-medium">−{fmt(salesFeeInCents)}</span>
+                    </div>
+                    {mercariShipMethod === "PREPAID" && mercariShippingPayerId === 2 && typeof mercariSelectedCarrier?.fee === "number" && (
+                      <div className="flex justify-between text-zinc-500">
+                        <span>− Shipping label</span>
+                        <span>−{fmt(mercariSelectedCarrier.fee)}</span>
+                      </div>
+                    )}
+                    <div className="mt-1 flex justify-between border-t border-red-100 pt-2 font-semibold text-zinc-900">
+                      <span>Your earnings</span>
+                      <span className={earningsInCents < 0 ? "text-red-600" : "text-emerald-700"}>
+                        {fmt(Math.max(0, earningsInCents))}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[10px] text-zinc-400">
+                    Mercari charges 10% of sale price
+                    {buyerPaysShipping ? " + buyer shipping" : ""}.
+                  </p>
+                </section>
+              ) : null;
+            })()}
 
             {/* Actions */}
             <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">

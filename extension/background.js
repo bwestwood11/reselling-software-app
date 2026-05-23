@@ -178,6 +178,7 @@ async function postToMercariApi(job) {
     brandId,
     sizeId,
     shippingPayerId,
+    shippingCost,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -207,6 +208,7 @@ async function postToMercariApi(job) {
     brandId,
     sizeId,
     shippingPayerId,
+    shippingCost,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -511,6 +513,7 @@ async function createMercariListing(params) {
     brandId,
     sizeId,
     shippingPayerId = 1,
+    shippingCost = null,
     shippingPackageWeight = 8,
     shippingWeightUnit = "OUNCE",
     shippingPackageWidth = null,
@@ -524,15 +527,19 @@ async function createMercariListing(params) {
 
   const conditionId = MERCARI_CONDITION_IDS[condition] ?? 4;
   const priceInCents = price;
-  // salesFee is always 0 — Mercari calculates and ignores the client value
-  const salesFee = Math.round(priceInCents * 0.10);;
-  const minPriceForAutoPriceDrop = Math.ceil(priceInCents * 0.85);
 
   // Resolve shipping class from weight; SOYO overrides to class [0]
   const resolvedClassId = getShippingClassId(shippingPackageWeight);
   const resolvedClassIds = isShippingSoyo ? [0] : [resolvedClassId];
   // When SOYO, Mercari requires shippingPayerId=2 regardless of the job payload
   const resolvedPayerId = isShippingSoyo ? 2 : (shippingPayerId ?? 1);
+
+  // shippingPayerId 1 = buyer pays → fee is 10% of (price + shipping cost)
+  // shippingPayerId 2 = seller pays → fee is 10% of price only
+  const salesFee = resolvedPayerId === 1 && shippingCost != null
+    ? Math.floor((priceInCents + shippingCost) * 0.10)
+    : Math.floor(priceInCents * 0.10);
+  const minPriceForAutoPriceDrop = Math.ceil(priceInCents * 0.85);
 
   const bearerToken = await getMercariBearerToken();
   const storedCsrf = await getMercariCsrfToken();
@@ -552,7 +559,6 @@ async function createMercariListing(params) {
         shippingClassIds: resolvedClassIds,
         suggestedShippingClassIds: resolvedClassIds,
         shippingPackageWeight,
-        shippingWeightUnit,
         minPriceForAutoPriceDrop,
         ...(isShippingSoyo ? { isShippingSoyo } : {}),
         ...(shippingPackageLength == null ? {} : { shippingPackageLength }),
@@ -561,7 +567,7 @@ async function createMercariListing(params) {
         ...(shippingPackageLength == null && shippingPackageHeight == null && shippingPackageWidth == null
           ? {}
           : { shippingDimensionUnit }),
-        ...(offerConfig ? { offerConfig } : { offerConfig: { minPriceForSmartOffer: 0 } }),
+        ...(offerConfig ? { offerConfig } : {}),
         ...(zipCode ? { zipCode } : {}),
         ...(brandId ? { brandId: Number.parseInt(String(brandId), 10) } : {}),
         ...(sizeId ? { sizeId: Number.parseInt(String(sizeId), 10) } : {}),

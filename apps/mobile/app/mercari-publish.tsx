@@ -15,7 +15,8 @@ import { MERCARI_CONDITION_MAP } from "@repo/types";
 function buildPublishScript(listing: any, token: string): string {
   const title = listing.title ?? "";
   const description = listing.description ?? "";
-  const price = Math.round(Number(listing.price));
+  // listing.price is stored in dollars; Mercari expects cents
+  const price = Math.round(Number(listing.price) * 100);
   const condition = MERCARI_CONDITION_MAP[listing.inventoryItem?.condition ?? "GOOD"] ?? 4;
   const imageUrls: string[] = (listing.inventoryItem?.images ?? [])
     .map((img: any) => String(img.url))
@@ -26,6 +27,26 @@ function buildPublishScript(listing: any, token: string): string {
   const sizeId: number | null =
     Number((listing.marketplaceData as any)?.sizeId) || null;
   const fallbackZip: string = (listing.marketplaceData as any)?.zipCode ?? "";
+  const isShippingSoyo: boolean =
+    (listing.marketplaceData as any)?.shipping?.method !== "PREPAID";
+  // shippingPayerId: 1 = buyer pays, 2 = seller pays; SOYO always uses 2
+  const shippingPayerId: number = isShippingSoyo
+    ? 2
+    : Number((listing.marketplaceData as any)?.shipping?.shippingPayerId) || 1;
+  // shippingCost in cents — from the selected carrier's fee field
+  const shippingCost: number =
+    typeof (listing.marketplaceData as any)?.shipping?.shippingCost === "number"
+      ? (listing.marketplaceData as any).shipping.shippingCost
+      : 0;
+  // PREPAID: specific carrier class and package weight
+  const shippingClassId: number | null =
+    Number((listing.marketplaceData as any)?.shipping?.shippingClassId) || null;
+  const shippingPackageWeight: number =
+    Number((listing.marketplaceData as any)?.shipping?.weightOz) || 0;
+  // SOYO → class [0]; PREPAID → [shippingClassId] or fallback [3]
+  const resolvedClassIds: number[] = isShippingSoyo
+    ? [0]
+    : shippingClassId !== null ? [shippingClassId] : [3];
 
   return `
 (async function() {
@@ -141,42 +162,30 @@ function buildPublishScript(listing: any, token: string): string {
 
   log(uploadIds.length + ' photo(s) uploaded. Creating listing...');
 
-  // ── Discover shipping method ID from page's Next.js hydration data ─────────
-  var shippingMethodId = 3;
-  try {
-    var nextData = window.__NEXT_DATA__;
-    if (nextData) {
-      log('__NEXT_DATA__ keys: ' + Object.keys(nextData.props || {}).join(','));
-      var pageProps = (nextData.props && nextData.props.pageProps) || {};
-      log('pageProps keys: ' + Object.keys(pageProps).slice(0, 20).join(','));
-      // Look for shipping options in various locations
-      var shippingData = pageProps.shippingClasses || pageProps.shippingMethods ||
-                         pageProps.shippingOptions || pageProps.shipping;
-      if (shippingData && shippingData.length > 0) {
-        shippingMethodId = shippingData[0].id;
-        log('Found shippingMethodId from page: ' + shippingMethodId + ' (' + shippingData[0].name + ')');
-        log('All shipping options: ' + JSON.stringify(shippingData).slice(0, 400));
-      } else {
-        log('No shipping data in pageProps — using default: ' + shippingMethodId);
-      }
-    } else {
-      log('No __NEXT_DATA__ found — using default shippingMethodId: ' + shippingMethodId);
-    }
-  } catch (se) { log('Shipping discovery error: ' + se.message); }
-
   // ── Step 2: create listing via createListing mutation ─────────────────────
   try {
+    var shippingPayerId   = ${shippingPayerId};
+    var shippingCost      = ${shippingCost};
+    var shippingClassIds  = ${JSON.stringify(resolvedClassIds)};
+    var shippingPkgWeight = ${shippingPackageWeight};
+    var isShippingSoyo    = ${isShippingSoyo};
+    var salesFee = shippingPayerId === 1
+      ? Math.floor((price + shippingCost) * 0.10)
+      : Math.floor(price * 0.10);
+    log('shippingClassIds: ' + JSON.stringify(shippingClassIds) + ', payerId: ' + shippingPayerId + ', pkgWeight: ' + shippingPkgWeight + ', salesFee: ' + salesFee);
     var createInput = {
       name: title,
       description: description,
       price: price,
-      salesFee: Math.round(price * 0.10),
+      salesFee: salesFee,
       photoIds: uploadIds,
       conditionId: condition,
-      shippingPayerId: 1,
-      shippingMethodId: shippingMethodId,
+      shippingPayerId: shippingPayerId,
+      shippingClassIds: shippingClassIds,
+      suggestedShippingClassIds: shippingClassIds,
       zipCode: zipCode,
     };
+    if (!isShippingSoyo && shippingPkgWeight > 0) createInput.shippingPackageWeight = shippingPkgWeight;
     if (categoryId !== null) createInput.categoryId = categoryId;
     if (sizeId !== null) createInput.sizeId = sizeId;
 

@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { api } from "../../../src/lib/api";
-import { formatCurrency, centsToDecimal, getMarketplaceLabel } from "@repo/utils";
+import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +30,16 @@ interface SelectedCategory {
   categoryId: string;
   categoryName: string;
   breadcrumb: string;
+}
+
+interface MercariCat {
+  id: string;
+  label: string;
+  isLeaf: boolean;
+  hasChildren: boolean;
+  fullPath: string[];
+  isSizeRequired: boolean;
+  sizeSchemaId: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -84,8 +94,16 @@ export default function NewListingScreen() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [ebayConditionId, setEbayConditionId] = useState("3000");
-  const [mercariCategoryId, setMercariCategoryId] = useState("");
+  const [selectedMercariCat, setSelectedMercariCat] = useState<MercariCat | null>(null);
   const [mercariZipCode, setMercariZipCode] = useState("");
+  const [mercariShipMethod, setMercariShipMethod] = useState<"SOYO" | "PREPAID">("SOYO");
+  const [mercariShippingPayerId, setMercariShippingPayerId] = useState<1 | 2>(1);
+  const [mercariWeightLb, setMercariWeightLb] = useState("");
+  const [mercariWeightOz, setMercariWeightOz] = useState("");
+  const [mercariDimL, setMercariDimL] = useState("");
+  const [mercariDimW, setMercariDimW] = useState("");
+  const [mercariDimH, setMercariDimH] = useState("");
+  const [mercariSelectedCarrier, setMercariSelectedCarrier] = useState<any | null>(null);
 
   // Step 3 – category
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -144,7 +162,7 @@ export default function NewListingScreen() {
     if (!title) setTitle(itemData.title ?? "");
     if (!description) setDescription(itemData.description ?? "");
     if (!price && itemData.targetPrice != null) {
-      setPrice(String(centsToDecimal(Number(itemData.targetPrice))));
+      setPrice(String(Number(itemData.targetPrice)));
     }
     if (itemData.condition) {
       setEbayConditionId(CONDITION_TO_EBAY[itemData.condition] ?? "3000");
@@ -259,7 +277,7 @@ export default function NewListingScreen() {
   function validate2() {
     if (!title.trim()) { Alert.alert("Title required"); return false; }
     if (!price || Number(price) <= 0) { Alert.alert("Valid price required"); return false; }
-    if (hasMercari && (!mercariCategoryId.trim() || isNaN(Number(mercariCategoryId)))) {
+    if (hasMercari && !selectedMercariCat) {
       Alert.alert("Mercari category required", "Select a Mercari category.");
       return false;
     }
@@ -311,10 +329,33 @@ export default function NewListingScreen() {
           itemSpecifics: buildItemSpecifics(),
         };
       }
-      if (conn?.marketplace === "MERCARI") {
+      if (conn?.marketplace === "MERCARI" && selectedMercariCat) {
+        const totalWeightOz =
+          (parseFloat(mercariWeightLb) || 0) * 16 + (parseFloat(mercariWeightOz) || 0);
+        const dimL = parseFloat(mercariDimL) || 0;
+        const dimW = parseFloat(mercariDimW) || 0;
+        const dimH = parseFloat(mercariDimH) || 0;
+        const hasDims = dimL > 0 && dimW > 0 && dimH > 0;
         mp.marketplaceData = {
-          mercariCategoryId: Number(mercariCategoryId),
-          mercariZipCode: mercariZipCode.trim(),
+          categoryId: selectedMercariCat.id,
+          categoryPath: selectedMercariCat.fullPath,
+          ...(mercariZipCode.trim() ? { zipCode: mercariZipCode.trim() } : {}),
+          shipping: {
+            method: mercariShipMethod,
+            ...(mercariShipMethod === "PREPAID" && totalWeightOz > 0
+              ? {
+                  weightOz: Math.round(totalWeightOz),
+                  ...(hasDims ? { dimension: { length: dimL, width: dimW, height: dimH } } : {}),
+                  ...(mercariSelectedCarrier?.id
+                    ? { shippingClassId: parseInt(String(mercariSelectedCarrier.id), 10) }
+                    : {}),
+                  shippingPayerId: mercariShippingPayerId,
+                  ...(typeof mercariSelectedCarrier?.fee === "number"
+                    ? { shippingCost: mercariSelectedCarrier.fee }
+                    : {}),
+                }
+              : {}),
+          },
         };
       }
       return mp;
@@ -401,10 +442,29 @@ export default function NewListingScreen() {
             ebayConditionId={ebayConditionId}
             onChangeEbayCondition={setEbayConditionId}
             isMercari={hasMercari}
-            mercariCategoryId={mercariCategoryId}
-            onChangeMercariCategoryId={setMercariCategoryId}
+            selectedMercariCat={selectedMercariCat}
+            onSelectMercariCat={setSelectedMercariCat}
             mercariZipCode={mercariZipCode}
             onChangeMercariZipCode={setMercariZipCode}
+            mercariShipMethod={mercariShipMethod}
+            onChangeShipMethod={(m) => {
+              setMercariShipMethod(m);
+              setMercariSelectedCarrier(null);
+            }}
+            mercariShippingPayerId={mercariShippingPayerId}
+            onChangeShippingPayerId={setMercariShippingPayerId}
+            mercariWeightLb={mercariWeightLb}
+            onChangeWeightLb={setMercariWeightLb}
+            mercariWeightOz={mercariWeightOz}
+            onChangeWeightOz={setMercariWeightOz}
+            mercariDimL={mercariDimL}
+            onChangeDimL={setMercariDimL}
+            mercariDimW={mercariDimW}
+            onChangeDimW={setMercariDimW}
+            mercariDimH={mercariDimH}
+            onChangeDimH={setMercariDimH}
+            mercariSelectedCarrier={mercariSelectedCarrier}
+            onSelectCarrier={setMercariSelectedCarrier}
           />
         )}
 
@@ -597,36 +657,36 @@ function Step1({
 
 // ─── Step 2: Title, price, description ───────────────────────────────────────
 
-// Mercari US top-level categories with their confirmed GraphQL integer IDs.
-// Find your category by browsing mercari.com and checking the categoryId in the URL/network tab.
-const MERCARI_CATEGORIES = [
-  { label: "Women", id: "1001" },
-  { label: "Men", id: "1002" },
-  { label: "Kids & Baby", id: "1003" },
-  { label: "Electronics", id: "1004" },
-  { label: "Toys & Hobbies", id: "1005" },
-  { label: "Sports & Outdoors", id: "1006" },
-  { label: "Handmade", id: "1007" },
-  { label: "Beauty", id: "1008" },
-  { label: "Home & Garden", id: "1009" },
-  { label: "Vintage & Collectibles", id: "1010" },
-  { label: "Books & Music", id: "1011" },
-  { label: "Other", id: "1012" },
-];
-
 function Step2({
   title, onChangeTitle, price, onChangePrice,
   description, onChangeDescription,
   isEbay, ebayConditionId, onChangeEbayCondition,
-  isMercari, mercariCategoryId, onChangeMercariCategoryId,
+  isMercari, selectedMercariCat, onSelectMercariCat,
   mercariZipCode, onChangeMercariZipCode,
+  mercariShipMethod, onChangeShipMethod,
+  mercariShippingPayerId, onChangeShippingPayerId,
+  mercariWeightLb, onChangeWeightLb,
+  mercariWeightOz, onChangeWeightOz,
+  mercariDimL, onChangeDimL,
+  mercariDimW, onChangeDimW,
+  mercariDimH, onChangeDimH,
+  mercariSelectedCarrier, onSelectCarrier,
 }: {
   title: string; onChangeTitle: (v: string) => void;
   price: string; onChangePrice: (v: string) => void;
   description: string; onChangeDescription: (v: string) => void;
   isEbay: boolean; ebayConditionId: string; onChangeEbayCondition: (v: string) => void;
-  isMercari: boolean; mercariCategoryId: string; onChangeMercariCategoryId: (v: string) => void;
+  isMercari: boolean;
+  selectedMercariCat: MercariCat | null; onSelectMercariCat: (cat: MercariCat | null) => void;
   mercariZipCode: string; onChangeMercariZipCode: (v: string) => void;
+  mercariShipMethod: "SOYO" | "PREPAID"; onChangeShipMethod: (m: "SOYO" | "PREPAID") => void;
+  mercariShippingPayerId: 1 | 2; onChangeShippingPayerId: (p: 1 | 2) => void;
+  mercariWeightLb: string; onChangeWeightLb: (v: string) => void;
+  mercariWeightOz: string; onChangeWeightOz: (v: string) => void;
+  mercariDimL: string; onChangeDimL: (v: string) => void;
+  mercariDimW: string; onChangeDimW: (v: string) => void;
+  mercariDimH: string; onChangeDimH: (v: string) => void;
+  mercariSelectedCarrier: any | null; onSelectCarrier: (c: any | null) => void;
 }) {
   return (
     <View>
@@ -687,38 +747,622 @@ function Step2({
       </Card>
 
       {isMercari && (
-        <Card label="Mercari Category *">
-          <Text style={[s.hint, { marginBottom: 10 }]}>
-            Select the top-level category for this Mercari listing.
-          </Text>
-          <View style={s.chipRow}>
-            {MERCARI_CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[s.chip, mercariCategoryId === cat.id && s.chipActive]}
-                onPress={() => onChangeMercariCategoryId(cat.id)}
-              >
-                <Text style={[s.chipText, mercariCategoryId === cat.id && s.chipTextActive]}>
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <FieldLabel label="Your zip code (for shipping)" />
-          <TextInput
-            style={[s.input, { marginBottom: 0 }]}
-            value={mercariZipCode}
-            onChangeText={onChangeMercariZipCode}
-            placeholder="e.g. 90210"
-            keyboardType="number-pad"
-            maxLength={10}
+        <>
+          <MercariCategoryPicker
+            selected={selectedMercariCat}
+            onSelect={onSelectMercariCat}
           />
-        </Card>
+          <Card label="Zip Code *">
+            <TextInput
+              style={[s.input, { marginBottom: 0 }]}
+              value={mercariZipCode}
+              onChangeText={onChangeMercariZipCode}
+              placeholder="e.g. 90210"
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+          </Card>
+          <MercariShippingSection
+            categoryId={selectedMercariCat ? parseInt(selectedMercariCat.id, 10) : undefined}
+            shipMethod={mercariShipMethod}
+            onChangeShipMethod={onChangeShipMethod}
+            shippingPayerId={mercariShippingPayerId}
+            onChangeShippingPayerId={onChangeShippingPayerId}
+            weightLb={mercariWeightLb}
+            onChangeWeightLb={onChangeWeightLb}
+            weightOz={mercariWeightOz}
+            onChangeWeightOz={onChangeWeightOz}
+            dimL={mercariDimL}
+            onChangeDimL={onChangeDimL}
+            dimW={mercariDimW}
+            onChangeDimW={onChangeDimW}
+            dimH={mercariDimH}
+            onChangeDimH={onChangeDimH}
+            selectedCarrier={mercariSelectedCarrier}
+            onSelectCarrier={onSelectCarrier}
+          />
+          <MercariFeeBreakdown
+            price={price}
+            shipMethod={mercariShipMethod}
+            shippingPayerId={mercariShippingPayerId}
+            selectedCarrier={mercariSelectedCarrier}
+          />
+        </>
       )}
-
     </View>
   );
 }
+
+// ─── Mercari fee breakdown card ───────────────────────────────────────────────
+
+function MercariFeeBreakdown({
+  price,
+  shipMethod,
+  shippingPayerId,
+  selectedCarrier,
+}: {
+  price: string;
+  shipMethod: "SOYO" | "PREPAID";
+  shippingPayerId: 1 | 2;
+  selectedCarrier: any | null;
+}) {
+  const priceInCents = Math.round(Number(price) * 100);
+  if (priceInCents <= 0) return null;
+
+  const buyerPaysShipping = shipMethod === "PREPAID" && shippingPayerId === 1;
+  const shippingCostInCents =
+    buyerPaysShipping && typeof selectedCarrier?.fee === "number"
+      ? selectedCarrier.fee
+      : 0;
+  const salesFeeInCents = Math.floor((priceInCents + shippingCostInCents) * 0.10);
+  const labelCostInCents =
+    shipMethod === "PREPAID" && shippingPayerId === 2 && typeof selectedCarrier?.fee === "number"
+      ? selectedCarrier.fee
+      : 0;
+  const earningsInCents = priceInCents - salesFeeInCents - labelCostInCents;
+
+  const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+  return (
+    <View style={fee.card}>
+      <Text style={fee.header}>Fee Breakdown</Text>
+      <View style={fee.rows}>
+        <View style={fee.row}>
+          <Text style={fee.rowLabel}>Listing price</Text>
+          <Text style={fee.rowValue}>{fmt(priceInCents)}</Text>
+        </View>
+        {buyerPaysShipping && shippingCostInCents > 0 && (
+          <View style={fee.row}>
+            <Text style={fee.rowMuted}>+ Buyer shipping</Text>
+            <Text style={fee.rowMuted}>{fmt(shippingCostInCents)}</Text>
+          </View>
+        )}
+        <View style={fee.row}>
+          <Text style={fee.rowFee}>Mercari fee (10%)</Text>
+          <Text style={fee.rowFee}>−{fmt(salesFeeInCents)}</Text>
+        </View>
+        {labelCostInCents > 0 && (
+          <View style={fee.row}>
+            <Text style={fee.rowMuted}>− Shipping label</Text>
+            <Text style={fee.rowMuted}>−{fmt(labelCostInCents)}</Text>
+          </View>
+        )}
+        <View style={fee.divider} />
+        <View style={fee.row}>
+          <Text style={fee.earningsLabel}>Your earnings</Text>
+          <Text style={[fee.earningsValue, earningsInCents < 0 && fee.earningsNeg]}>
+            {fmt(Math.max(0, earningsInCents))}
+          </Text>
+        </View>
+      </View>
+      <Text style={fee.footnote}>
+        Mercari charges 10% of sale price{buyerPaysShipping ? " + buyer shipping" : ""}.
+      </Text>
+    </View>
+  );
+}
+
+const fee = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff1f2",
+    borderWidth: 1,
+    borderColor: "#fecdd3",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+  },
+  header: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#f87171",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  rows: { gap: 8 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  rowLabel: { fontSize: 14, color: "#3f3f46" },
+  rowValue: { fontSize: 14, fontWeight: "500", color: "#3f3f46" },
+  rowMuted: { fontSize: 13, color: "#71717a" },
+  rowFee: { fontSize: 14, color: "#dc2626", fontWeight: "500" },
+  divider: { height: 1, backgroundColor: "#fecdd3", marginVertical: 4 },
+  earningsLabel: { fontSize: 14, fontWeight: "700", color: "#18181b" },
+  earningsValue: { fontSize: 14, fontWeight: "700", color: "#15803d" },
+  earningsNeg: { color: "#dc2626" },
+  footnote: { fontSize: 10, color: "#a1a1aa", marginTop: 10 },
+});
+
+// ─── Mercari category drill-down + search picker ──────────────────────────────
+
+function MercariCategoryPicker({
+  selected,
+  onSelect,
+}: {
+  selected: MercariCat | null;
+  onSelect: (cat: MercariCat | null) => void;
+}) {
+  const [stack, setStack] = useState<Array<{ id: string; label: string }>>([]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
+  const parentId = stack.length > 0 ? stack[stack.length - 1]!.id : "root";
+
+  const { data: childrenData, isLoading: childrenLoading } = useQuery({
+    queryKey: ["mercari-cats", parentId],
+    queryFn: () => api.getMercariCategories(parentId, undefined, 200),
+    select: (d: any) => (d?.data ?? []) as MercariCat[],
+    enabled: !debouncedSearch,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: searchData, isFetching: searchLoading } = useQuery({
+    queryKey: ["mercari-cats-search", debouncedSearch],
+    queryFn: () => api.getMercariCategories(undefined, debouncedSearch, 50),
+    select: (d: any) => (d?.data ?? []) as MercariCat[],
+    enabled: debouncedSearch.length > 1,
+    staleTime: 60_000,
+  });
+
+  const children = childrenData ?? [];
+  const searchResults = searchData ?? [];
+  const isSearching = debouncedSearch.length > 1;
+
+  function drillInto(cat: MercariCat) {
+    setStack((prev) => [...prev, { id: cat.id, label: cat.label }]);
+    setSearch("");
+    setDebouncedSearch("");
+  }
+
+  function goBack(toIndex: number) {
+    setStack((prev) => prev.slice(0, toIndex));
+  }
+
+  function selectCat(cat: MercariCat) {
+    onSelect(cat);
+    setSearch("");
+    setDebouncedSearch("");
+    setStack([]);
+  }
+
+  // ── Selected state ──────────────────────────────────────────────────────────
+  if (selected) {
+    return (
+      <Card label="Mercari Category *">
+        <View style={mc.selectedRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={mc.selectedLabel}>{selected.label}</Text>
+            <Text style={mc.selectedPath} numberOfLines={1}>
+              {selected.fullPath.join(" › ")}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => onSelect(null)} hitSlop={10}>
+            <Feather name="x" size={18} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+      </Card>
+    );
+  }
+
+  // ── Picker ──────────────────────────────────────────────────────────────────
+  const listData: MercariCat[] = isSearching ? searchResults : children;
+  const loading = isSearching ? searchLoading : childrenLoading;
+
+  return (
+    <Card label="Mercari Category *">
+      {/* Search bar */}
+      <View style={mc.searchRow}>
+        <Feather name="search" size={15} color="#9ca3af" style={{ marginRight: 8 }} />
+        <TextInput
+          style={mc.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search categories…"
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+        {loading && <ActivityIndicator size="small" color="#ef4444" />}
+        {search.length > 0 && !loading && (
+          <TouchableOpacity onPress={() => { setSearch(""); setDebouncedSearch(""); }} hitSlop={8}>
+            <Feather name="x" size={15} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Breadcrumb (drill-down mode only) */}
+      {!isSearching && stack.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={mc.breadcrumbScroll}
+          contentContainerStyle={mc.breadcrumbContent}
+        >
+          <TouchableOpacity onPress={() => goBack(0)}>
+            <Text style={mc.breadcrumbLink}>All</Text>
+          </TouchableOpacity>
+          {stack.map((crumb, i) => (
+            <View key={i} style={mc.breadcrumbItem}>
+              <Text style={mc.breadcrumbSep}> › </Text>
+              <TouchableOpacity onPress={() => goBack(i + 1)}>
+                <Text style={[mc.breadcrumbLink, i === stack.length - 1 && mc.breadcrumbCurrent]}>
+                  {crumb.label}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Category list */}
+      {loading && listData.length === 0 ? (
+        <View style={mc.loadingRow}>
+          <ActivityIndicator size="small" color="#ef4444" />
+          <Text style={mc.loadingText}>Loading…</Text>
+        </View>
+      ) : listData.length === 0 ? (
+        <Text style={mc.emptyText}>
+          {isSearching
+            ? `No categories found for "${debouncedSearch}"`
+            : "No subcategories found."}
+        </Text>
+      ) : (
+        <View style={mc.list}>
+          {listData.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={mc.row}
+              onPress={() => {
+                if (isSearching || !cat.hasChildren) {
+                  selectCat(cat);
+                } else {
+                  drillInto(cat);
+                }
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={mc.rowLabel}>{cat.label}</Text>
+                {isSearching && cat.fullPath.length > 1 && (
+                  <Text style={mc.rowPath} numberOfLines={1}>
+                    {cat.fullPath.join(" › ")}
+                  </Text>
+                )}
+              </View>
+              {!isSearching && cat.hasChildren && (
+                <Feather name="chevron-right" size={16} color="#9ca3af" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+const mc = StyleSheet.create({
+  selectedRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#fca5a5",
+    borderRadius: 10, padding: 12,
+  },
+  selectedLabel: { fontSize: 14, fontWeight: "600", color: "#dc2626" },
+  selectedPath: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
+  searchRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8,
+    paddingHorizontal: 10, backgroundColor: "#fff", marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1, paddingVertical: Platform.OS === "ios" ? 11 : 8,
+    fontSize: 14, color: "#111827",
+  },
+  breadcrumbScroll: { marginBottom: 8 },
+  breadcrumbContent: { flexDirection: "row", alignItems: "center" },
+  breadcrumbItem: { flexDirection: "row", alignItems: "center" },
+  breadcrumbSep: { fontSize: 12, color: "#9ca3af" },
+  breadcrumbLink: { fontSize: 12, color: "#6b7280" },
+  breadcrumbCurrent: { color: "#111827", fontWeight: "600" },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
+  loadingText: { fontSize: 13, color: "#9ca3af" },
+  emptyText: { fontSize: 13, color: "#9ca3af", paddingVertical: 8 },
+  list: { borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 10, overflow: "hidden" },
+  row: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 12, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: "#f3f4f6",
+    backgroundColor: "#fff",
+  },
+  rowLabel: { fontSize: 14, color: "#111827" },
+  rowPath: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
+});
+
+// ─── Mercari shipping section ─────────────────────────────────────────────────
+
+function MercariShippingSection({
+  categoryId,
+  shipMethod, onChangeShipMethod,
+  shippingPayerId, onChangeShippingPayerId,
+  weightLb, onChangeWeightLb,
+  weightOz, onChangeWeightOz,
+  dimL, onChangeDimL,
+  dimW, onChangeDimW,
+  dimH, onChangeDimH,
+  selectedCarrier, onSelectCarrier,
+}: {
+  categoryId?: number;
+  shipMethod: "SOYO" | "PREPAID"; onChangeShipMethod: (m: "SOYO" | "PREPAID") => void;
+  shippingPayerId: 1 | 2; onChangeShippingPayerId: (p: 1 | 2) => void;
+  weightLb: string; onChangeWeightLb: (v: string) => void;
+  weightOz: string; onChangeWeightOz: (v: string) => void;
+  dimL: string; onChangeDimL: (v: string) => void;
+  dimW: string; onChangeDimW: (v: string) => void;
+  dimH: string; onChangeDimH: (v: string) => void;
+  selectedCarrier: any | null; onSelectCarrier: (c: any | null) => void;
+}) {
+  const totalOz = (parseFloat(weightLb) || 0) * 16 + (parseFloat(weightOz) || 0);
+  const dimLn = parseFloat(dimL) || 0;
+  const dimWn = parseFloat(dimW) || 0;
+  const dimHn = parseFloat(dimH) || 0;
+  const hasDims = dimLn > 0 && dimWn > 0 && dimHn > 0;
+
+  const { data: carriersData, isFetching: carriersLoading, error: carriersErr } = useQuery({
+    queryKey: ["mercari-carriers", categoryId, Math.round(totalOz), dimLn, dimWn, dimHn],
+    queryFn: () =>
+      api.getMercariShippingCarriers({
+        ...(categoryId ? { categoryId } : {}),
+        packageWeight: Math.round(totalOz),
+        ...(hasDims ? { dimension: { length: dimLn, width: dimWn, height: dimHn } } : {}),
+      }),
+    select: (d: any) =>
+      (d?.data?.data?.availableShippingClassesV2?.shippingClasses ?? []) as any[],
+    enabled: shipMethod === "PREPAID" && totalOz > 0,
+    staleTime: 60_000,
+  });
+
+  const carriers: any[] = carriersData ?? [];
+  const carriersError = carriersErr ? (carriersErr as Error).message : null;
+
+  return (
+    <Card label="Shipping Method">
+      {/* Method toggle */}
+      <View style={sh.toggle}>
+        {(["SOYO", "PREPAID"] as const).map((m) => (
+          <TouchableOpacity
+            key={m}
+            style={[sh.toggleBtn, shipMethod === m && sh.toggleBtnActive]}
+            onPress={() => {
+              onChangeShipMethod(m);
+              onSelectCarrier(null);
+            }}
+          >
+            <Text style={[sh.toggleText, shipMethod === m && sh.toggleTextActive]}>
+              {m === "SOYO" ? "Ship on Your Own" : "Prepaid Label"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {shipMethod === "PREPAID" && (
+        <>
+          {/* Payer toggle */}
+          <View style={{ marginTop: 14 }}>
+            <Text style={sh.label}>Who Pays Shipping?</Text>
+            <View style={sh.toggle}>
+              {([1, 2] as const).map((p) => (
+                <TouchableOpacity
+                  key={p}
+                  style={[sh.toggleBtn, shippingPayerId === p && sh.toggleBtnActive]}
+                  onPress={() => onChangeShippingPayerId(p)}
+                >
+                  <Text style={[sh.toggleText, shippingPayerId === p && sh.toggleTextActive]}>
+                    {p === 1 ? "Buyer Pays" : "Seller Pays"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Weight */}
+          <View style={{ marginTop: 14 }}>
+            <Text style={sh.label}>Package Weight *</Text>
+            <View style={sh.weightRow}>
+              <View style={sh.weightField}>
+                <TextInput
+                  style={sh.weightInput}
+                  value={weightLb}
+                  onChangeText={onChangeWeightLb}
+                  placeholder="0"
+                  keyboardType="decimal-pad"
+                />
+                <Text style={sh.weightUnit}>lb</Text>
+              </View>
+              <View style={sh.weightField}>
+                <TextInput
+                  style={sh.weightInput}
+                  value={weightOz}
+                  onChangeText={onChangeWeightOz}
+                  placeholder="0"
+                  keyboardType="decimal-pad"
+                />
+                <Text style={sh.weightUnit}>oz</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Dimensions */}
+          <View style={{ marginTop: 14 }}>
+            <Text style={sh.label}>Dimensions (inches) — optional</Text>
+            <View style={sh.dimRow}>
+              <TextInput
+                style={sh.dimInput}
+                value={dimL}
+                onChangeText={onChangeDimL}
+                placeholder="L"
+                keyboardType="decimal-pad"
+              />
+              <Text style={sh.dimSep}>×</Text>
+              <TextInput
+                style={sh.dimInput}
+                value={dimW}
+                onChangeText={onChangeDimW}
+                placeholder="W"
+                keyboardType="decimal-pad"
+              />
+              <Text style={sh.dimSep}>×</Text>
+              <TextInput
+                style={sh.dimInput}
+                value={dimH}
+                onChangeText={onChangeDimH}
+                placeholder="H"
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <Text style={sh.hint}>Length × Width × Height — narrows the carrier list.</Text>
+          </View>
+
+          {/* Carriers */}
+          {totalOz > 0 && (
+            <View style={{ marginTop: 14 }}>
+              {carriersLoading ? (
+                <View style={sh.loadingRow}>
+                  <ActivityIndicator size="small" color="#ef4444" />
+                  <Text style={sh.loadingText}>Loading available carriers…</Text>
+                </View>
+              ) : carriersError ? (
+                <View style={sh.errorBanner}>
+                  <Feather name="alert-circle" size={13} color="#dc2626" />
+                  <Text style={sh.errorText}>{carriersError}</Text>
+                </View>
+              ) : carriers.length === 0 ? (
+                <Text style={sh.hint}>
+                  No carriers available for this weight. Try adjusting the package details.
+                </Text>
+              ) : (
+                <>
+                  <Text style={sh.label}>Select Carrier</Text>
+                  <View style={{ gap: 8, marginTop: 6 }}>
+                    {carriers.map((carrier: any) => {
+                      const carrierId = String(carrier.id ?? "");
+                      const label: string = carrier.requestClassDisplayName ?? carrier.name ?? "Unknown";
+                      const carrierName: string = carrier.carrierDisplayName ?? carrier.carrier ?? "";
+                      const fee: number | undefined = carrier.fee;
+                      const priceStr = typeof fee === "number" ? `$${(fee / 100).toFixed(2)}` : "";
+                      const eta: string = carrier.etaForSeller ?? "";
+                      const isSelected = selectedCarrier?.id != null && String(selectedCarrier.id) === carrierId;
+                      return (
+                        <TouchableOpacity
+                          key={carrierId}
+                          style={[sh.carrierRow, isSelected && sh.carrierRowSelected]}
+                          onPress={() => onSelectCarrier(isSelected ? null : carrier)}
+                        >
+                          <View style={[sh.radio, isSelected && sh.radioSelected]}>
+                            {isSelected && <View style={sh.radioDot} />}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={sh.carrierLabel}>{label}</Text>
+                            {carrierName ? (
+                              <Text style={sh.carrierSub}>{carrierName}</Text>
+                            ) : null}
+                          </View>
+                          <View style={{ alignItems: "flex-end" }}>
+                            {priceStr ? (
+                              <Text style={sh.carrierPrice}>{priceStr}</Text>
+                            ) : null}
+                            {eta ? <Text style={sh.carrierEta}>{eta}</Text> : null}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+const sh = StyleSheet.create({
+  toggle: {
+    flexDirection: "row", borderWidth: 1, borderColor: "#e5e7eb",
+    borderRadius: 10, backgroundColor: "#f9fafb", padding: 3, gap: 3,
+  },
+  toggleBtn: {
+    flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center",
+  },
+  toggleBtnActive: { backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 2, elevation: 1 },
+  toggleText: { fontSize: 12, fontWeight: "600", color: "#6b7280" },
+  toggleTextActive: { color: "#111827" },
+  label: { fontSize: 12, fontWeight: "600", color: "#6b7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.4 },
+  hint: { fontSize: 12, color: "#9ca3af", marginTop: 4 },
+  weightRow: { flexDirection: "row", gap: 12 },
+  weightField: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  weightInput: {
+    flex: 1, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: Platform.OS === "ios" ? 10 : 7,
+    fontSize: 14, color: "#111827", backgroundColor: "#fff", textAlign: "center",
+  },
+  weightUnit: { fontSize: 13, color: "#6b7280", width: 18 },
+  dimRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dimInput: {
+    flex: 1, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: Platform.OS === "ios" ? 10 : 7,
+    fontSize: 14, color: "#111827", backgroundColor: "#fff", textAlign: "center",
+  },
+  dimSep: { fontSize: 14, color: "#9ca3af" },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  loadingText: { fontSize: 13, color: "#9ca3af" },
+  errorBanner: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#fecaca",
+    borderRadius: 8, padding: 10,
+  },
+  errorText: { flex: 1, fontSize: 12, color: "#dc2626" },
+  carrierRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12,
+    padding: 12, backgroundColor: "#fff",
+  },
+  carrierRowSelected: { borderColor: "#ef4444", backgroundColor: "#fef2f2" },
+  radio: {
+    width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+    borderColor: "#d1d5db", alignItems: "center", justifyContent: "center",
+  },
+  radioSelected: { borderColor: "#ef4444" },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" },
+  carrierLabel: { fontSize: 13, fontWeight: "500", color: "#111827" },
+  carrierSub: { fontSize: 11, color: "#6b7280", marginTop: 1 },
+  carrierPrice: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  carrierEta: { fontSize: 11, color: "#6b7280", marginTop: 1 },
+});
 
 // ─── Step 3: eBay – category, aspects, policies ───────────────────────────────
 
