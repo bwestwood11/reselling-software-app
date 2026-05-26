@@ -6,6 +6,7 @@ import {
   loginWithGoogleToken,
   loginWithEmail,
 } from "../services/marketplace/mercari-auth.service";
+import { ImportService } from "../services/marketplace/import.service";
 
 // ─── eBay constants ───────────────────────────────────────────────────────────
 
@@ -739,6 +740,69 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         });
 
       return reply.send({ success: true, data: aspects });
+    }
+  );
+
+  // GET /api/marketplaces/ebay/importable-listings
+  fastify.get(
+    "/ebay/importable-listings",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const {
+        status = "active",
+        showImported = "false",
+        page = "1",
+        limit = "50",
+      } = request.query as Record<string, string>;
+
+      if (!["active", "ended", "sold"].includes(status)) {
+        return reply.status(400).send({ success: false, error: "status must be active, ended, or sold" });
+      }
+
+      try {
+        const service = new ImportService(fastify.prisma);
+        const result = await service.getImportableListings(
+          request.user!.id,
+          status as "active" | "ended" | "sold",
+          showImported === "true",
+          Math.max(1, Number.parseInt(page, 10) || 1),
+          Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 50))
+        );
+        return reply.send({ success: true, ...result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to fetch eBay listings";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
+  // POST /api/marketplaces/ebay/import
+  fastify.post(
+    "/ebay/import",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { ebayItemIds } = request.body as { ebayItemIds?: unknown };
+
+      if (!Array.isArray(ebayItemIds) || ebayItemIds.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: "ebayItemIds must be a non-empty array of strings",
+        });
+      }
+
+      const ids = ebayItemIds.filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (ids.length === 0) {
+        return reply.status(400).send({ success: false, error: "No valid eBay item IDs provided" });
+      }
+
+      try {
+        const service = new ImportService(fastify.prisma);
+        const result = await service.importItems(request.user!.id, ids);
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Import failed";
+        return reply.status(400).send({ success: false, error: message });
+      }
     }
   );
 

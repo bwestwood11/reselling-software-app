@@ -10,6 +10,24 @@ export interface EbayImportedListing {
   categoryName: string;
   imageUrls: string[];
   listedAt: Date | null;
+  listingStatus: string; // "Active" | "Completed" | "Ended"
+}
+
+export interface EbayItemDetail {
+  itemId: string;
+  title: string;
+  description: string;
+  price: number;       // current price in USD (dollars)
+  startPrice: number;  // original listing price in USD (dollars)
+  quantity: number;
+  conditionId: number;
+  categoryId: string;
+  categoryName: string;
+  imageUrls: string[];
+  viewItemUrl: string;
+  listingStatus: string;
+  itemSpecifics: Array<{ name: string; value: string }>;
+  listedAt: Date | null;
 }
 
 /** Build eBay <ItemSpecifics> XML from a key→value map. */
@@ -163,6 +181,16 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       SATISFACTORY: "Shows significant signs of use and wear. Fully functional but may have noticeable cosmetic defects.",
     };
     return map[condition ?? "GOOD"] ?? "";
+  }
+
+  /** Reverse-map an eBay ConditionID to our internal Condition enum value. */
+  static reverseMapConditionId(conditionId: number): "NEW_WITH_TAGS" | "NEW_WITHOUT_TAGS" | "VERY_GOOD" | "GOOD" | "SATISFACTORY" {
+    if (conditionId === 1000) return "NEW_WITH_TAGS";
+    if (conditionId === 1500) return "NEW_WITHOUT_TAGS";
+    if (conditionId === 3000 || conditionId === 4000) return "VERY_GOOD";
+    if (conditionId === 5000) return "GOOD";
+    if (conditionId === 6000) return "SATISFACTORY";
+    return "GOOD";
   }
 
   async publish(listing: ListingPayload): Promise<string> {
@@ -446,6 +474,20 @@ ${policiesXml}
     return blocks;
   }
 
+  /** Parse all <NameValueList> blocks from ItemSpecifics XML into name/value pairs. */
+  private parseNameValuePairs(xml: string): Array<{ name: string; value: string }> {
+    const pairs: Array<{ name: string; value: string }> = [];
+    const regex = /<NameValueList>([\s\S]*?)<\/NameValueList>/gi;
+    let match;
+    while ((match = regex.exec(xml)) !== null) {
+      const block = match[1] ?? "";
+      const name = this.xmlValue(block, "Name");
+      const value = this.xmlValue(block, "Value");
+      if (name && value) pairs.push({ name, value });
+    }
+    return pairs;
+  }
+
   /** Parse a single <Item> block from GetMyeBaySelling into our import shape. */
   private parseImportedItem(itemXml: string): EbayImportedListing | null {
     const itemId = this.xmlValue(itemXml, "ItemID");
@@ -477,14 +519,38 @@ ${policiesXml}
     const startTimeStr = this.xmlValue(itemXml, "StartTime");
     const listedAt = startTimeStr ? new Date(startTimeStr) : null;
 
-    return { itemId, title, price, quantity, conditionId, categoryId, categoryName, imageUrls, listedAt };
+    const listingStatus = this.xmlValue(itemXml, "ListingStatus") ?? "Active";
+
+    return { itemId, title, price, quantity, conditionId, categoryId, categoryName, imageUrls, listedAt, listingStatus };
   }
 
   /**
    * Fetches all active listings from eBay using GetMyeBaySelling.
-   * Handles pagination automatically (up to 1 000 items as a safety cap).
+   * Delegates to getSellerListingsByStatus("active").
    */
   async getSellerListings(): Promise<EbayImportedListing[]> {
+    return this.getSellerListingsByStatus("active");
+  }
+
+  /**
+   * Fetches seller listings from eBay by status using GetMyeBaySelling.
+   * - active  → <ActiveList>
+   * - ended   → <UnsoldList>
+   * - sold    → <SoldList> (items are nested inside <Transaction> blocks)
+   * Handles pagination automatically (up to 1 000 items as a safety cap).
+   */
+  async getSellerListingsByStatus(
+    status: "active" | "ended" | "sold"
+  ): Promise<EbayImportedListing[]> {
+    let sectionTag: string;
+    if (status === "active") {
+      sectionTag = "ActiveList";
+    } else if (status === "ended") {
+      sectionTag = "UnsoldList";
+    } else {
+      sectionTag = "SoldList";
+    }
+
     const all: EbayImportedListing[] = [];
     let page = 1;
     let hasMore = true;
@@ -494,13 +560,13 @@ ${policiesXml}
 <GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
   <ErrorLanguage>en_US</ErrorLanguage>
   <WarningLevel>High</WarningLevel>
-  <ActiveList>
+  <${sectionTag}>
     <Include>true</Include>
     <Pagination>
       <EntriesPerPage>200</EntriesPerPage>
       <PageNumber>${page}</PageNumber>
     </Pagination>
-  </ActiveList>
+  </${sectionTag}>
 </GetMyeBaySellingRequest>`;
 
       const res = await fetch(this.tradingUrl, {
@@ -511,7 +577,7 @@ ${policiesXml}
 
       const text = await res.text();
       const ack = this.xmlValue(text, "Ack");
-      console.log("[eBay GetMyeBaySelling] page=%d http=%d ack=%s", page, res.status, ack ?? "?");
+      console.log("[eBay GetMyeBaySelling:%s] page=%d http=%d ack=%s", status, page, res.status, ack ?? "?");
 
       if (ack === "Failure" || !res.ok) {
         const errors = this.parseXmlErrors(text);
@@ -525,15 +591,87 @@ ${policiesXml}
       }
 
       const totalPagesStr = this.xmlValue(text, "TotalNumberOfPages") ?? "1";
-      const totalPages = parseInt(totalPagesStr) || 1;
+      const totalPages = Number.parseInt(totalPagesStr) || 1;
       hasMore = page < totalPages;
       page++;
 
       if (all.length >= 1000) break;
     }
 
-    console.log("[eBay GetMyeBaySelling] fetched %d active listings", all.length);
+    console.log("[eBay GetMyeBaySelling:%s] fetched %d listings", status, all.length);
     return all;
+  }
+
+  /**
+   * Fetches full details for a single eBay listing by ItemID using GetItem.
+   * Used during import to get description, item specifics, and authoritative prices.
+   */
+  async getItemById(itemId: string): Promise<EbayItemDetail> {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ItemID>${this.escapeXml(itemId)}</ItemID>
+  <DetailLevel>ReturnAll</DetailLevel>
+  <IncludeItemSpecifics>true</IncludeItemSpecifics>
+</GetItemRequest>`;
+
+    const res = await fetch(this.tradingUrl, {
+      method: "POST",
+      headers: this.tradingHeaders("GetItem"),
+      body: xml,
+    });
+
+    const text = await res.text();
+    const ack = this.xmlValue(text, "Ack");
+    console.log("[eBay GetItem] itemId=%s http=%d ack=%s", itemId, res.status, ack ?? "?");
+
+    if (ack === "Failure" || !res.ok) {
+      const errors = this.parseXmlErrors(text);
+      throw new Error(`eBay GetItem failed for ${itemId}: ${errors.join(" | ") || text.slice(0, 300)}`);
+    }
+
+    const rawDesc = this.xmlValue(text, "Description") ?? "";
+    // Strip CDATA wrapper if present
+    const description = rawDesc.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "").trim();
+
+    const priceStr =
+      this.xmlValue(text, "CurrentPrice") ??
+      this.xmlValue(text, "BuyItNowPrice") ??
+      this.xmlValue(text, "StartPrice") ??
+      "0";
+    const price = Number.parseFloat(priceStr) || 0;
+
+    const startPriceStr = this.xmlValue(text, "StartPrice") ?? "0";
+    const startPrice = Number.parseFloat(startPriceStr) || 0;
+
+    const conditionId = Number.parseInt(this.xmlValue(text, "ConditionID") ?? "5000") || 5000;
+    const categoryId = this.xmlValue(text, "CategoryID") ?? "";
+    const categoryName = this.xmlValue(text, "CategoryName") ?? "";
+    const quantityStr = this.xmlValue(text, "Quantity") ?? "1";
+    const quantity = Math.max(1, Number.parseInt(quantityStr) || 1);
+    const imageUrls = this.xmlValues(text, "PictureURL").filter((u) => u.startsWith("http"));
+    const viewItemUrl =
+      this.xmlValue(text, "ViewItemURL") ?? `https://www.ebay.com/itm/${itemId}`;
+    const listingStatus = this.xmlValue(text, "ListingStatus") ?? "Active";
+    const startTimeStr = this.xmlValue(text, "StartTime");
+    const listedAt = startTimeStr ? new Date(startTimeStr) : null;
+    const itemSpecifics = this.parseNameValuePairs(text);
+
+    return {
+      itemId,
+      title: this.xmlValue(text, "Title") ?? "",
+      description,
+      price,
+      startPrice,
+      quantity,
+      conditionId,
+      categoryId,
+      categoryName,
+      imageUrls,
+      viewItemUrl,
+      listingStatus,
+      itemSpecifics,
+      listedAt,
+    };
   }
 
   async checkStatus(

@@ -112,6 +112,29 @@ export const marketplacesApi = {
     }),
 };
 
+// ─── eBay Import ──────────────────────────────────────────────────────────────
+
+export const importApi = {
+  getImportableListings: (params?: {
+    status?: string;
+    showImported?: boolean;
+    page?: number;
+    limit?: number;
+  }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [k, String(v)] as [string, string]);
+    const qs = entries.length > 0 ? `?${new URLSearchParams(entries).toString()}` : "";
+    return request<any>(`/api/marketplaces/ebay/importable-listings${qs}`);
+  },
+
+  importItems: (ebayItemIds: string[]) =>
+    request<any>("/api/marketplaces/ebay/import", {
+      method: "POST",
+      body: JSON.stringify({ ebayItemIds }),
+    }),
+};
+
 // ─── Mercari jobs ─────────────────────────────────────────────────────────────
 
 export const mercariApi = {

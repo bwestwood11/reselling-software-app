@@ -9,7 +9,7 @@ import {
   Card,
   CardContent,
 } from "@repo/ui";
-import { Plus, Search, Package, Trash2, ExternalLink, Tag, Pencil } from "lucide-react";
+import { Plus, Search, Package, Trash2, ExternalLink, Tag, Pencil, Download } from "lucide-react";
 import { formatCurrency } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -51,12 +51,24 @@ export default function InventoryPage(): import("react").JSX.Element {
             Internal tracking enabled
           </div>
         </div>
-        <Button className="mt-5 bg-white text-orange-700 hover:bg-orange-50" asChild>
-          <Link href="/inventory/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add item
-          </Link>
-        </Button>
+        <div className="mt-5 flex gap-3">
+          <Button className="bg-white text-orange-700 hover:bg-orange-50" asChild>
+            <Link href="/inventory/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add item
+            </Link>
+          </Button>
+          <Button
+            className="border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25"
+            variant="outline"
+            asChild
+          >
+            <Link href="/inventory/import">
+              <Download className="mr-2 h-4 w-4" />
+              Import from eBay
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
