@@ -43,6 +43,8 @@ export class ImportService {
 
     const ebayListings = await adapter.getSellerListingsByStatus(status);
 
+    console.log(ebayListings)
+
     // Determine which eBay item IDs are already tracked in our DB
     const ebayIds = ebayListings.map((l) => l.itemId);
     const existingListings = await this.db.listing.findMany({
@@ -121,9 +123,10 @@ export class ImportService {
               description: detail.description || undefined,
               condition,
               quantity: detail.quantity,
-              // Prices from eBay are in USD dollars; store as cents
-              targetPrice: detail.price > 0 ? Math.round(detail.price * 100) : undefined,
-              costPrice: detail.startPrice > 0 ? Math.round(detail.startPrice * 100) : undefined,
+              targetPrice: detail.price > 0 ? detail.price : undefined,
+              costPrice: detail.startPrice > 0 ? detail.startPrice : undefined,
+              brand: detail.brand || undefined,
+              sku: detail.sku || undefined,
               category: detail.categoryName || undefined,
               status: "ACTIVE",
               images:
@@ -153,7 +156,7 @@ export class ImportService {
               externalId: detail.itemId,
               externalUrl: detail.viewItemUrl || undefined,
               title: detail.title,
-              price: detail.price > 0 ? Math.round(detail.price * 100) : 0,
+              price: Math.max(0, detail.price),
               status: listingStatus,
               listedAt: detail.listedAt,
               ...(listingStatus === "SOLD" && { soldAt: new Date() }),

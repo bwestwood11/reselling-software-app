@@ -28,6 +28,8 @@ export interface EbayItemDetail {
   listingStatus: string;
   itemSpecifics: Array<{ name: string; value: string }>;
   listedAt: Date | null;
+  brand: string;
+  sku: string;
 }
 
 /** Build eBay <ItemSpecifics> XML from a key→value map. */
@@ -655,6 +657,8 @@ ${policiesXml}
     const startTimeStr = this.xmlValue(text, "StartTime");
     const listedAt = startTimeStr ? new Date(startTimeStr) : null;
     const itemSpecifics = this.parseNameValuePairs(text);
+    const sku = this.xmlValue(text, "SKU") ?? "";
+    const brand = itemSpecifics.find((s) => s.name.toLowerCase() === "brand")?.value ?? "";
 
     return {
       itemId,
@@ -671,6 +675,8 @@ ${policiesXml}
       listingStatus,
       itemSpecifics,
       listedAt,
+      brand,
+      sku,
     };
   }
 
