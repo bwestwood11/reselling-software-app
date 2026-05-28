@@ -18,7 +18,7 @@ class BrowserManager {
   async getBrowser(): Promise<Browser> {
     if (!this.browser?.isConnected()) {
       this.browser = await chromium.launch({
-        headless: false,
+        headless: true,
         args: LAUNCH_ARGS,
       });
     }

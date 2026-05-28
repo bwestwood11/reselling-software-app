@@ -1,0 +1,46 @@
+# Dependencies (installed fresh in Docker)
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.next
+apps/web/.next
+apps/mobile/.expo
+
+# Turbo cache
+.turbo
+**/.turbo
+
+# Playwright local browser cache
+playwright-browsers
+**/playwright-browsers
+
+# Secrets and local env files
+.env
+**/.env
+.env.local
+**/.env.local
+
+# Logs
+*.log
+**/npm-debug.log*
+
+# Git
+.git
+.gitignore
+
+# Editor / OS
+.vscode
+.idea
+*.DS_Store
+Thumbs.db
+
+# Apps not needed for the API image
+apps/web
+apps/mobile
+
+# Test / coverage artifacts
+coverage
+**/coverage

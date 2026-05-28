@@ -53,6 +53,9 @@ importers:
       better-auth:
         specifier: ^1.2.7
         version: 1.6.2(@opentelemetry/api@1.9.1)(next@15.5.15)(react-dom@19.1.0)(react@19.1.0)
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       fastify:
         specifier: ^5.2.1
         version: 5.8.4
@@ -8224,7 +8227,7 @@ packages:
     resolution: {integrity: sha512-zIHwmZPRshsCdpMDyVsqGmgyP0yT8GAgXUnkdAoJisxvf33k7yO6OuoKmcTGuXPWSsm8Oh88nZicRLA9Y0rUeA==}
     engines: {node: '>=12'}
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.6.1
     dev: false
 
   /dotenv@16.4.7:

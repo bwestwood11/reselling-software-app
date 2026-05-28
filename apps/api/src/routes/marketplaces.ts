@@ -553,7 +553,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           marketplace: "MERCARI",
           accessToken,
           sessionCookies: cookiesJson ?? null,
-          metadata: metadata ?? null,
+          metadata: metadata ?? undefined,
           accountId: accountId ?? null,
           accountName: accountName ?? null,
         },
