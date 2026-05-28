@@ -233,7 +233,7 @@ export default function ImportPage(): import("react").JSX.Element {
                 {/* Price + badge */}
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-semibold text-zinc-900">
-                    {formatCurrency(Math.round(item.price * 100))}
+                    {formatCurrency(item.price)}
                   </p>
                   <div className="mt-1">
                     {isImported ? (
