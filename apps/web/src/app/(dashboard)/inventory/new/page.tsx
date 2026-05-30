@@ -35,6 +35,7 @@ const schema = z.object({
   quantity: z.coerce.number().int().min(1),
   costPrice: z.coerce.number().positive().optional().or(z.literal("")),
   targetPrice: z.coerce.number().positive().optional().or(z.literal("")),
+  weight: z.coerce.number().positive().optional().or(z.literal("")),
   category: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -158,6 +159,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
       ...values,
       costPrice: values.costPrice === "" ? undefined : values.costPrice,
       targetPrice: values.targetPrice === "" ? undefined : values.targetPrice,
+      weight: values.weight === "" ? undefined : values.weight,
       images: images
         .map((slot, i) =>
           slot?.url && slot.key
@@ -312,6 +314,21 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                         className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
                         {...register("targetPrice")}
                       />
+                    </div>
+                  </Field>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  <Field label="Weight (lbs)" error={errors.weight?.message}>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        className="border-zinc-200 pr-10 focus-visible:ring-orange-400"
+                        {...register("weight")}
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">lbs</span>
                     </div>
                   </Field>
                 </div>

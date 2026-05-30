@@ -254,6 +254,37 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
     const postalCode = md?.postalCode as string | undefined;
     const location = (md?.location as string | undefined)?.trim() || "United States";
 
+    // Weight: marketplaceData.weightLbs overrides inventoryItem.weight; default 1 lb so
+    // calculated-shipping fulfillment policies don't hard-reject the item.
+    const rawWeightLbs =
+      md?.weightLbs != null
+        ? Number(md.weightLbs)
+        : listing.inventoryItem?.weight != null
+          ? Number(listing.inventoryItem.weight)
+          : null;
+    if (rawWeightLbs == null) {
+      console.warn("[eBay Publish] No weight set on inventory item — defaulting to 1 lb for ShippingPackageDetails");
+    }
+    const weightLbs = rawWeightLbs ?? 1;
+    const weightMajor = Math.floor(weightLbs);
+    const weightMinor = Math.round((weightLbs - weightMajor) * 16);
+
+    const dims = listing.inventoryItem?.dimensions as
+      | { length?: number; width?: number; height?: number }
+      | null
+      | undefined;
+    const shippingPackageXml = [
+      `  <ShippingPackageDetails>`,
+      `    <WeightMajor unit="lbs">${weightMajor}</WeightMajor>`,
+      `    <WeightMinor unit="oz">${weightMinor}</WeightMinor>`,
+      dims?.length ? `    <PackageLength unit="in">${Math.round(dims.length)}</PackageLength>` : "",
+      dims?.width ? `    <PackageWidth unit="in">${Math.round(dims.width)}</PackageWidth>` : "",
+      dims?.height ? `    <PackageDepth unit="in">${Math.round(dims.height)}</PackageDepth>` : "",
+      `  </ShippingPackageDetails>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     // Build item specifics: start from inventory attributes, then layer brand, then user overrides
     const rawSpecifics: Record<string, string> = {};
     const attrs = listing.inventoryItem?.attributes as Array<{ name: string; value: string }> | undefined;
@@ -313,6 +344,7 @@ ${pictureXml}
     ${postalCode ? `<PostalCode>${this.escapeXml(postalCode)}</PostalCode>` : ""}
     <Quantity>1</Quantity>
     <Site>US</Site>
+${shippingPackageXml}
 ${itemSpecificsXml}
 ${policiesXml}
   </Item>
