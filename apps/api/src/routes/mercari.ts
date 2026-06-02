@@ -256,11 +256,23 @@ export async function mercariRoutes(fastify: FastifyInstance) {
       try {
         const page = await context.newPage();
 
-        // Navigate to Mercari to obtain Cloudflare clearance for the session
+        // Navigate to Mercari. If Cloudflare shows a JS challenge ("Just a moment...")
+        // wait for it to auto-solve and redirect before making the API call.
         await page.goto("https://www.mercari.com/", {
           waitUntil: "domcontentloaded",
           timeout: 20_000,
         });
+
+        const pageTitle = await page.title();
+        if (pageTitle === "Just a moment...") {
+          // Cloudflare JS challenge is running — wait until Chrome solves it and
+          // the real Mercari page loads (title changes away from the challenge).
+          await page.waitForFunction(
+            "document.title !== 'Just a moment...'",
+            { timeout: 20_000 }
+          );
+          await page.waitForLoadState("domcontentloaded");
+        }
 
         // fetch() from inside Chrome — same-origin, real browser TLS fingerprint
         const result = await page.evaluate(
@@ -279,11 +291,20 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           { token: connection.accessToken, payload: gqlBody }
         );
 
-        if (result.status === 401 || result.status === 403) {
-          fastify.log.warn("Mercari shipping: auth error %d", result.status);
+        if (result.status === 401) {
+          fastify.log.warn("Mercari shipping: 401 — token invalid or expired. body: %s", result.text.slice(0, 200));
           return reply.status(422).send({
             success: false,
             error: "Mercari session expired. Please reconnect your Mercari account.",
+          });
+        }
+
+        if (result.status === 403) {
+          // 403 at this point is Cloudflare still blocking after challenge — treat as transient
+          fastify.log.warn("Mercari shipping: 403 after challenge. body: %s", result.text.slice(0, 200));
+          return reply.status(502).send({
+            success: false,
+            error: "Mercari is temporarily blocking this request. Please try again in a moment.",
           });
         }
 
