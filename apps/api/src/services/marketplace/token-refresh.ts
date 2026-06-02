@@ -41,7 +41,7 @@ export async function refreshConnectionIfNeeded(
 
   if (!connection.refreshToken) {
     throw new Error(
-      `${connection.marketplace} access token is expired and no refresh token is available. Please reconnect.`
+      `${connection.marketplace} session has expired. Please reconnect your account from the Marketplaces page.`
     );
   }
 
@@ -76,6 +76,12 @@ async function refreshEbayConnection(
 
   if (!res.ok) {
     const body = await res.text();
+    // 4xx means the refresh token itself is invalid or revoked — user must reconnect
+    if (res.status >= 400 && res.status < 500) {
+      throw new Error(
+        `eBay session has expired and could not be renewed (${res.status}). Please reconnect your account from the Marketplaces page.`
+      );
+    }
     throw new Error(`eBay token refresh failed (${res.status}): ${body}`);
   }
 

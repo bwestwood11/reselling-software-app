@@ -96,7 +96,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const connections = await fastify.prisma.marketplaceConnection.findMany({
-        where: { userId: request.user!.id },
+        where: { userId: request.user!.id, isActive: true },
         select: {
           id: true,
           marketplace: true,
@@ -113,13 +113,15 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   );
 
   // DELETE /api/marketplaces/connections/:id
+  // Soft-delete: sets isActive=false so linked listings (FK) are preserved.
   fastify.delete(
     "/connections/:id",
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      await fastify.prisma.marketplaceConnection.deleteMany({
+      await fastify.prisma.marketplaceConnection.updateMany({
         where: { id, userId: request.user!.id },
+        data: { isActive: false },
       });
       return reply.send({ success: true, message: "Connection removed" });
     }
@@ -865,7 +867,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         },
         update: {
           accessToken: tokens.accessToken,
-          refreshToken: null,
+          refreshToken: tokens.refreshToken ?? null,
           expiresAt: tokens.expiresAt ?? null,
           accountName: tokens.accountName ?? null,
           accountId: tokens.accountId ?? null,
@@ -875,7 +877,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           userId: stateData.userId,
           marketplace: marketplace.toUpperCase() as any,
           accessToken: tokens.accessToken,
-          refreshToken: null,
+          refreshToken: tokens.refreshToken ?? null,
           expiresAt: tokens.expiresAt ?? null,
           accountName: tokens.accountName ?? null,
           accountId: tokens.accountId ?? null,

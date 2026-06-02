@@ -372,6 +372,11 @@ function MarketplacesContent(): React.JSX.Element {
 
 // ─── Card component ────────────────────────────────────────────────────────────
 
+function isTokenExpired(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt) return false;
+  return new Date(expiresAt) < new Date();
+}
+
 function MarketplaceCard({
   meta,
   connection,
@@ -395,28 +400,40 @@ function MarketplaceCard({
 }) {
   const logoPath = MARKETPLACE_LOGOS[meta.key];
   const glow = MARKETPLACE_GLOWS[meta.key] ?? "from-zinc-300/20 to-zinc-500/10";
+  const tokenExpired = isConnected && isTokenExpired(connection?.expiresAt);
 
   return (
     <div
       className={[
         "group relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-all duration-200",
         isConnected
-          ? "border-green-200 shadow-sm shadow-green-50"
+          ? tokenExpired
+            ? "border-orange-300 shadow-md shadow-orange-100"
+            : "border-green-200 shadow-sm shadow-green-50"
           : "border-gray-200 hover:shadow-md",
         !isConnected && !isComingSoon ? meta.borderHover : "",
       ].join(" ")}
     >
-      <div className={`pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r ${glow}`} />
+      {/* Expired overlay gradient */}
+      {tokenExpired && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-orange-500/10 to-amber-500/10" />
+      )}
+      {!tokenExpired && (
+        <div className={`pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r ${glow}`} />
+      )}
 
-      {/* Color accent strip */}
-      <div className={`h-1.5 w-full ${meta.color}`} />
+      {/* Color accent strip — orange when expired */}
+      <div className={`h-1.5 w-full ${tokenExpired ? "bg-gradient-to-r from-orange-500 to-amber-500" : meta.color}`} />
 
       <div className="relative flex flex-1 flex-col p-5">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3">
           <div
             className={[
-              "grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/80 bg-white text-lg font-bold shadow-sm ring-1 ring-black/5",
+              "grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border bg-white text-lg font-bold shadow-sm ring-1",
+              tokenExpired
+                ? "border-orange-200 ring-orange-100"
+                : "border-white/80 ring-black/5",
               meta.iconBg,
               meta.iconText,
             ].join(" ")}
@@ -436,10 +453,17 @@ function MarketplaceCard({
 
           <div className="shrink-0">
             {isConnected ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                Connected
-              </span>
+              tokenExpired ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700 ring-1 ring-inset ring-orange-300">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Session Expired
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                  Connected
+                </span>
+              )
             ) : isComingSoon ? (
               <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
                 Soon
@@ -473,23 +497,45 @@ function MarketplaceCard({
 
         {/* Connected account info */}
         {isConnected && connection?.accountName && (
-          <div className="mt-4 flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-2">
-            <ExternalLink className="h-3 w-3 shrink-0 text-gray-400" />
-            <span className="truncate text-xs text-gray-600">{connection.accountName}</span>
+          <div className={[
+            "mt-4 flex items-center gap-1.5 rounded-lg px-3 py-2",
+            tokenExpired ? "bg-orange-50" : "bg-gray-50",
+          ].join(" ")}>
+            <ExternalLink className={`h-3 w-3 shrink-0 ${tokenExpired ? "text-orange-400" : "text-gray-400"}`} />
+            <span className={`truncate text-xs ${tokenExpired ? "text-orange-700" : "text-gray-600"}`}>
+              {connection.accountName}
+            </span>
             {connection._count?.listings != null && (
-              <span className="ml-auto shrink-0 text-xs font-medium text-gray-400">
+              <span className={`ml-auto shrink-0 text-xs font-medium ${tokenExpired ? "text-orange-400" : "text-gray-400"}`}>
                 {connection._count.listings} listings
               </span>
             )}
           </div>
         )}
 
+        {/* Token expired callout */}
+        {tokenExpired && (
+          <div className="mt-3 rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-3">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <AlertCircle className="h-3 w-3 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-orange-800">Session expired</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-orange-600">
+                  Your {meta.label} session has expired. Reconnect to resume listing syncs.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Action button */}
+        {/* Action buttons */}
         <div className="mt-4 flex flex-col gap-2">
-          {isConnected && onSetupPolicies && (
+          {isConnected && onSetupPolicies && !tokenExpired && (
             <button
               onClick={onSetupPolicies}
               disabled={isSettingUpPolicies}
@@ -499,14 +545,30 @@ function MarketplaceCard({
             </button>
           )}
           {isConnected ? (
-            <button
-              onClick={onDisconnect}
-              disabled={isDisconnecting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2 text-xs font-medium text-gray-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <Unplug className="h-3.5 w-3.5" />
-              {isDisconnecting ? "Disconnecting…" : "Disconnect"}
-            </button>
+            <>
+              {tokenExpired ? (
+                <button
+                  onClick={onConnect}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 py-2.5 text-xs font-bold text-white shadow-md shadow-orange-200 transition-all hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300 active:scale-[0.98]"
+                >
+                  <Zap className="h-4 w-4" />
+                  Reconnect to {meta.label}
+                </button>
+              ) : null}
+              <button
+                onClick={onDisconnect}
+                disabled={isDisconnecting}
+                className={[
+                  "flex w-full items-center justify-center gap-2 rounded-xl border py-2 text-xs font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
+                  tokenExpired
+                    ? "border-gray-200 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                    : "border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600",
+                ].join(" ")}
+              >
+                <Unplug className="h-3.5 w-3.5" />
+                {isDisconnecting ? "Disconnecting…" : "Disconnect"}
+              </button>
+            </>
           ) : isComingSoon ? (
             <button
               disabled
