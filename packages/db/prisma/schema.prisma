@@ -193,6 +193,7 @@ model Listing {
   endedAt                 DateTime?
   lastSyncAt              DateTime?
   syncError               String?
+  syncFailCount           Int                   @default(0)
   marketplaceData         Json? // marketplace-specific data
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt

@@ -17,7 +17,7 @@ export class SyncService {
 
   async syncAll(userId: string) {
     const activeListings = await this.db.listing.findMany({
-      where: { userId, status: "ACTIVE", externalId: { not: null } },
+      where: { userId, status: "ACTIVE", externalId: { not: null }, syncFailCount: { lt: 3 } },
       include: { marketplaceConnection: true },
     });
 
@@ -157,6 +157,8 @@ export class SyncService {
         updates.endedAt = new Date();
       }
 
+      updates.syncFailCount = 0;
+      updates.syncError = null;
       await this.db.listing.update({ where: { id: listingId }, data: updates });
 
       await this.db.syncEvent.create({
@@ -171,6 +173,10 @@ export class SyncService {
       return { id: listingId, status: status.status };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sync failed";
+      await this.db.listing.update({
+        where: { id: listingId },
+        data: { syncError: message, syncFailCount: { increment: 1 } },
+      });
       await this.db.syncEvent.create({
         data: {
           listingId,
