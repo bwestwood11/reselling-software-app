@@ -230,80 +230,102 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     };
 
     // Cloudflare blocks both Node.js fetch (TLS fingerprint) and curl (datacenter IP) on Railway.
-    // Route through the Playwright Chromium browser — Chrome's TLS fingerprint and same-origin
-    // fetch pass Cloudflare without challenge.
-    const browser = await browserManager.getBrowser();
-    const context = await browser.newContext({
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-      locale: "en-US",
-    });
-
-    // Restore stored browser session cookies (written by MercariPlaywrightService after each job)
-    if (connection.refreshToken) {
-      try {
-        const cookies = JSON.parse(connection.refreshToken) as Parameters<
-          typeof context.addCookies
-        >[0];
-        await context.addCookies(cookies);
-      } catch {
-        // malformed — proceed without; may hit Cloudflare challenge
-      }
-    }
-
-    const page = await context.newPage();
+    // Route through Playwright Chromium — Chrome's TLS fingerprint passes Cloudflare.
+    // Retries once after a browser crash so rapid UI changes don't surface 500s.
     let json: any;
 
-    try {
-      // Navigate to Mercari to establish Cloudflare clearance before making the API call
-      await page.goto("https://www.mercari.com/", {
-        waitUntil: "domcontentloaded",
-        timeout: 20_000,
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const context = await (await browserManager.getBrowser()).newContext({
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        locale: "en-US",
       });
 
-      // Run fetch from inside Chrome — same-origin, real browser TLS fingerprint
-      const result = await page.evaluate(
-        async ({ token, payload }: { token: string; payload: object }) => {
-          const res = await fetch("/v1/api", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-          return { status: res.status, text: await res.text() };
-        },
-        { token: connection.accessToken, payload: gqlBody }
-      );
-
-      if (result.status === 401 || result.status === 403) {
-        fastify.log.warn("Mercari shipping: auth error %d", result.status);
-        return reply.status(422).send({
-          success: false,
-          error: "Mercari session expired. Please reconnect your Mercari account.",
-        });
+      // Restore stored browser session cookies (maintained by MercariPlaywrightService)
+      if (connection.refreshToken) {
+        try {
+          const cookies = JSON.parse(connection.refreshToken) as Parameters<
+            typeof context.addCookies
+          >[0];
+          await context.addCookies(cookies);
+        } catch {
+          // malformed — proceed without; may need fresh Cloudflare clearance
+        }
       }
 
       try {
-        json = JSON.parse(result.text);
-      } catch {
-        fastify.log.warn("Mercari returned non-JSON (status %d): %s", result.status, result.text.slice(0, 300));
-        return reply.status(502).send({ success: false, error: "Unexpected response from Mercari" });
-      }
+        const page = await context.newPage();
 
-      // Persist any new Cloudflare cookies for the next request
-      const updatedCookies = await context.cookies();
-      await fastify.prisma.marketplaceConnection.update({
-        where: { id: connection.id },
-        data: { refreshToken: JSON.stringify(updatedCookies) },
-      });
-    } catch (err) {
-      fastify.log.warn("Mercari browser request failed: %s", (err as Error).message);
-      return reply.status(502).send({ success: false, error: "Failed to reach Mercari shipping API" });
-    } finally {
-      await context.close();
+        // Navigate to Mercari to obtain Cloudflare clearance for the session
+        await page.goto("https://www.mercari.com/", {
+          waitUntil: "domcontentloaded",
+          timeout: 20_000,
+        });
+
+        // fetch() from inside Chrome — same-origin, real browser TLS fingerprint
+        const result = await page.evaluate(
+          async ({ token, payload }: { token: string; payload: object }) => {
+            const res = await fetch("/v1/api", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+            return { status: res.status, text: await res.text() };
+          },
+          { token: connection.accessToken, payload: gqlBody }
+        );
+
+        if (result.status === 401 || result.status === 403) {
+          fastify.log.warn("Mercari shipping: auth error %d", result.status);
+          return reply.status(422).send({
+            success: false,
+            error: "Mercari session expired. Please reconnect your Mercari account.",
+          });
+        }
+
+        try {
+          json = JSON.parse(result.text);
+        } catch {
+          fastify.log.warn(
+            "Mercari non-JSON (status %d): %s",
+            result.status,
+            result.text.slice(0, 300)
+          );
+          return reply
+            .status(502)
+            .send({ success: false, error: "Unexpected response from Mercari" });
+        }
+
+        // Persist any fresh Cloudflare cookies for the next request
+        const updatedCookies = await context.cookies();
+        await fastify.prisma.marketplaceConnection.update({
+          where: { id: connection.id },
+          data: { refreshToken: JSON.stringify(updatedCookies) },
+        });
+
+        break; // success — exit retry loop
+      } catch (err) {
+        const msg = (err as Error).message ?? "";
+        const isBrowserCrash =
+          msg.includes("has been closed") || msg.includes("Target closed");
+
+        if (isBrowserCrash && attempt === 0) {
+          fastify.log.warn("Mercari browser crashed, restarting and retrying");
+          await browserManager.restart();
+          continue;
+        }
+
+        fastify.log.warn("Mercari browser request failed: %s", msg);
+        return reply
+          .status(502)
+          .send({ success: false, error: "Failed to reach Mercari shipping API" });
+      } finally {
+        await context.close().catch(() => {});
+      }
     }
 
     // GraphQL always returns HTTP 200; real errors live inside the body
