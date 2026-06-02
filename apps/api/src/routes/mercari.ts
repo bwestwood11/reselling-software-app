@@ -1,9 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import { browserManager } from "../services/playwright/browser-manager";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import {
@@ -201,24 +198,13 @@ export async function mercariRoutes(fastify: FastifyInstance) {
 
     const connection = await fastify.prisma.marketplaceConnection.findFirst({
       where: { userId: request.user!.id, marketplace: "MERCARI", isActive: true },
-      select: { accessToken: true, sessionCookies: true },
+      select: { id: true, accessToken: true, refreshToken: true },
     });
 
     if (!connection) {
       return reply
         .status(422)
         .send({ success: false, error: "No active Mercari connection. Connect your Mercari account first." });
-    }
-
-    // Build cookie string from stored cf_clearance + session cookies
-    let cookieArg = "";
-    if (connection.sessionCookies) {
-      try {
-        const cookies = JSON.parse(connection.sessionCookies) as Array<{ name: string; value: string }>;
-        cookieArg = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-      } catch {
-        // malformed — proceed without cookies
-      }
     }
 
     const packageSize = body.dimension
@@ -243,36 +229,81 @@ export async function mercariRoutes(fastify: FastifyInstance) {
       },
     };
 
-    // Node.js fetch (undici) is blocked by Cloudflare TLS fingerprinting on Mercari.
-    // curl uses a system TLS stack that passes Cloudflare's JA3/JA4 checks.
-    // curl must be present in the runtime environment — see Dockerfile.
-    let stdout: string;
-    try {
-      ({ stdout } = await execFileAsync("curl", [
-        "-s",
-        "--max-time", "15",
-        "-X", "POST",
-        "-H", `Authorization: Bearer ${connection.accessToken}`,
-        "-H", "Content-Type: application/json",
-        "-H", "Accept: application/json, */*",
-        "-H", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "-H", "Origin: https://www.mercari.com",
-        "-H", "Referer: https://www.mercari.com/",
-        ...(cookieArg ? ["-b", cookieArg] : []),
-        "--data-raw", JSON.stringify(gqlBody),
-        "https://www.mercari.com/v1/api",
-      ], { maxBuffer: 2 * 1024 * 1024 }));
-    } catch (err) {
-      fastify.log.warn("curl to Mercari failed: %s", (err as Error).message);
-      return reply.status(502).send({ success: false, error: "Failed to reach Mercari shipping API" });
+    // Cloudflare blocks both Node.js fetch (TLS fingerprint) and curl (datacenter IP) on Railway.
+    // Route through the Playwright Chromium browser — Chrome's TLS fingerprint and same-origin
+    // fetch pass Cloudflare without challenge.
+    const browser = await browserManager.getBrowser();
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      locale: "en-US",
+    });
+
+    // Restore stored browser session cookies (written by MercariPlaywrightService after each job)
+    if (connection.refreshToken) {
+      try {
+        const cookies = JSON.parse(connection.refreshToken) as Parameters<
+          typeof context.addCookies
+        >[0];
+        await context.addCookies(cookies);
+      } catch {
+        // malformed — proceed without; may hit Cloudflare challenge
+      }
     }
 
+    const page = await context.newPage();
     let json: any;
+
     try {
-      json = JSON.parse(stdout);
-    } catch {
-      fastify.log.warn("Mercari returned non-JSON: %s", stdout.slice(0, 300));
-      return reply.status(502).send({ success: false, error: "Unexpected response from Mercari — session may need to be reconnected" });
+      // Navigate to Mercari to establish Cloudflare clearance before making the API call
+      await page.goto("https://www.mercari.com/", {
+        waitUntil: "domcontentloaded",
+        timeout: 20_000,
+      });
+
+      // Run fetch from inside Chrome — same-origin, real browser TLS fingerprint
+      const result = await page.evaluate(
+        async ({ token, payload }: { token: string; payload: object }) => {
+          const res = await fetch("/v1/api", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          return { status: res.status, text: await res.text() };
+        },
+        { token: connection.accessToken, payload: gqlBody }
+      );
+
+      if (result.status === 401 || result.status === 403) {
+        fastify.log.warn("Mercari shipping: auth error %d", result.status);
+        return reply.status(422).send({
+          success: false,
+          error: "Mercari session expired. Please reconnect your Mercari account.",
+        });
+      }
+
+      try {
+        json = JSON.parse(result.text);
+      } catch {
+        fastify.log.warn("Mercari returned non-JSON (status %d): %s", result.status, result.text.slice(0, 300));
+        return reply.status(502).send({ success: false, error: "Unexpected response from Mercari" });
+      }
+
+      // Persist any new Cloudflare cookies for the next request
+      const updatedCookies = await context.cookies();
+      await fastify.prisma.marketplaceConnection.update({
+        where: { id: connection.id },
+        data: { refreshToken: JSON.stringify(updatedCookies) },
+      });
+    } catch (err) {
+      fastify.log.warn("Mercari browser request failed: %s", (err as Error).message);
+      return reply.status(502).send({ success: false, error: "Failed to reach Mercari shipping API" });
+    } finally {
+      await context.close();
     }
 
     // GraphQL always returns HTTP 200; real errors live inside the body
