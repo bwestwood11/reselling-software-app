@@ -50,9 +50,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/playwright-browsers
 
-# Chromium + openssl system dependencies
+# Chromium + openssl + curl (curl needed for Mercari API — Cloudflare blocks Node.js TLS fingerprint)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
+    curl \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
