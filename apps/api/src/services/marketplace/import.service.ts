@@ -43,8 +43,6 @@ export class ImportService {
 
     const ebayListings = await adapter.getSellerListingsByStatus(status);
 
-    console.log(ebayListings)
-
     // Determine which eBay item IDs are already tracked in our DB
     const ebayIds = ebayListings.map((l) => l.itemId);
     const existingListings = await this.db.listing.findMany({

@@ -234,11 +234,24 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     // Retries once after a browser crash so rapid UI changes don't surface 500s.
     let json: any;
 
+    // Cloudflare's JS challenge never resolves on datacenter IPs (Railway).
+    // A residential proxy is required in production; set MERCARI_PROXY_SERVER to enable.
+    const proxyConfig = process.env.MERCARI_PROXY_SERVER
+      ? {
+          proxy: {
+            server: process.env.MERCARI_PROXY_SERVER,
+            ...(process.env.MERCARI_PROXY_USERNAME && { username: process.env.MERCARI_PROXY_USERNAME }),
+            ...(process.env.MERCARI_PROXY_PASSWORD && { password: process.env.MERCARI_PROXY_PASSWORD }),
+          },
+        }
+      : {};
+
     for (let attempt = 0; attempt < 2; attempt++) {
       const context = await (await browserManager.getBrowser()).newContext({
         userAgent:
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         locale: "en-US",
+        ...proxyConfig,
       });
 
       // Restore stored browser session cookies (maintained by MercariPlaywrightService)
@@ -260,7 +273,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         // wait for it to auto-solve and redirect before making the API call.
         await page.goto("https://www.mercari.com/", {
           waitUntil: "domcontentloaded",
-          timeout: 20_000,
+          timeout: 40_000,
         });
 
         const pageTitle = await page.title();
@@ -269,7 +282,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           // the real Mercari page loads (title changes away from the challenge).
           await page.waitForFunction(
             "document.title !== 'Just a moment...'",
-            { timeout: 20_000 }
+            { timeout: 30_000 }
           );
           await page.waitForLoadState("domcontentloaded");
         }
@@ -340,10 +353,14 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           continue;
         }
 
-        fastify.log.warn("Mercari browser request failed: %s", msg);
-        return reply
-          .status(502)
-          .send({ success: false, error: "Failed to reach Mercari shipping API" });
+        fastify.log.error({ err, attempt }, "Mercari shipping browser request failed");
+        const isTimeout = msg.includes("Timeout") || msg.includes("timeout");
+        return reply.status(502).send({
+          success: false,
+          error: isTimeout
+            ? "Mercari request timed out. Please try again."
+            : "Failed to reach Mercari shipping API",
+        });
       } finally {
         await context.close().catch(() => {});
       }

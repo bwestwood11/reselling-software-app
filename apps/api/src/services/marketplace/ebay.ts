@@ -143,7 +143,13 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
       const shortMsg = this.xmlValue(block, "ShortMessage");
       const errorCode = this.xmlValue(block, "ErrorCode") ?? "?";
       const classification = this.xmlValue(block, "ErrorClassification") ?? "";
-      const msg = longMsg ?? shortMsg ?? "Unknown error";
+      const raw = longMsg ?? shortMsg ?? "Unknown error";
+      const msg = raw
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'");
       if (severity !== "Warning") {
         messages.push(`[${errorCode}${classification ? "/" + classification : ""}] ${msg}`);
       }
@@ -387,9 +393,13 @@ ${policiesXml}
       const verifyAck = this.xmlValue(verifyText, "Ack");
       if (verifyAck === "Failure" || verifyAck === "PartialFailure" || !verifyRes.ok) {
         const errors = this.parseXmlErrors(verifyText);
-        throw new Error(
-          `eBay VerifyAddItem failed (rlogId: ${verifyRlogId}): ${errors.length > 0 ? errors.join(" | ") : verifyText.slice(0, 500)}`
-        );
+        const errorMsg = errors.length > 0 ? errors.join(" | ") : verifyText.slice(0, 500);
+        const err = new Error(`eBay VerifyAddItem failed (rlogId: ${verifyRlogId}): ${errorMsg}`);
+        // 21919067 = duplicate listing — this is a user error, not a server fault
+        if (errors.some((e) => e.startsWith("[21919067"))) {
+          (err as any).statusCode = 409;
+        }
+        throw err;
       }
     } else {
       console.log("[eBay VerifyAddItem] skipped in sandbox mode");
@@ -549,6 +559,10 @@ ${policiesXml}
     const imageUrls = this.xmlValues(itemXml, "PictureURL").filter(
       (u) => u.startsWith("http")
     );
+    if (imageUrls.length === 0) {
+      const galleryUrl = this.xmlValue(itemXml, "GalleryURL");
+      if (galleryUrl?.startsWith("http")) imageUrls.push(galleryUrl);
+    }
 
     const startTimeStr = this.xmlValue(itemXml, "StartTime");
     const listedAt = startTimeStr ? new Date(startTimeStr) : null;
@@ -683,6 +697,11 @@ ${policiesXml}
     const quantityStr = this.xmlValue(text, "Quantity") ?? "1";
     const quantity = Math.max(1, Number.parseInt(quantityStr) || 1);
     const imageUrls = this.xmlValues(text, "PictureURL").filter((u) => u.startsWith("http"));
+    if (imageUrls.length === 0) {
+      const galleryUrl = this.xmlValue(text, "GalleryURL");
+      if (galleryUrl?.startsWith("http")) imageUrls.push(galleryUrl);
+    }
+    console.log("[eBay GetItem] itemId=%s imageCount=%d firstUrl=%s", itemId, imageUrls.length, imageUrls[0] ?? "(none)");
     const viewItemUrl =
       this.xmlValue(text, "ViewItemURL") ?? `https://www.ebay.com/itm/${itemId}`;
     const listingStatus = this.xmlValue(text, "ListingStatus") ?? "Active";
