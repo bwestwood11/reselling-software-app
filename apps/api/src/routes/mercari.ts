@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
 import { browserManager } from "../services/playwright/browser-manager";
+import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import {
@@ -232,7 +233,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     // Cloudflare blocks both Node.js fetch (TLS fingerprint) and curl (datacenter IP) on Railway.
     // Route through Playwright Chromium — Chrome's TLS fingerprint passes Cloudflare.
     // Retries once after a browser crash so rapid UI changes don't surface 500s.
-    let json: any;
+    let json: any = null;
 
     // Cloudflare's JS challenge never resolves on datacenter IPs (Railway).
     // A residential proxy is required in production; set MERCARI_PROXY_SERVER to enable.
@@ -313,25 +314,19 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         }
 
         if (result.status === 403) {
-          // 403 at this point is Cloudflare still blocking after challenge — treat as transient
-          fastify.log.warn("Mercari shipping: 403 after challenge. body: %s", result.text.slice(0, 200));
-          return reply.status(502).send({
-            success: false,
-            error: "Mercari is temporarily blocking this request. Please try again in a moment.",
-          });
+          fastify.log.warn("Mercari shipping: 403 after CF challenge — using static fallback. body: %s", result.text.slice(0, 200));
+          break;
         }
 
         try {
           json = JSON.parse(result.text);
         } catch {
           fastify.log.warn(
-            "Mercari non-JSON (status %d): %s",
+            "Mercari non-JSON (status %d): %s — using static fallback",
             result.status,
             result.text.slice(0, 300)
           );
-          return reply
-            .status(502)
-            .send({ success: false, error: "Unexpected response from Mercari" });
+          break;
         }
 
         // Persist any fresh Cloudflare cookies for the next request
@@ -353,14 +348,8 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           continue;
         }
 
-        fastify.log.error({ err, attempt }, "Mercari shipping browser request failed");
-        const isTimeout = msg.includes("Timeout") || msg.includes("timeout");
-        return reply.status(502).send({
-          success: false,
-          error: isTimeout
-            ? "Mercari request timed out. Please try again."
-            : "Failed to reach Mercari shipping API",
-        });
+        fastify.log.error({ err, attempt }, "Mercari shipping browser request failed — using static fallback");
+        break;
       } finally {
         await context.close().catch(() => {});
       }
@@ -368,9 +357,22 @@ export async function mercariRoutes(fastify: FastifyInstance) {
 
     // GraphQL always returns HTTP 200; real errors live inside the body
     if (json?.errors?.length) {
-      const msg: string = json.errors[0]?.message ?? "Mercari API error";
-      fastify.log.warn("Mercari shipping API error: %s", msg);
-      return reply.status(502).send({ success: false, error: `Mercari: ${msg}` });
+      fastify.log.warn("Mercari shipping GQL error: %s — using static fallback", json.errors[0]?.message ?? "unknown");
+      json = null;
+    }
+
+    if (!json) {
+      const staticClasses = getStaticShippingClasses(body.packageWeight, packageSize);
+      fastify.log.info(
+        "Mercari shipping: serving %d static carriers (weight=%doz, vol=%dcuIn)",
+        staticClasses.length,
+        body.packageWeight,
+        packageSize
+      );
+      return reply.send({
+        success: true,
+        data: { data: { availableShippingClassesV2: { shippingClasses: staticClasses } } },
+      });
     }
 
     return reply.send({ success: true, data: json });
