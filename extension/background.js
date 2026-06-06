@@ -1,7 +1,7 @@
 // Service worker — polls the ReList API for pending Mercari jobs and publishes via direct API
 
 const POLL_INTERVAL_MS = 30_000;
-const API_BASE = "http://localhost:3001";
+const API_BASE = "https://api.omventa.com";
 
 let pollTimer = null;
 let activeJobId = null;

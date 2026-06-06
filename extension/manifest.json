@@ -6,7 +6,7 @@
   "permissions": ["tabs", "activeTab", "storage", "scripting", "cookies"],
   "host_permissions": [
     "https://www.mercari.com/*",
-    "http://localhost:3001/*"
+    "https://api.omventa.com/*"
   ],
   "background": {
     "service_worker": "background.js",
