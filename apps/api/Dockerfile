@@ -62,7 +62,7 @@ COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 
 # Use playwright's own resolver to install the exact system libs needed for this
 # Chromium version — far more reliable than maintaining a manual package list.
-RUN node apps/api/node_modules/.bin/playwright install-deps chromium \
+RUN apps/api/node_modules/.bin/playwright install-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 
 # Remaining workspace package node_modules
