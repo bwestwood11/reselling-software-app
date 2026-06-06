@@ -179,6 +179,7 @@ async function postToMercariApi(job) {
     sizeId,
     shippingPayerId,
     shippingCost,
+    shippingClassId,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -209,6 +210,7 @@ async function postToMercariApi(job) {
     sizeId,
     shippingPayerId,
     shippingCost,
+    shippingClassId,
     shippingPackageWeight,
     shippingWeightUnit,
     shippingPackageWidth,
@@ -514,6 +516,7 @@ async function createMercariListing(params) {
     sizeId,
     shippingPayerId = 1,
     shippingCost = null,
+    shippingClassId = null,
     shippingPackageWeight = 8,
     shippingWeightUnit = "OUNCE",
     shippingPackageWidth = null,
@@ -528,9 +531,10 @@ async function createMercariListing(params) {
   const conditionId = MERCARI_CONDITION_IDS[condition] ?? 4;
   const priceInCents = price;
 
-  // Resolve shipping class from weight; SOYO overrides to class [0]
-  const resolvedClassId = getShippingClassId(shippingPackageWeight);
-  const resolvedClassIds = isShippingSoyo ? [0] : [resolvedClassId];
+  // Weight-based class is what Mercari suggests; user-selected class overrides shippingClassIds
+  const weightBasedClassId = getShippingClassId(shippingPackageWeight);
+  const resolvedClassIds = isShippingSoyo ? [0] : [shippingClassId ?? weightBasedClassId];
+  const suggestedClassIds = isShippingSoyo ? [0] : [weightBasedClassId];
   // When SOYO, Mercari requires shippingPayerId=2 regardless of the job payload
   const resolvedPayerId = isShippingSoyo ? 2 : (shippingPayerId ?? 1);
 
@@ -557,16 +561,15 @@ async function createMercariListing(params) {
         categoryId: Number.parseInt(String(categoryId), 10),
         shippingPayerId: resolvedPayerId,
         shippingClassIds: resolvedClassIds,
-        suggestedShippingClassIds: resolvedClassIds,
+        suggestedShippingClassIds: suggestedClassIds,
         shippingPackageWeight,
+        shippingWeightUnit,
+        shippingDimensionUnit,
         minPriceForAutoPriceDrop,
         ...(isShippingSoyo ? { isShippingSoyo } : {}),
         ...(shippingPackageLength == null ? {} : { shippingPackageLength }),
         ...(shippingPackageHeight == null ? {} : { shippingPackageHeight }),
         ...(shippingPackageWidth == null ? {} : { shippingPackageWidth }),
-        ...(shippingPackageLength == null && shippingPackageHeight == null && shippingPackageWidth == null
-          ? {}
-          : { shippingDimensionUnit }),
         ...(offerConfig ? { offerConfig } : {}),
         ...(zipCode ? { zipCode } : {}),
         ...(brandId ? { brandId: Number.parseInt(String(brandId), 10) } : {}),

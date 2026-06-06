@@ -204,7 +204,7 @@ export class ListingService {
             shippingPayerId: (shipping.shippingPayerId as number) ?? 1,
             // shippingCost in cents — carrier fee; used to compute salesFee when buyer pays
             shippingCost: (shipping.shippingCost as number) ?? null,
-            // shippingClassIds omitted — extension derives it from shippingPackageWeight
+            shippingClassId: (shipping.shippingClassId as number) ?? null,
             shippingPackageWeight: (shipping.weightOz as number) ?? 8,
             shippingWeightUnit: "OUNCE",
             shippingPackageLength: (dim.length as number) ?? null,
