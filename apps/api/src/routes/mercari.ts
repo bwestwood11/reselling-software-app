@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
-import { browserManager } from "../services/playwright/browser-manager";
 import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
@@ -185,7 +184,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data: job });
   });
 
-  // POST /api/mercari/shipping/carriers — proxy Mercari availableShippingClassesV2
+  // POST /api/mercari/shipping/carriers — returns static shipping carriers filtered by weight/volume
   fastify.post("/shipping/carriers", { preHandler: [requireAuth] }, async (request, reply) => {
     const body = request.body as {
       categoryId?: number;
@@ -197,184 +196,15 @@ export async function mercariRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: "packageWeight is required" });
     }
 
-    const connection = await fastify.prisma.marketplaceConnection.findFirst({
-      where: { userId: request.user!.id, marketplace: "MERCARI", isActive: true },
-      select: { id: true, accessToken: true, refreshToken: true },
-    });
-
-    if (!connection) {
-      return reply
-        .status(422)
-        .send({ success: false, error: "No active Mercari connection. Connect your Mercari account first." });
-    }
-
-    const packageSize = body.dimension
+    const volumeCuIn = body.dimension
       ? body.dimension.length * body.dimension.width * body.dimension.height
       : 0;
 
-    const gqlBody = {
-      operationName: "availableShippingClassesV2",
-      variables: {
-        input: {
-          ...(body.categoryId ? { categoryId: body.categoryId } : {}),
-          packageSize,
-          ...(body.dimension ? { dimension: body.dimension } : {}),
-          packageWeight: body.packageWeight,
-        },
-      },
-      extensions: {
-        persistedQuery: {
-          version: 1,
-          sha256Hash: "032c65b73bb96c49c78809a6155de5a56d9d967956c448c6cca5f81defbfd690",
-        },
-      },
-    };
+    const shippingClasses = getStaticShippingClasses(body.packageWeight, volumeCuIn);
 
-    // Cloudflare blocks both Node.js fetch (TLS fingerprint) and curl (datacenter IP) on Railway.
-    // Route through Playwright Chromium — Chrome's TLS fingerprint passes Cloudflare.
-    // Retries once after a browser crash so rapid UI changes don't surface 500s.
-    let json: any = null;
-
-    // Cloudflare's JS challenge never resolves on datacenter IPs (Railway).
-    // A residential proxy is required in production; set MERCARI_PROXY_SERVER to enable.
-    const proxyConfig = process.env.MERCARI_PROXY_SERVER
-      ? {
-          proxy: {
-            server: process.env.MERCARI_PROXY_SERVER,
-            ...(process.env.MERCARI_PROXY_USERNAME && { username: process.env.MERCARI_PROXY_USERNAME }),
-            ...(process.env.MERCARI_PROXY_PASSWORD && { password: process.env.MERCARI_PROXY_PASSWORD }),
-          },
-        }
-      : {};
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const context = await (await browserManager.getBrowser()).newContext({
-        userAgent:
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        locale: "en-US",
-        ...proxyConfig,
-      });
-
-      // Restore stored browser session cookies (maintained by MercariPlaywrightService)
-      if (connection.refreshToken) {
-        try {
-          const cookies = JSON.parse(connection.refreshToken) as Parameters<
-            typeof context.addCookies
-          >[0];
-          await context.addCookies(cookies);
-        } catch {
-          // malformed — proceed without; may need fresh Cloudflare clearance
-        }
-      }
-
-      try {
-        const page = await context.newPage();
-
-        // Navigate to Mercari. If Cloudflare shows a JS challenge ("Just a moment...")
-        // wait for it to auto-solve and redirect before making the API call.
-        await page.goto("https://www.mercari.com/", {
-          waitUntil: "domcontentloaded",
-          timeout: 40_000,
-        });
-
-        const pageTitle = await page.title();
-        if (pageTitle === "Just a moment...") {
-          // Cloudflare JS challenge is running — wait until Chrome solves it and
-          // the real Mercari page loads (title changes away from the challenge).
-          await page.waitForFunction(
-            "document.title !== 'Just a moment...'",
-            { timeout: 30_000 }
-          );
-          await page.waitForLoadState("domcontentloaded");
-        }
-
-        // fetch() from inside Chrome — same-origin, real browser TLS fingerprint
-        const result = await page.evaluate(
-          async ({ token, payload }: { token: string; payload: object }) => {
-            const res = await fetch("/v1/api", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              body: JSON.stringify(payload),
-            });
-            return { status: res.status, text: await res.text() };
-          },
-          { token: connection.accessToken, payload: gqlBody }
-        );
-
-        if (result.status === 401) {
-          fastify.log.warn("Mercari shipping: 401 — token invalid or expired. body: %s", result.text.slice(0, 200));
-          return reply.status(422).send({
-            success: false,
-            error: "Mercari session expired. Please reconnect your Mercari account.",
-          });
-        }
-
-        if (result.status === 403) {
-          fastify.log.warn("Mercari shipping: 403 after CF challenge — using static fallback. body: %s", result.text.slice(0, 200));
-          break;
-        }
-
-        try {
-          json = JSON.parse(result.text);
-        } catch {
-          fastify.log.warn(
-            "Mercari non-JSON (status %d): %s — using static fallback",
-            result.status,
-            result.text.slice(0, 300)
-          );
-          break;
-        }
-
-        // Persist any fresh Cloudflare cookies for the next request
-        const updatedCookies = await context.cookies();
-        await fastify.prisma.marketplaceConnection.update({
-          where: { id: connection.id },
-          data: { refreshToken: JSON.stringify(updatedCookies) },
-        });
-
-        break; // success — exit retry loop
-      } catch (err) {
-        const msg = (err as Error).message ?? "";
-        const isBrowserCrash =
-          msg.includes("has been closed") || msg.includes("Target closed");
-
-        if (isBrowserCrash && attempt === 0) {
-          fastify.log.warn("Mercari browser crashed, restarting and retrying");
-          await browserManager.restart();
-          continue;
-        }
-
-        fastify.log.error({ err, attempt }, "Mercari shipping browser request failed — using static fallback");
-        break;
-      } finally {
-        await context.close().catch(() => {});
-      }
-    }
-
-    // GraphQL always returns HTTP 200; real errors live inside the body
-    if (json?.errors?.length) {
-      fastify.log.warn("Mercari shipping GQL error: %s — using static fallback", json.errors[0]?.message ?? "unknown");
-      json = null;
-    }
-
-    if (!json) {
-      const staticClasses = getStaticShippingClasses(body.packageWeight, packageSize);
-      fastify.log.info(
-        "Mercari shipping: serving %d static carriers (weight=%doz, vol=%dcuIn)",
-        staticClasses.length,
-        body.packageWeight,
-        packageSize
-      );
-      return reply.send({
-        success: true,
-        data: { data: { availableShippingClassesV2: { shippingClasses: staticClasses } } },
-      });
-    }
-
-    return reply.send({ success: true, data: json });
+    return reply.send({
+      success: true,
+      data: { data: { availableShippingClassesV2: { shippingClasses } } },
+    });
   });
 }
