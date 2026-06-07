@@ -881,7 +881,7 @@ async function captureMercariToken(tabId, relistToken) {
   // Fetch delivery addresses from within the tab (Cloudflare-cleared context)
   let addresses = [];
   try {
-    addresses = await fetchDeliveryAddresses(tab.id, accessToken);
+    addresses = await fetchDeliveryAddresses(tabId, accessToken);
   } catch (err) {
     console.warn("[relist] fetchDeliveryAddresses at connect time failed:", err.message);
   }
