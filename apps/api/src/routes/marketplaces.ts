@@ -8,6 +8,20 @@ import {
 } from "../services/marketplace/mercari-auth.service";
 import { ImportService } from "../services/marketplace/import.service";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Safely parse a Prisma Json field that may have been double-encoded as a string.
+function parseMeta(raw: unknown): Record<string, unknown> {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try { return JSON.parse(raw) as Record<string, unknown>; } catch { return {}; }
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
+
 // ─── eBay constants ───────────────────────────────────────────────────────────
 
 const isSandbox = () => process.env.EBAY_SANDBOX === "true";
@@ -541,7 +555,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
         select: { metadata: true },
       });
-      const existingMeta = (existing?.metadata ?? {}) as Record<string, unknown>;
+      const existingMeta = parseMeta(existing?.metadata);
       const newMeta: Record<string, unknown> = { ...existingMeta };
       if (csrfToken) newMeta.csrfToken = csrfToken;
       if (Array.isArray(addresses)) newMeta.addresses = addresses;
@@ -595,7 +609,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         try { cookies = JSON.parse(connection.sessionCookies); } catch {}
       }
 
-      const meta = (connection.metadata ?? {}) as Record<string, unknown>;
+      const meta = parseMeta(connection.metadata);
       const csrfToken = typeof meta.csrfToken === "string" ? meta.csrfToken : null;
 
       return reply.send({
@@ -619,7 +633,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ success: false, error: "Mercari account not connected" });
       }
 
-      const meta = (connection.metadata ?? {}) as Record<string, unknown>;
+      const meta = parseMeta(connection.metadata);
       const addresses = Array.isArray(meta.addresses) ? meta.addresses : [];
       return reply.send({ success: true, data: addresses });
     }
@@ -645,7 +659,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
 
       // Mobile WebView sends addresses directly — save them and return immediately.
       if (Array.isArray(addresses)) {
-        const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
+        const existingMeta = parseMeta(connection.metadata);
         await fastify.prisma.marketplaceConnection.update({
           where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
           data: { metadata: { ...existingMeta, addresses } as any },

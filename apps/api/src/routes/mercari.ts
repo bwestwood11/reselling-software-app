@@ -1,5 +1,20 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
+
+function parseMeta(raw: unknown): Record<string, unknown> {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
 import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
@@ -151,7 +166,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         select: { metadata: true },
       });
       if (connection) {
-        const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
+        const existingMeta = parseMeta(connection.metadata);
         await fastify.prisma.marketplaceConnection.update({
           where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
           data: { metadata: { ...existingMeta, addresses: body.addresses } as any },
