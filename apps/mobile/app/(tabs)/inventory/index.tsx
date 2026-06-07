@@ -35,12 +35,21 @@ export default function InventoryScreen() {
             <Text style={styles.heading}>Inventory</Text>
             <Text style={styles.count}>{data?.total ?? 0} items</Text>
           </View>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => router.push("/(tabs)/inventory/new")}
-          >
-            <Feather name="plus" size={18} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.headerBtns}>
+            <TouchableOpacity
+              style={styles.importBtn}
+              onPress={() => router.push("/(tabs)/inventory/import" as any)}
+            >
+              <Feather name="download" size={15} color="#ea580c" />
+              <Text style={styles.importBtnText}>Import</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => router.push("/(tabs)/inventory/new")}
+            >
+              <Feather name="plus" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       }
       ListEmptyComponent={
@@ -110,6 +119,13 @@ const styles = StyleSheet.create({
   },
   heading: { fontSize: 24, fontWeight: "700", color: "#111827" },
   count: { fontSize: 14, color: "#6b7280", marginTop: 2 },
+  headerBtns: { flexDirection: "row", alignItems: "center", gap: 8 },
+  importBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    borderWidth: 1.5, borderColor: "#ea580c",
+    borderRadius: 19, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  importBtnText: { fontSize: 13, fontWeight: "600", color: "#ea580c" },
   addBtn: {
     backgroundColor: "#ea580c",
     width: 38,

@@ -34,10 +34,15 @@ export async function refreshConnectionIfNeeded(
   db: PrismaClient,
   connection: Connection
 ): Promise<Connection> {
-  if (!connection.expiresAt) return connection;
-
-  const msRemaining = connection.expiresAt.getTime() - Date.now();
-  if (msRemaining > REFRESH_BUFFER_MS) return connection; // still fresh
+  // Treat missing expiresAt as expired for eBay — safer than assuming it's still valid.
+  // For other marketplaces (Mercari etc.) there is no refresh mechanism, so pass through.
+  if (!connection.expiresAt) {
+    if (connection.marketplace !== "EBAY") return connection;
+    // Fall through to attempt refresh if a refresh token exists.
+  } else {
+    const msRemaining = connection.expiresAt.getTime() - Date.now();
+    if (msRemaining > REFRESH_BUFFER_MS) return connection; // still fresh
+  }
 
   if (!connection.refreshToken) {
     throw new Error(

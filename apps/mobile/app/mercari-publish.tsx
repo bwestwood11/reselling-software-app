@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import type { WebViewMessageEvent } from "react-native-webview";
@@ -243,9 +243,10 @@ export default function MercariPublishScreen() {
   const hasRun      = useRef(false);
 
   const [stage, setStage] = useState<Stage>("loading");
-  const [error, setError]   = useState("");
-  const [detail, setDetail] = useState("");
-  const [logs, setLogs]     = useState<string[]>([]);
+  const [error, setError]     = useState("");
+  const [detail, setDetail]   = useState("");
+  const [successItemId, setSuccessItemId] = useState("");
+  const [logs, setLogs]       = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
 
   function addLog(msg: string) {
@@ -287,13 +288,13 @@ export default function MercariPublishScreen() {
       if (msg.type === "success") {
         const itemId = String(msg.itemId ?? "");
         addLog(`✓ Listed! itemId=${itemId}`);
+        setSuccessItemId(itemId);
         setStage("success");
         try {
           await api.recordMercariPublished(listingId, itemId);
         } catch (err) {
           addLog(`DB error: ${err instanceof Error ? err.message : String(err)}`);
         }
-        setTimeout(() => router.back(), 2000);
       }
 
       if (msg.type === "error") {
@@ -308,14 +309,33 @@ export default function MercariPublishScreen() {
     }
   }
 
+  function handleRetry() {
+    hasRun.current = false;
+    setError("");
+    setDetail("");
+    setStage("publishing");
+  }
+
+  function goToListings() {
+    router.replace("/(tabs)/listings" as any);
+  }
+
+  const isTerminal = stage === "success" || stage === "error";
+
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.sideBtn} hitSlop={8}>
-          <Text style={s.cancelText}>Cancel</Text>
-        </TouchableOpacity>
-        <Text style={s.title}>Publishing to Mercari</Text>
+        {isTerminal ? (
+          <View style={s.sideBtn} />
+        ) : (
+          <TouchableOpacity onPress={() => router.back()} style={s.sideBtn} hitSlop={8}>
+            <Text style={s.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={s.title}>
+          {stage === "success" ? "Listed!" : stage === "error" ? "Failed" : "Publishing to Mercari"}
+        </Text>
         <TouchableOpacity onPress={() => setShowLogs((v) => !v)} style={s.sideBtn} hitSlop={8}>
           <Text style={s.logsBtn}>{showLogs ? "Hide" : "Logs"}</Text>
         </TouchableOpacity>
@@ -354,27 +374,63 @@ export default function MercariPublishScreen() {
       )}
 
       {stage === "success" && (
-        <View style={s.centered}>
-          <Feather name="check-circle" size={64} color="#22c55e" />
-          <Text style={s.successText}>Listed on Mercari!</Text>
-          {Number(otherPublished) > 0 && (
-            <Text style={s.subText}>
-              Also published to {otherPublished} other marketplace
-              {Number(otherPublished) > 1 ? "s" : ""}
-            </Text>
-          )}
+        <View style={s.terminalPage}>
+          <View style={s.terminalBody}>
+            <View style={s.successIconWrap}>
+              <Feather name="check" size={52} color="#fff" />
+            </View>
+            <Text style={s.successHeadline}>You're live on Mercari!</Text>
+            <Text style={s.successSub}>Your item has been published successfully.</Text>
+            {Number(otherPublished) > 0 && (
+              <View style={s.alsoBadge}>
+                <Feather name="zap" size={13} color="#ea580c" />
+                <Text style={s.alsoBadgeText}>
+                  Also published to {otherPublished} other marketplace
+                  {Number(otherPublished) > 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={s.terminalActions}>
+            {successItemId ? (
+              <TouchableOpacity
+                style={s.primaryBtn}
+                onPress={() => Linking.openURL(`https://www.mercari.com/item/${successItemId}/`)}
+              >
+                <Feather name="external-link" size={16} color="#fff" />
+                <Text style={s.primaryBtnText}>View Listing on Mercari</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={s.secondaryBtn} onPress={goToListings}>
+              <Text style={s.secondaryBtnText}>Go to My Listings</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
       {stage === "error" && (
-        <View style={s.centered}>
-          <Feather name="alert-circle" size={64} color="#ef4444" />
-          <Text style={s.errorTitle}>Publish Failed</Text>
-          <Text style={s.errorMsg}>{error}</Text>
-          {detail ? <Text style={s.errorDetail}>{detail.slice(0, 200)}</Text> : null}
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <Text style={s.backBtnText}>Go Back</Text>
-          </TouchableOpacity>
+        <View style={s.terminalPage}>
+          <View style={s.terminalBody}>
+            <View style={s.errorIconWrap}>
+              <Feather name="x" size={52} color="#fff" />
+            </View>
+            <Text style={s.errorHeadline}>Publish Failed</Text>
+            <Text style={s.errorMsg}>{error}</Text>
+            {detail ? (
+              <View style={s.errorDetailBox}>
+                <Text style={s.errorDetail}>{detail.slice(0, 300)}</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={s.terminalActions}>
+            <TouchableOpacity style={s.primaryBtn} onPress={handleRetry}>
+              <Feather name="refresh-cw" size={16} color="#fff" />
+              <Text style={s.primaryBtnText}>Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.secondaryBtn} onPress={goToListings}>
+              <Text style={s.secondaryBtnText}>View Listings</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -421,15 +477,64 @@ const s = StyleSheet.create({
   },
   statusText: { fontSize: 17, fontWeight: "600", color: "#09090b", textAlign: "center" },
   subText: { fontSize: 14, color: "#6b7280", textAlign: "center" },
-  successText: { fontSize: 24, fontWeight: "700", color: "#15803d", textAlign: "center" },
-  errorTitle: { fontSize: 20, fontWeight: "700", color: "#dc2626", textAlign: "center" },
-  errorMsg: { fontSize: 14, color: "#71717a", textAlign: "center", lineHeight: 20 },
-  errorDetail: { fontSize: 11, color: "#9ca3af", textAlign: "center", fontFamily: "monospace", lineHeight: 16 },
-  backBtn: {
-    marginTop: 8, backgroundColor: "#ef4444",
-    paddingHorizontal: 28, paddingVertical: 13, borderRadius: 10,
+
+  // ── Terminal screens (success / error) ──────────────────────────────────────
+  terminalPage: {
+    flex: 1, paddingHorizontal: 24, paddingBottom: 32,
   },
-  backBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  terminalBody: {
+    flex: 1, alignItems: "center", justifyContent: "center", gap: 16,
+  },
+  terminalActions: {
+    gap: 12,
+  },
+
+  // Success
+  successIconWrap: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: "#22c55e",
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#22c55e", shadowOpacity: 0.35, shadowRadius: 20, elevation: 8,
+  },
+  successHeadline: { fontSize: 26, fontWeight: "800", color: "#09090b", textAlign: "center" },
+  successSub: { fontSize: 15, color: "#6b7280", textAlign: "center", lineHeight: 22 },
+  alsoBadge: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa",
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginTop: 4,
+  },
+  alsoBadgeText: { fontSize: 13, color: "#ea580c", fontWeight: "600" },
+
+  // Error
+  errorIconWrap: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: "#ef4444",
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#ef4444", shadowOpacity: 0.35, shadowRadius: 20, elevation: 8,
+  },
+  errorHeadline: { fontSize: 26, fontWeight: "800", color: "#09090b", textAlign: "center" },
+  errorMsg: { fontSize: 15, color: "#6b7280", textAlign: "center", lineHeight: 22 },
+  errorDetailBox: {
+    backgroundColor: "#f8fafc", borderWidth: 1, borderColor: "#e2e8f0",
+    borderRadius: 10, padding: 12, width: "100%",
+  },
+  errorDetail: { fontSize: 11, color: "#94a3b8", fontFamily: "monospace", lineHeight: 17 },
+
+  // Shared action buttons
+  primaryBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, backgroundColor: "#ef4444",
+    paddingVertical: 16, borderRadius: 14,
+  },
+  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  secondaryBtn: {
+    alignItems: "center", justifyContent: "center",
+    paddingVertical: 16, borderRadius: 14,
+    borderWidth: 1.5, borderColor: "#e4e4e7",
+  },
+  secondaryBtnText: { color: "#52525b", fontWeight: "600", fontSize: 15 },
 
   logsDrawer: {
     position: "absolute", bottom: 0, left: 0, right: 0, height: 260,

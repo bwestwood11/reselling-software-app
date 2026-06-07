@@ -15,6 +15,10 @@ export default function InventoryLayout() {
         name="new"
         options={{ title: "Add Item", presentation: "modal" }}
       />
+      <Stack.Screen
+        name="import"
+        options={{ title: "Import from eBay", presentation: "modal" }}
+      />
       <Stack.Screen name="[id]" options={{ title: "Item Details" }} />
     </Stack>
   );

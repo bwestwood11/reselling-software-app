@@ -67,9 +67,13 @@ export class EbayAdapter extends BaseMarketplaceAdapter {
 
   /** Build HTTP headers for the Trading API (XML-based). */
   private tradingHeaders(callName: string): Record<string, string> {
-    // EBAY_AUTH_TOKEN env var overrides the DB-stored OAuth token (useful for sandbox
-    // testing with a Token Generator token that won't expire between test runs).
-    const iafToken = process.env["EBAY_AUTH_TOKEN"] ?? this.connection.accessToken;
+    // EBAY_AUTH_TOKEN only overrides in sandbox — it's a Token Generator token for local testing.
+    // In production we always use the user's DB-stored OAuth token so a stale env var
+    // can never silently break all users with a 931 auth error.
+    const iafToken =
+      process.env.EBAY_SANDBOX === "true"
+        ? (process.env["EBAY_AUTH_TOKEN"] ?? this.connection.accessToken)
+        : this.connection.accessToken;
     const headers: Record<string, string> = {
       "X-EBAY-API-CALL-NAME": callName,
       "X-EBAY-API-SITEID": "0",

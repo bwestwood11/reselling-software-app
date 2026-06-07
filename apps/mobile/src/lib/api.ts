@@ -164,6 +164,26 @@ export const api = {
     request<any>(
       `/api/marketplaces/ebay/category-aspects?categoryId=${encodeURIComponent(categoryId)}`
     ),
+  getImportableListings: (params: {
+    status?: string;
+    showImported?: boolean;
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const p = new URLSearchParams();
+    if (params.status) p.set("status", params.status);
+    if (params.showImported) p.set("showImported", "true");
+    if (params.page) p.set("page", String(params.page));
+    if (params.limit) p.set("limit", String(params.limit));
+    if (params.search) p.set("search", params.search);
+    return request<any>(`/api/marketplaces/ebay/importable-listings?${p.toString()}`);
+  },
+  importEbayItems: (ebayItemIds: string[]) =>
+    request<any>("/api/marketplaces/ebay/import", {
+      method: "POST",
+      body: JSON.stringify({ ebayItemIds }),
+    }),
 
   // Subscription
   getSubscription: () => request<any>("/api/subscriptions/current"),
