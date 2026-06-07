@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, ChevronRight, Loader2, Plus, Search, Tag, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, Plus, RefreshCw, Search, Tag, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { useCreateListing } from "@/hooks/use-listings";
@@ -63,6 +63,7 @@ const schema = z.object({
   mercariCategoryId: z.string().optional(),
   mercariBrandId: z.string().optional(),
   mercariSizeId: z.coerce.number().int().positive().optional(),
+  mercariAddressId: z.coerce.number().int().optional(),
   mercariZipCode: z.string().optional(),
 });
 
@@ -111,6 +112,38 @@ export default function NewListingPage(): import("react").JSX.Element {
   const fulfillmentPolicies: any[] = policiesData?.data?.fulfillmentPolicies ?? [];
   const paymentPolicies: any[] = policiesData?.data?.paymentPolicies ?? [];
   const returnPolicies: any[] = policiesData?.data?.returnPolicies ?? [];
+
+  type MercariAddress = {
+    id: number; firstName: string; familyName: string;
+    address1: string; address2: string; city: string;
+    stateAbbreviation: string; zipCode1: string; isDefault: boolean;
+  };
+
+  const {
+    data: mercariAddressesData,
+    isLoading: mercariAddressesLoading,
+    refetch: refetchMercariAddresses,
+  } = useQuery({
+    queryKey: ["mercari-addresses"],
+    queryFn: marketplacesApi.getMercariAddresses,
+    enabled: isMercari,
+    retry: false,
+  });
+  const mercariAddresses: MercariAddress[] = mercariAddressesData?.data ?? [];
+  const [refreshingAddresses, setRefreshingAddresses] = useState(false);
+
+  async function handleRefreshAddresses() {
+    setRefreshingAddresses(true);
+    try {
+      await marketplacesApi.refreshMercariAddresses();
+      await refetchMercariAddresses();
+      toast.success("Addresses refreshed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not refresh addresses. Use the mobile app to refresh.");
+    } finally {
+      setRefreshingAddresses(false);
+    }
+  }
 
   // ── Category search ──────────────────────────────────────────────────────
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -758,14 +791,48 @@ export default function NewListingPage(): import("react").JSX.Element {
                         onChange={(id) => setValue("mercariBrandId", id)}
                       />
                     </Field>
-                    <Field label="Zip Code">
-                      <Input
-                        placeholder="e.g. 33625"
-                        maxLength={10}
-                        className="border-zinc-200 focus-visible:ring-red-400"
-                        {...register("mercariZipCode")}
-                      />
-                    </Field>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium text-zinc-500">Shipping Address</Label>
+                        <button
+                          type="button"
+                          onClick={handleRefreshAddresses}
+                          disabled={refreshingAddresses}
+                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <RefreshCw size={11} className={refreshingAddresses ? "animate-spin" : ""} />
+                          Refresh
+                        </button>
+                      </div>
+                      <Select
+                        value={watch("mercariAddressId") ? String(watch("mercariAddressId")) : ""}
+                        onValueChange={(val) => {
+                          const addr = mercariAddresses.find((a) => String(a.id) === val);
+                          if (addr) {
+                            setValue("mercariAddressId", addr.id);
+                            setValue("mercariZipCode", addr.zipCode1);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="border-zinc-200 focus:ring-red-400">
+                          <SelectValue placeholder={
+                            mercariAddressesLoading
+                              ? "Loading…"
+                              : mercariAddresses.length === 0
+                              ? "No addresses — connect Mercari or refresh"
+                              : "Select address"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mercariAddresses.map((addr) => (
+                            <SelectItem key={addr.id} value={String(addr.id)}>
+                              {addr.address1}{addr.address2 ? ` ${addr.address2}` : ""}, {addr.city}, {addr.stateAbbreviation} {addr.zipCode1}
+                              {addr.isDefault ? " (Default)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Shipping */}

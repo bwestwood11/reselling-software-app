@@ -11,8 +11,8 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { api } from "../../../src/lib/api";
@@ -40,6 +40,20 @@ interface MercariCat {
   fullPath: string[];
   isSizeRequired: boolean;
   sizeSchemaId: string | null;
+}
+
+interface MercariAddress {
+  id: number;
+  familyName: string;
+  firstName: string;
+  address1: string;
+  address2: string;
+  city: string;
+  prefecture: string;
+  stateAbbreviation: string;
+  zipCode1: string;
+  zipCode2: string;
+  isDefault: boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -96,6 +110,7 @@ export default function NewListingScreen() {
   const [ebayConditionId, setEbayConditionId] = useState("3000");
   const [selectedMercariCat, setSelectedMercariCat] = useState<MercariCat | null>(null);
   const [mercariZipCode, setMercariZipCode] = useState("");
+  const [mercariAddressId, setMercariAddressId] = useState<number | null>(null);
   const [mercariShipMethod, setMercariShipMethod] = useState<"SOYO" | "PREPAID">("SOYO");
   const [mercariShippingPayerId, setMercariShippingPayerId] = useState<1 | 2>(1);
   const [mercariWeightLb, setMercariWeightLb] = useState("");
@@ -172,6 +187,22 @@ export default function NewListingScreen() {
       setSpecificValues((prev) => ({ ...prev, Brand: itemData.brand }));
     }
   }, [itemData]);
+
+  // Mercari addresses
+  const { data: mercariAddressesData, refetch: refetchMercariAddresses } = useQuery({
+    queryKey: ["mercari-addresses"],
+    queryFn: () => api.getMercariAddresses(),
+    enabled: hasMercari,
+    select: (d: any) => (d.data ?? []) as MercariAddress[],
+  });
+  const mercariAddresses: MercariAddress[] = mercariAddressesData ?? [];
+
+  // Re-fetch addresses when the screen re-focuses (e.g. after returning from refresh screen)
+  useFocusEffect(
+    useCallback(() => {
+      if (hasMercari) refetchMercariAddresses();
+    }, [hasMercari])
+  );
 
   // eBay policies
   const { data: policiesData, isLoading: policiesLoading } = useQuery({
@@ -281,8 +312,8 @@ export default function NewListingScreen() {
       Alert.alert("Mercari category required", "Select a Mercari category.");
       return false;
     }
-    if (hasMercari && !mercariZipCode.trim()) {
-      Alert.alert("Zip code required", "Enter your zip code for Mercari shipping.");
+    if (hasMercari && !mercariAddressId) {
+      Alert.alert("Address required", "Select a shipping address for Mercari.");
       return false;
     }
     return true;
@@ -444,6 +475,13 @@ export default function NewListingScreen() {
             isMercari={hasMercari}
             selectedMercariCat={selectedMercariCat}
             onSelectMercariCat={setSelectedMercariCat}
+            mercariAddresses={mercariAddresses}
+            mercariAddressId={mercariAddressId}
+            onSelectMercariAddress={(addr) => {
+              setMercariAddressId(addr.id);
+              setMercariZipCode(addr.zipCode1);
+            }}
+            onRefreshAddresses={() => router.push("/mercari-refresh-addresses" as any)}
             mercariZipCode={mercariZipCode}
             onChangeMercariZipCode={setMercariZipCode}
             mercariShipMethod={mercariShipMethod}
@@ -662,6 +700,7 @@ function Step2({
   description, onChangeDescription,
   isEbay, ebayConditionId, onChangeEbayCondition,
   isMercari, selectedMercariCat, onSelectMercariCat,
+  mercariAddresses, mercariAddressId, onSelectMercariAddress, onRefreshAddresses,
   mercariZipCode, onChangeMercariZipCode,
   mercariShipMethod, onChangeShipMethod,
   mercariShippingPayerId, onChangeShippingPayerId,
@@ -678,6 +717,10 @@ function Step2({
   isEbay: boolean; ebayConditionId: string; onChangeEbayCondition: (v: string) => void;
   isMercari: boolean;
   selectedMercariCat: MercariCat | null; onSelectMercariCat: (cat: MercariCat | null) => void;
+  mercariAddresses: MercariAddress[];
+  mercariAddressId: number | null;
+  onSelectMercariAddress: (addr: MercariAddress) => void;
+  onRefreshAddresses: () => void;
   mercariZipCode: string; onChangeMercariZipCode: (v: string) => void;
   mercariShipMethod: "SOYO" | "PREPAID"; onChangeShipMethod: (m: "SOYO" | "PREPAID") => void;
   mercariShippingPayerId: 1 | 2; onChangeShippingPayerId: (p: 1 | 2) => void;
@@ -752,15 +795,45 @@ function Step2({
             selected={selectedMercariCat}
             onSelect={onSelectMercariCat}
           />
-          <Card label="Zip Code *">
-            <TextInput
-              style={[s.input, { marginBottom: 0 }]}
-              value={mercariZipCode}
-              onChangeText={onChangeMercariZipCode}
-              placeholder="e.g. 90210"
-              keyboardType="number-pad"
-              maxLength={10}
-            />
+          <Card
+            label="Shipping Address *"
+            headerRight={
+              <TouchableOpacity onPress={onRefreshAddresses} hitSlop={8}>
+                <Text style={s.refreshLink}>Refresh</Text>
+              </TouchableOpacity>
+            }
+          >
+            {mercariAddresses.length === 0 ? (
+              <Text style={s.addressEmpty}>
+                No addresses found. Tap Refresh or reconnect your Mercari account.
+              </Text>
+            ) : (
+              mercariAddresses.map((addr) => {
+                const selected = addr.id === mercariAddressId;
+                const label = `${addr.address1}${addr.address2 ? ` ${addr.address2}` : ""}, ${addr.city}, ${addr.stateAbbreviation} ${addr.zipCode1}`;
+                return (
+                  <TouchableOpacity
+                    key={addr.id}
+                    style={[s.addressRow, selected && s.addressRowSelected]}
+                    onPress={() => onSelectMercariAddress(addr)}
+                  >
+                    <View style={s.addressRowInner}>
+                      <Text style={[s.addressText, selected && s.addressTextSelected]} numberOfLines={2}>
+                        {label}
+                      </Text>
+                      {addr.isDefault && (
+                        <Text style={s.defaultBadge}>Default</Text>
+                      )}
+                    </View>
+                    {selected ? (
+                      <Feather name="check-circle" size={18} color="#ef4444" />
+                    ) : (
+                      <Feather name="circle" size={18} color="#d1d5db" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </Card>
           <MercariShippingSection
             categoryId={selectedMercariCat ? parseInt(selectedMercariCat.id, 10) : undefined}
@@ -1787,10 +1860,13 @@ const pp = StyleSheet.create({
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-function Card({ label, children }: { label: string; children: React.ReactNode }) {
+function Card({ label, children, headerRight }: { label: string; children: ReactNode; headerRight?: ReactNode }) {
   return (
     <View style={s.card}>
-      <Text style={s.cardLabel}>{label}</Text>
+      <View style={s.cardHeader}>
+        <Text style={s.cardLabel}>{label}</Text>
+        {headerRight}
+      </View>
       {children}
     </View>
   );
@@ -1817,10 +1893,23 @@ const s = StyleSheet.create({
     marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.04,
     shadowRadius: 6, elevation: 1,
   },
+  cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
   cardLabel: {
     fontSize: 11, fontWeight: "700", color: "#ea580c",
-    textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 14,
+    textTransform: "uppercase", letterSpacing: 0.8,
   },
+  refreshLink: { fontSize: 13, color: "#ea580c", fontWeight: "600" },
+  addressRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: "#e5e7eb", marginBottom: 8,
+  },
+  addressRowSelected: { borderColor: "#ef4444", backgroundColor: "#fff7ed" },
+  addressRowInner: { flex: 1, marginRight: 8 },
+  addressText: { fontSize: 14, color: "#374151", lineHeight: 20 },
+  addressTextSelected: { color: "#111827", fontWeight: "600" },
+  defaultBadge: { fontSize: 11, color: "#ea580c", fontWeight: "600", marginTop: 2 },
+  addressEmpty: { fontSize: 13, color: "#9ca3af", lineHeight: 19 },
 
   fieldLabel: { fontSize: 12, fontWeight: "600", color: "#6b7280", marginBottom: 5, marginTop: 12 },
   input: {

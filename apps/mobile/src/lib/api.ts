@@ -122,12 +122,18 @@ export const api = {
   getMarketplaceConnections: () => request<any>("/api/marketplaces/connections"),
   deleteMarketplaceConnection: (id: string) =>
     request<any>(`/api/marketplaces/connections/${id}`, { method: "DELETE" }),
-  connectMercariToken: (accessToken: string, accountId?: string, accountName?: string) =>
+  connectMercariToken: (accessToken: string, accountId?: string, accountName?: string, addresses?: unknown[]) =>
     request<any>("/api/marketplaces/mercari/connect-token", {
       method: "POST",
-      body: JSON.stringify({ accessToken, accountId, accountName }),
+      body: JSON.stringify({ accessToken, accountId, accountName, addresses }),
     }),
   getMercariToken: () => request<any>("/api/marketplaces/mercari/token"),
+  getMercariAddresses: () => request<any>("/api/marketplaces/mercari/addresses"),
+  saveMercariAddresses: (addresses: unknown[]) =>
+    request<any>("/api/marketplaces/mercari/refresh-addresses", {
+      method: "POST",
+      body: JSON.stringify({ addresses }),
+    }),
   getMercariCategories: (parentId?: string, search?: string, limit?: number) => {
     const params = new URLSearchParams();
     if (parentId !== undefined) params.set("parentId", parentId);

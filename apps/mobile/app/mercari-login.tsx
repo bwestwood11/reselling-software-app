@@ -14,6 +14,9 @@ import { api } from "../src/lib/api";
 
 // Injected before any page JS runs — intercepts Mercari's fetch calls to capture
 // the accessToken directly from /v1/login or /v1/login_google responses.
+const ADDRESSES_URL =
+  "https://www.mercari.com/v1/api?operationName=DeliveryAddresses&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2260ae4e6793f7c6fcdd16b3aec263abd2ebef115ecabe86407b5c697fadef5f9c%22%7D%7D";
+
 const INTERCEPT_SCRIPT = `
 (function() {
   var _fetch = window.fetch;
@@ -25,12 +28,27 @@ const INTERCEPT_SCRIPT = `
         var clone = response.clone();
         clone.json().then(function(data) {
           if (data && data.accessToken) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
+            var token = data.accessToken;
+            var msg = {
               type: 'mercari_token',
-              accessToken: data.accessToken,
+              accessToken: token,
               accountId: data.user && data.user.userId ? String(data.user.userId) : undefined,
               accountName: data.user && (data.user.name || data.user.username || data.user.email) || undefined,
-            }));
+            };
+            _fetch('${ADDRESSES_URL}', {
+              headers: {
+                'authorization': 'Bearer ' + token,
+                'content-type': 'application/json',
+                'x-platform': 'web',
+                'apollo-require-preflight': 'true',
+                'x-app-version': '1',
+              }
+            }).then(function(r) { return r.json(); }).then(function(addrData) {
+              msg.addresses = (addrData && addrData.data && addrData.data.deliveryAddresses) || [];
+              window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+            }).catch(function() {
+              window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+            });
           }
         }).catch(function() {});
       }
@@ -60,7 +78,7 @@ export default function MercariLoginScreen() {
 
       setSaving(true);
       setAlreadyLoggedIn(false);
-      await api.connectMercariToken(msg.accessToken, msg.accountId, msg.accountName);
+      await api.connectMercariToken(msg.accessToken, msg.accountId, msg.accountName, msg.addresses);
       await qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
       router.back();
     } catch (err) {

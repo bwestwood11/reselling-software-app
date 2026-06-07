@@ -519,12 +519,13 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     "/mercari/connect-token",
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const { accessToken, accountId, accountName, cookies, csrfToken } = request.body as {
+      const { accessToken, accountId, accountName, cookies, csrfToken, addresses } = request.body as {
         accessToken?: string;
         accountId?: string;
         accountName?: string;
         cookies?: unknown[];
         csrfToken?: string;
+        addresses?: unknown[];
       };
 
       if (!accessToken?.trim()) {
@@ -535,7 +536,16 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         ? JSON.stringify(cookies)
         : undefined;
 
-      const metadata = csrfToken ? { csrfToken } : undefined;
+      // Fetch existing metadata to merge rather than overwrite
+      const existing = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { metadata: true },
+      });
+      const existingMeta = (existing?.metadata ?? {}) as Record<string, unknown>;
+      const newMeta: Record<string, unknown> = { ...existingMeta };
+      if (csrfToken) newMeta.csrfToken = csrfToken;
+      if (Array.isArray(addresses)) newMeta.addresses = addresses;
+      const metadataToStore = Object.keys(newMeta).length > 0 ? newMeta : undefined;
 
       await fastify.prisma.marketplaceConnection.upsert({
         where: {
@@ -544,7 +554,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         update: {
           accessToken,
           ...(cookiesJson !== undefined ? { sessionCookies: cookiesJson } : {}),
-          ...(metadata !== undefined ? { metadata } : {}),
+          ...(metadataToStore !== undefined ? { metadata: metadataToStore as any } : {}),
           accountId: accountId ?? null,
           accountName: accountName ?? null,
           isActive: true,
@@ -555,7 +565,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           marketplace: "MERCARI",
           accessToken,
           sessionCookies: cookiesJson ?? null,
-          metadata: metadata ?? undefined,
+          metadata: (metadataToStore ?? undefined) as any,
           accountId: accountId ?? null,
           accountName: accountName ?? null,
         },
@@ -592,6 +602,86 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         success: true,
         data: { accessToken: connection.accessToken, cookies, csrfToken },
       });
+    }
+  );
+
+  // GET /api/marketplaces/mercari/addresses — returns delivery addresses stored in metadata
+  fastify.get(
+    "/mercari/addresses",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { metadata: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      const meta = (connection.metadata ?? {}) as Record<string, unknown>;
+      const addresses = Array.isArray(meta.addresses) ? meta.addresses : [];
+      return reply.send({ success: true, data: addresses });
+    }
+  );
+
+  // POST /api/marketplaces/mercari/refresh-addresses — either saves addresses provided by the
+  // mobile WebView (body: { addresses }) or attempts a direct server-side Mercari fetch.
+  fastify.post(
+    "/mercari/refresh-addresses",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { addresses } = ((request.body ?? {}) as { addresses?: unknown[] });
+
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { accessToken: true, metadata: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      let fetchedAddresses: unknown[];
+
+      if (Array.isArray(addresses)) {
+        fetchedAddresses = addresses;
+      } else {
+        try {
+          const res = await fetch(
+            "https://www.mercari.com/v1/api?operationName=DeliveryAddresses&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2260ae4e6793f7c6fcdd16b3aec263abd2ebef115ecabe86407b5c697fadef5f9c%22%7D%7D",
+            {
+              headers: {
+                authorization: `Bearer ${connection.accessToken}`,
+                "content-type": "application/json",
+                "x-platform": "web",
+                "apollo-require-preflight": "true",
+                "x-app-version": "1",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+              },
+            }
+          );
+          const contentType = res.headers.get("content-type") ?? "";
+          if (!res.ok || !contentType.includes("application/json")) {
+            throw new Error(`Mercari returned ${res.status}`);
+          }
+          const json = await res.json() as { data?: { deliveryAddresses?: unknown[] } };
+          fetchedAddresses = json?.data?.deliveryAddresses ?? [];
+        } catch {
+          return reply.status(503).send({
+            success: false,
+            error: "Could not fetch addresses from Mercari. Use the mobile app to refresh.",
+          });
+        }
+      }
+
+      const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
+      await fastify.prisma.marketplaceConnection.update({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        data: { metadata: { ...existingMeta, addresses: fetchedAddresses } as any },
+      });
+
+      return reply.send({ success: true, data: fetchedAddresses });
     }
   );
 

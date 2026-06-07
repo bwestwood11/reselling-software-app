@@ -110,6 +110,9 @@ export const marketplacesApi = {
       method: "POST",
       body: JSON.stringify({ accessToken, accountId, accountName }),
     }),
+  getMercariAddresses: () => request<any>("/api/marketplaces/mercari/addresses"),
+  refreshMercariAddresses: () =>
+    request<any>("/api/marketplaces/mercari/refresh-addresses", { method: "POST" }),
 };
 
 // ─── eBay Import ──────────────────────────────────────────────────────────────
