@@ -125,9 +125,10 @@ export const importApi = {
     showImported?: boolean;
     page?: number;
     limit?: number;
+    search?: string;
   }) => {
     const entries = Object.entries(params ?? {})
-      .filter(([, v]) => v !== undefined)
+      .filter(([, v]) => v !== undefined && v !== "")
       .map(([k, v]) => [k, String(v)] as [string, string]);
     const qs = entries.length > 0 ? `?${new URLSearchParams(entries).toString()}` : "";
     return request<any>(`/api/marketplaces/ebay/importable-listings${qs}`);

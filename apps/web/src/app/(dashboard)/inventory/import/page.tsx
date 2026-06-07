@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useImportableListings, useImportItems } from "@/hooks/use-import";
 import { Button, Badge } from "@repo/ui";
-import { ArrowLeft, Download, Package, CheckSquare, Square } from "lucide-react";
+import { ArrowLeft, Download, Package, CheckSquare, Square, RefreshCw, Search, X } from "lucide-react";
 import { formatCurrency } from "@repo/utils";
 
 export default function ImportPage(): import("react").JSX.Element {
@@ -12,12 +12,28 @@ export default function ImportPage(): import("react").JSX.Element {
   const [showImported, setShowImported] = useState(false);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data, isLoading, error } = useImportableListings({
+  // Debounce search — reset to page 1 when query changes
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
+
+  const { data, isLoading, isFetching, error, refetch } = useImportableListings({
     status,
     showImported,
     page,
     limit: 50,
+    search,
   });
   const importMutation = useImportItems();
 
@@ -49,6 +65,11 @@ export default function ImportPage(): import("react").JSX.Element {
     setSelected(new Set());
   };
 
+  const handleRefresh = useCallback(async () => {
+    setSelected(new Set());
+    await refetch();
+  }, [refetch]);
+
   const handleImport = useCallback(async () => {
     if (selected.size === 0 || importMutation.isPending) return;
     await importMutation.mutateAsync([...selected]);
@@ -78,18 +99,29 @@ export default function ImportPage(): import("react").JSX.Element {
                 {data?.total ?? 0} listing{data?.total !== 1 ? "s" : ""} available
               </p>
             </div>
-            <Button
-              className="bg-white text-orange-700 hover:bg-orange-50 disabled:opacity-60"
-              onClick={handleImport}
-              disabled={selected.size === 0 || importMutation.isPending}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {importMutation.isPending
-                ? "Importing…"
-                : selected.size > 0
-                ? `Import ${selected.size} selected`
-                : "Import selected"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20 disabled:opacity-60"
+                onClick={handleRefresh}
+                disabled={isFetching}
+              >
+                <RefreshCw className={["mr-2 h-4 w-4", isFetching ? "animate-spin" : ""].join(" ")} />
+                {isFetching ? "Refreshing…" : "Refresh"}
+              </Button>
+              <Button
+                className="bg-white text-orange-700 hover:bg-orange-50 disabled:opacity-60"
+                onClick={handleImport}
+                disabled={selected.size === 0 || importMutation.isPending}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {importMutation.isPending
+                  ? "Importing…"
+                  : selected.size > 0
+                  ? `Import ${selected.size} selected`
+                  : "Import selected"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -97,6 +129,27 @@ export default function ImportPage(): import("react").JSX.Element {
       {/* Filters */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search listings…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-9 pr-8 text-sm text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-400/40"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-zinc-400 hover:text-zinc-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           <select
             value={status}
             onChange={(e) => handleStatusChange(e.target.value)}
@@ -159,11 +212,11 @@ export default function ImportPage(): import("react").JSX.Element {
           <Package className="mb-4 h-12 w-12 text-zinc-300" />
           <h3 className="text-lg font-medium text-zinc-900">No listings found</h3>
           <p className="mt-1 text-sm text-zinc-500">
-            No eBay listings match the current filter
+            {search ? "No eBay listings match your search" : "No eBay listings match the current filter"}
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className={["space-y-2 transition-opacity", isFetching ? "opacity-60" : ""].join(" ")}>
           {items.map((item) => {
             const isImported: boolean = item.isImported;
             const isSelected = selected.has(item.ebayItemId);
@@ -227,6 +280,9 @@ export default function ImportPage(): import("react").JSX.Element {
                   <p className="mt-0.5 text-xs text-zinc-500">
                     Qty {item.quantity}
                     {item.categoryName ? ` · ${item.categoryName}` : ""}
+                    {item.listedAt
+                      ? ` · Listed ${new Date(item.listedAt).toLocaleDateString()}`
+                      : ""}
                   </p>
                 </div>
 

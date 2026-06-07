@@ -7,6 +7,7 @@ interface ImportParams {
   showImported?: boolean;
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export function useImportableListings(params: ImportParams) {
@@ -14,6 +15,7 @@ export function useImportableListings(params: ImportParams) {
     queryKey: ["ebay-importable", params],
     queryFn: () => importApi.getImportableListings(params),
     retry: 0,
+    staleTime: 0,
   });
 }
 

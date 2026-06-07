@@ -12,6 +12,7 @@ export interface ImportableItem {
   imageUrl: string | null;
   listingStatus: string;
   isImported: boolean;
+  listedAt: string | null;
 }
 
 export interface ImportResult {
@@ -28,7 +29,8 @@ export class ImportService {
     status: "active" | "ended" | "sold" = "active",
     showImported = false,
     page = 1,
-    limit = 50
+    limit = 50,
+    search = ""
   ): Promise<{ data: ImportableItem[]; total: number; page: number; totalPages: number }> {
     const connection = await this.db.marketplaceConnection.findUnique({
       where: { userId_marketplace: { userId, marketplace: "EBAY" } },
@@ -63,10 +65,24 @@ export class ImportService {
       imageUrl: l.imageUrls[0] ?? null,
       listingStatus: l.listingStatus,
       isImported: importedIds.has(l.itemId),
+      listedAt: l.listedAt ? l.listedAt.toISOString() : null,
     }));
+
+    // Sort newest first
+    items.sort((a, b) => {
+      if (!a.listedAt && !b.listedAt) return 0;
+      if (!a.listedAt) return 1;
+      if (!b.listedAt) return -1;
+      return new Date(b.listedAt).getTime() - new Date(a.listedAt).getTime();
+    });
 
     if (!showImported) {
       items = items.filter((i) => !i.isImported);
+    }
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      items = items.filter((i) => i.title.toLowerCase().includes(q));
     }
 
     const total = items.length;

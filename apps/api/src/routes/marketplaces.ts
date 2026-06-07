@@ -840,6 +840,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         showImported = "false",
         page = "1",
         limit = "50",
+        search = "",
       } = request.query as Record<string, string>;
 
       if (!["active", "ended", "sold"].includes(status)) {
@@ -853,7 +854,8 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           status as "active" | "ended" | "sold",
           showImported === "true",
           Math.max(1, Number.parseInt(page, 10) || 1),
-          Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 50))
+          Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 50)),
+          search
         );
         return reply.send({ success: true, ...result });
       } catch (err) {
