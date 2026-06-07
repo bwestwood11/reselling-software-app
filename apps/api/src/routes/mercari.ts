@@ -83,6 +83,16 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data: jobs });
   });
 
+  // GET /api/mercari/jobs/:jobId — fetch a single job by ID (used for polling)
+  fastify.get("/jobs/:jobId", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { jobId } = request.params as { jobId: string };
+    const job = await fastify.prisma.mercariJob.findFirst({
+      where: { id: jobId, userId: request.user!.id },
+    });
+    if (!job) return reply.status(404).send({ success: false, error: "Job not found" });
+    return reply.send({ success: true, data: job });
+  });
+
   // GET /api/mercari/jobs — list all jobs with optional status filter
   fastify.get("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
     const query = request.query as { status?: string; limit?: string };
@@ -101,14 +111,15 @@ export async function mercariRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /api/mercari/jobs/:id — extension reports job outcome
-  // On COMPLETED: marks the linked Listing as ACTIVE with the Mercari listing ID.
-  // On FAILED: marks the Listing as FAILED and refunds the deducted credit.
+  // On COMPLETED: marks the linked Listing as ACTIVE (publish jobs) or saves addresses (fetch-addresses jobs).
+  // On FAILED: marks the Listing as FAILED and refunds the deducted credit (publish jobs only).
   fastify.patch("/jobs/:id", { preHandler: [requireAuth] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
       status: "PROCESSING" | "COMPLETED" | "FAILED";
       externalId?: string;
       errorMessage?: string;
+      addresses?: unknown[];
     };
 
     const existing = await fastify.prisma.mercariJob.findFirst({
@@ -131,6 +142,22 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         completedAt: isTerminal ? now : existing.completedAt,
       },
     });
+
+    // Handle fetch-addresses job: save addresses to the connection's metadata
+    const payloadObj = (existing.payload ?? {}) as Record<string, unknown>;
+    if (payloadObj.type === "fetch-addresses" && body.status === "COMPLETED" && Array.isArray(body.addresses)) {
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { metadata: true },
+      });
+      if (connection) {
+        const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
+        await fastify.prisma.marketplaceConnection.update({
+          where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+          data: { metadata: { ...existingMeta, addresses: body.addresses } as any },
+        });
+      }
+    }
 
     if (existing.listingId && isTerminal) {
       if (body.status === "COMPLETED") {

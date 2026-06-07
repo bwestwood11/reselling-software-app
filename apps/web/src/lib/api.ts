@@ -111,7 +111,9 @@ export const marketplacesApi = {
       body: JSON.stringify({ accessToken, accountId, accountName }),
     }),
   getMercariAddresses: () => request<any>("/api/marketplaces/mercari/addresses"),
-  refreshMercariAddresses: () =>
+  // Returns { jobId } when dispatching to the extension, or { data: addresses[] } when called
+  // from mobile (body contains addresses). Web always gets a jobId back.
+  triggerRefreshMercariAddresses: () =>
     request<any>("/api/marketplaces/mercari/refresh-addresses", { method: "POST" }),
 };
 
@@ -145,6 +147,7 @@ export const mercariApi = {
     const qs = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
     return request<any>(`/api/mercari/jobs${qs}`);
   },
+  getJob: (jobId: string) => request<any>(`/api/mercari/jobs/${jobId}`),
   getJobForListing: (listingId: string) =>
     request<any>(`/api/mercari/jobs?listingId=${listingId}&limit=1`),
   getCategories: (parentId?: string, search?: string, limit?: number) => {

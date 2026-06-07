@@ -128,6 +128,26 @@ async function processNextJob() {
     return;
   }
 
+  // ── fetch-addresses job — no listing, no form ───────────────────────────
+  if (job.payload?.type === "fetch-addresses") {
+    try {
+      const bearerToken = await getMercariBearerToken();
+      const addresses = await withMercariTab((tabId) =>
+        fetchDeliveryAddresses(tabId, bearerToken)
+      );
+      await patchJob(job.id, { status: "COMPLETED", addresses });
+    } catch (err) {
+      console.error("[relist] fetch-addresses job failed:", err.message);
+      await patchJob(job.id, {
+        status: "FAILED",
+        errorMessage: err.message ?? "Failed to fetch addresses",
+      }).catch(() => {});
+    }
+    activeJobId = null;
+    chrome.action.setBadgeText({ text: "" });
+    return;
+  }
+
   // ── Direct Mercari API call (no tab, no form) ────────────────────────────
   try {
     const externalId = await postToMercariApi(job);
@@ -858,6 +878,14 @@ async function captureMercariToken(tabId, relistToken) {
 
   const cookiesPayload = allCookies.map(({ hostOnly, session, ...c }) => c);
 
+  // Fetch delivery addresses from within the tab (Cloudflare-cleared context)
+  let addresses = [];
+  try {
+    addresses = await fetchDeliveryAddresses(tab.id, accessToken);
+  } catch (err) {
+    console.warn("[relist] fetchDeliveryAddresses at connect time failed:", err.message);
+  }
+
   const res = await fetch(`${API_BASE}/api/marketplaces/mercari/connect-token`, {
     method: "POST",
     headers: {
@@ -870,11 +898,37 @@ async function captureMercariToken(tabId, relistToken) {
       accountName,
       cookies: cookiesPayload,
       ...(csrfToken ? { csrfToken } : {}),
+      ...(addresses.length > 0 ? { addresses } : {}),
     }),
   });
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? "Failed to save Mercari connection");
+}
+
+// Fetches delivery addresses from within a real mercari.com tab using the stored token.
+async function fetchDeliveryAddresses(tabId, bearerToken) {
+  const ADDRESSES_URL =
+    "https://www.mercari.com/v1/api?operationName=DeliveryAddresses&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2260ae4e6793f7c6fcdd16b3aec263abd2ebef115ecabe86407b5c697fadef5f9c%22%7D%7D";
+
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (url, token) => {
+      const headers = {
+        "content-type": "application/json",
+        "x-platform": "web",
+        "apollo-require-preflight": "true",
+        "x-app-version": "1",
+      };
+      if (token) headers["authorization"] = `Bearer ${token}`;
+      const res = await fetch(url, { headers, credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      return data?.data?.deliveryAddresses ?? [];
+    },
+    args: [ADDRESSES_URL, bearerToken],
+  });
+
+  return result?.result ?? [];
 }
 
 // Fetches the stored cookie jar from the API and injects each cookie into the

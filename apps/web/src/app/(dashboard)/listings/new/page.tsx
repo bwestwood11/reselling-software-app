@@ -135,11 +135,35 @@ export default function NewListingPage(): import("react").JSX.Element {
   async function handleRefreshAddresses() {
     setRefreshingAddresses(true);
     try {
-      await marketplacesApi.refreshMercariAddresses();
-      await refetchMercariAddresses();
-      toast.success("Addresses refreshed");
+      const res = await marketplacesApi.triggerRefreshMercariAddresses();
+      const jobId: string | undefined = res?.data?.jobId;
+
+      if (!jobId) {
+        // Mobile path: addresses returned directly
+        await refetchMercariAddresses();
+        toast.success("Addresses refreshed");
+        return;
+      }
+
+      // Poll until the extension completes the job (up to 90 s)
+      const deadline = Date.now() + 90_000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 3_000));
+        const jobRes = await mercariApi.getJob(jobId);
+        const status: string = jobRes?.data?.status ?? "PENDING";
+        if (status === "COMPLETED") {
+          await refetchMercariAddresses();
+          toast.success("Addresses refreshed");
+          return;
+        }
+        if (status === "FAILED") {
+          toast.error(jobRes?.data?.errorMessage ?? "Extension failed to fetch addresses");
+          return;
+        }
+      }
+      toast.error("Timed out waiting for extension. Make sure the ReList extension is running.");
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not refresh addresses. Use the mobile app to refresh.");
+      toast.error(err?.message ?? "Could not refresh addresses");
     } finally {
       setRefreshingAddresses(false);
     }

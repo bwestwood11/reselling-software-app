@@ -625,8 +625,9 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // POST /api/marketplaces/mercari/refresh-addresses — either saves addresses provided by the
-  // mobile WebView (body: { addresses }) or attempts a direct server-side Mercari fetch.
+  // POST /api/marketplaces/mercari/refresh-addresses
+  // - With { addresses } body: saves addresses directly (from mobile WebView).
+  // - Without body: creates a fetch-addresses job for the browser extension to execute.
   fastify.post(
     "/mercari/refresh-addresses",
     { preHandler: [requireAuth] },
@@ -635,53 +636,33 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
 
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-        select: { accessToken: true, metadata: true, isActive: true },
+        select: { metadata: true, isActive: true },
       });
 
       if (!connection?.isActive) {
         return reply.status(404).send({ success: false, error: "Mercari account not connected" });
       }
 
-      let fetchedAddresses: unknown[];
-
+      // Mobile WebView sends addresses directly — save them and return immediately.
       if (Array.isArray(addresses)) {
-        fetchedAddresses = addresses;
-      } else {
-        try {
-          const res = await fetch(
-            "https://www.mercari.com/v1/api?operationName=DeliveryAddresses&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2260ae4e6793f7c6fcdd16b3aec263abd2ebef115ecabe86407b5c697fadef5f9c%22%7D%7D",
-            {
-              headers: {
-                authorization: `Bearer ${connection.accessToken}`,
-                "content-type": "application/json",
-                "x-platform": "web",
-                "apollo-require-preflight": "true",
-                "x-app-version": "1",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
-              },
-            }
-          );
-          const contentType = res.headers.get("content-type") ?? "";
-          if (!res.ok || !contentType.includes("application/json")) {
-            throw new Error(`Mercari returned ${res.status}`);
-          }
-          const json = await res.json() as { data?: { deliveryAddresses?: unknown[] } };
-          fetchedAddresses = json?.data?.deliveryAddresses ?? [];
-        } catch {
-          return reply.status(503).send({
-            success: false,
-            error: "Could not fetch addresses from Mercari. Use the mobile app to refresh.",
-          });
-        }
+        const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
+        await fastify.prisma.marketplaceConnection.update({
+          where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+          data: { metadata: { ...existingMeta, addresses } as any },
+        });
+        return reply.send({ success: true, data: addresses });
       }
 
-      const existingMeta = (connection.metadata ?? {}) as Record<string, unknown>;
-      await fastify.prisma.marketplaceConnection.update({
-        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-        data: { metadata: { ...existingMeta, addresses: fetchedAddresses } as any },
+      // Web: create a job the extension will pick up and execute in a real browser tab.
+      const job = await fastify.prisma.mercariJob.create({
+        data: {
+          userId: request.user!.id,
+          listingId: null,
+          payload: { type: "fetch-addresses" },
+        },
       });
 
-      return reply.send({ success: true, data: fetchedAddresses });
+      return reply.status(202).send({ success: true, data: { jobId: job.id } });
     }
   );
 
