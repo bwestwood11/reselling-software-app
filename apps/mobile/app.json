@@ -7,7 +7,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.relist.app"
+      "bundleIdentifier": "com.relist.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.relist.app"
@@ -19,6 +22,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca009cc1-6089-47d0-aed6-e8b0c896955e"
+      }
     }
   }
 }

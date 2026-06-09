@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { PhotoProvider, PhotoView } from "react-photo-view";
 import { useInventoryItem } from "@/hooks/use-inventory";
 import {
   Button,
@@ -11,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui";
-import { ArrowLeft, Package, Tag, ExternalLink, Pencil } from "lucide-react";
+import { ArrowLeft, Package, Tag, ExternalLink, Pencil, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -50,6 +51,12 @@ export default function InventoryItemPage({
       </div>
     );
   }
+
+  function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = text;
+  return textarea.value;
+}
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 bg-[#f6f5f3] pb-4">
@@ -102,23 +109,59 @@ export default function InventoryItemPage({
             <CardContent className="p-0">
               {item.images?.length > 0 ? (
                 <div className="space-y-3 p-4">
-                  <img
-                    src={item.images[0].url}
-                    alt={item.title}
-                    className="w-full rounded-xl object-cover"
-                  />
-                  {item.images.length > 1 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {item.images.slice(1).map((img: any) => (
+                  <PhotoProvider
+                    toolbarRender={({ scale, onScale }) => (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onScale(scale + 1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                        >
+                          <ZoomIn className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => onScale(scale - 1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                        >
+                          <ZoomOut className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => onScale(1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  >
+                    <PhotoView src={item.images[0].url}>
+                      <div className="group relative cursor-zoom-in">
                         <img
-                          key={img.id}
-                          src={img.url}
-                          alt=""
-                          className="h-16 w-full rounded-lg object-cover"
+                          src={item.images[0].url}
+                          alt={item.title}
+                          className="w-full rounded-xl object-cover"
                         />
-                      ))}
-                    </div>
-                  )}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover:bg-black/10">
+                          <ZoomIn className="h-7 w-7 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-100" />
+                        </div>
+                      </div>
+                    </PhotoView>
+                    {item.images.length > 1 && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {item.images.slice(1).map((img: any) => (
+                          <PhotoView key={img.id} src={img.url}>
+                            <div className="group relative cursor-zoom-in">
+                              <img
+                                src={img.url}
+                                alt=""
+                                className="h-16 w-full rounded-lg object-cover"
+                              />
+                              <div className="pointer-events-none absolute inset-0 rounded-lg bg-black/0 transition-colors group-hover:bg-black/20" />
+                            </div>
+                          </PhotoView>
+                        ))}
+                      </div>
+                    )}
+                  </PhotoProvider>
                 </div>
               ) : (
                 <div className="flex aspect-square items-center justify-center bg-zinc-100">
@@ -152,7 +195,7 @@ export default function InventoryItemPage({
                 <CardTitle className="text-base text-zinc-900">Description</CardTitle>
               </CardHeader>
               <CardContent className="pt-5">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{item.description}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{decodeHtmlEntities(item.description)}</p>
               </CardContent>
             </Card>
           )}

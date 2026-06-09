@@ -133,8 +133,8 @@ export class ImportService {
           const inventoryItem = await tx.inventoryItem.create({
             data: {
               userId,
-              title: detail.title,
-              description: detail.description || undefined,
+              title: normalizeEbayTitle(detail.title),
+              description: detail.description ? normalizeEbayDescription(detail.description) : undefined,
               condition,
               quantity: detail.quantity,
               targetPrice: detail.price > 0 ? detail.price : undefined,
@@ -169,7 +169,7 @@ export class ImportService {
               marketplace: "EBAY",
               externalId: detail.itemId,
               externalUrl: detail.viewItemUrl || undefined,
-              title: detail.title,
+              title: normalizeEbayTitle(detail.title),
               price: Math.max(0, detail.price),
               status: listingStatus,
               listedAt: detail.listedAt,
@@ -201,4 +201,34 @@ export class ImportService {
     if (ebayStatus === "Ended") return "ENDED";
     return "ACTIVE";
   }
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function normalizeEbayTitle(raw: string): string {
+  // Titles are plain text but may contain encoded entities (e.g. &amp;)
+  return decodeEntities(raw.replace(/<[^>]+>/g, "")).trim();
+}
+
+function normalizeEbayDescription(raw: string): string {
+  return decodeEntities(
+    raw
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<[^>]+>/g, ""),
+  )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
