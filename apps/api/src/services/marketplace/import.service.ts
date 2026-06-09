@@ -141,7 +141,7 @@ export class ImportService {
               costPrice: detail.startPrice > 0 ? detail.startPrice : undefined,
               brand: detail.brand || undefined,
               sku: detail.sku || undefined,
-              category: detail.categoryName || undefined,
+              category: detail.categoryName ? decodeEntities(detail.categoryName) : undefined,
               status: "ACTIVE",
               images:
                 detail.imageUrls.length > 0

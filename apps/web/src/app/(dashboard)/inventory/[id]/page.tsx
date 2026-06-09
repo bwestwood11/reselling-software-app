@@ -191,7 +191,7 @@ export default function InventoryItemPage({
                 <CardTitle className="text-base text-zinc-900">Description</CardTitle>
               </CardHeader>
               <CardContent className="pt-5">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{item.description}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{normalizeText(item.description)}</p>
               </CardContent>
             </Card>
           )}
@@ -247,6 +247,25 @@ export default function InventoryItemPage({
       </div>
     </div>
   );
+}
+
+function normalizeText(raw: string): string {
+  return raw
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function Detail({ label, value }: { label: string; value?: string | number | null }) {
