@@ -52,11 +52,7 @@ export default function InventoryItemPage({
     );
   }
 
-  function decodeHtmlEntities(text: string): string {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = text;
-  return textarea.value;
-}
+ 
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 bg-[#f6f5f3] pb-4">
@@ -195,7 +191,7 @@ export default function InventoryItemPage({
                 <CardTitle className="text-base text-zinc-900">Description</CardTitle>
               </CardHeader>
               <CardContent className="pt-5">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{decodeHtmlEntities(item.description)}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{item.description}</p>
               </CardContent>
             </Card>
           )}
