@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Loader2, Plus, X } from "lucide-react";
+import { ArrowLeft, Camera, Eraser, Layers, Loader2, Plus, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
 import { uploadApi } from "@/lib/api";
@@ -66,6 +66,15 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
   const [images, setImages] = useState<(ImageSlot | undefined)[]>(
     Array(INITIAL_SLOTS).fill(undefined)
   );
+  const [editOptions, setEditOptions] = useState({
+    removeBackground: false,
+    flatLay: false,
+    ironing: false,
+  });
+
+  function toggleEditOption(key: keyof typeof editOptions) {
+    setEditOptions((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number>(0);
 
@@ -113,7 +122,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     await Promise.all(
       toUpload.map(async ({ file, slotIndex }) => {
         try {
-          const { url, key } = await uploadApi.uploadImage(file);
+          const { url, key } = await uploadApi.uploadImage(file, editOptions);
           setImages((prev) => {
             const next = [...prev];
             const existing = next[slotIndex];
@@ -364,6 +373,38 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                     </span>
                   )}
                 </p>
+
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                    AI Enhancements
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(
+                      [
+                        { key: "removeBackground", label: "Remove bg", Icon: Eraser },
+                        { key: "flatLay", label: "Flat lay", Icon: Layers },
+                        { key: "ironing", label: "Ironing", Icon: Sparkles },
+                      ] as const
+                    ).map(({ key, label, Icon }) => {
+                      const active = editOptions[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleEditOption(key)}
+                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                            active
+                              ? "bg-violet-100 text-violet-700 ring-1 ring-violet-300"
+                              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Image grid */}
                 <div className="mt-4 grid grid-cols-3 gap-2">

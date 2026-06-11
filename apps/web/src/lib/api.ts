@@ -191,11 +191,19 @@ export const syncApi = {
 // ─── Upload ───────────────────────────────────────────────────────────────────
 
 export const uploadApi = {
-  uploadImage: async (file: File): Promise<{ url: string; key: string }> => {
+  uploadImage: async (
+    file: File,
+    options?: { removeBackground?: boolean; flatLay?: boolean; ironing?: boolean }
+  ): Promise<{ url: string; key: string }> => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API_BASE}/api/upload`, {
+    const params = new URLSearchParams();
+    if (options?.removeBackground) params.set("removeBackground", "true");
+    if (options?.flatLay) params.set("flatLay", "true");
+    if (options?.ironing) params.set("ironing", "true");
+    const qs = params.size ? `?${params.toString()}` : "";
+    const res = await fetch(`${API_BASE}/api/upload${qs}`, {
       method: "POST",
       credentials: "include",
       body: formData,

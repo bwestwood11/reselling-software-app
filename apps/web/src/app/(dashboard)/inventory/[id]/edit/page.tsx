@@ -16,9 +16,10 @@ import {
   SelectValue,
   Button,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Loader2, Plus, X, Package } from "lucide-react";
+import { ArrowLeft, Camera, Eraser, Layers, Loader2, Plus, Sparkles, X, Package } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory";
+import { uploadApi } from "@/lib/api";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 
@@ -46,6 +47,15 @@ type FormValues = z.infer<typeof schema>;
 
 const INITIAL_SLOTS = 3;
 const MAX_IMAGES = 10;
+
+interface ImageSlot {
+  /** Display src: object URL (temporary), base64 data URL, or S3 URL */
+  src: string;
+  /** Set once the image is uploaded to S3 */
+  s3Url?: string;
+  uploading: boolean;
+  error?: string;
+}
 
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -90,7 +100,16 @@ export default function EditInventoryItemPage({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number>(0);
-  const [images, setImages] = useState<(string | undefined)[]>(Array(INITIAL_SLOTS).fill(undefined));
+  const [images, setImages] = useState<(ImageSlot | undefined)[]>(Array(INITIAL_SLOTS).fill(undefined));
+  const [editOptions, setEditOptions] = useState({
+    removeBackground: false,
+    flatLay: false,
+    ironing: false,
+  });
+
+  function toggleEditOption(key: keyof typeof editOptions) {
+    setEditOptions((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   const {
     register,
@@ -123,9 +142,9 @@ export default function EditInventoryItemPage({
       notes: item.notes ?? "",
     });
 
-    const existingImages: (string | undefined)[] = (item.images ?? [])
+    const existingImages: (ImageSlot | undefined)[] = (item.images ?? [])
       .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map((img: any) => img.url);
+      .map((img: any) => ({ src: img.url, s3Url: img.url, uploading: false }));
 
     const padded = [...existingImages];
     while (padded.length < INITIAL_SLOTS) padded.push(undefined);
@@ -144,21 +163,69 @@ export default function EditInventoryItemPage({
     const updates = [...images];
     let slot = pendingSlotRef.current;
 
-    for (const file of files) {
-      while (slot < updates.length && updates[slot] !== undefined) slot++;
-      if (slot >= MAX_IMAGES) break;
-      if (slot >= updates.length) updates.push(undefined);
-      updates[slot] = await compressImage(file);
-      slot++;
-    }
+    const usePhotoroom = editOptions.removeBackground || editOptions.flatLay || editOptions.ironing;
 
-    setImages(updates);
-    e.target.value = "";
+    if (usePhotoroom) {
+      // Upload to S3 via PhotoRoom v2 — show preview immediately, update when done
+      const toUpload: Array<{ file: File; slotIndex: number }> = [];
+
+      for (const file of files) {
+        while (slot < updates.length && updates[slot] !== undefined) slot++;
+        if (slot >= MAX_IMAGES) break;
+        if (slot >= updates.length) updates.push(undefined);
+
+        const preview = URL.createObjectURL(file);
+        updates[slot] = { src: preview, uploading: true };
+        toUpload.push({ file, slotIndex: slot });
+        slot++;
+      }
+
+      setImages([...updates]);
+      e.target.value = "";
+
+      await Promise.all(
+        toUpload.map(async ({ file, slotIndex }) => {
+          try {
+            const { url } = await uploadApi.uploadImage(file, editOptions);
+            setImages((prev) => {
+              const next = [...prev];
+              const existing = next[slotIndex];
+              if (existing?.src.startsWith("blob:")) URL.revokeObjectURL(existing.src);
+              next[slotIndex] = { src: url, s3Url: url, uploading: false };
+              return next;
+            });
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Upload failed";
+            setImages((prev) => {
+              const next = [...prev];
+              const existing = next[slotIndex];
+              if (existing) next[slotIndex] = { ...existing, uploading: false, error: message };
+              return next;
+            });
+          }
+        })
+      );
+    } else {
+      // Compress client-side to base64 (existing behavior)
+      for (const file of files) {
+        while (slot < updates.length && updates[slot] !== undefined) slot++;
+        if (slot >= MAX_IMAGES) break;
+        if (slot >= updates.length) updates.push(undefined);
+        const base64 = await compressImage(file);
+        updates[slot] = { src: base64, uploading: false };
+        slot++;
+      }
+
+      setImages(updates);
+      e.target.value = "";
+    }
   }
 
   function removeImage(index: number) {
     setImages((prev) => {
       const next = [...prev];
+      const slot = next[index];
+      if (slot?.src.startsWith("blob:")) URL.revokeObjectURL(slot.src);
       next[index] = undefined;
       while (next.length > INITIAL_SLOTS && next[next.length - 1] === undefined) {
         next.pop();
@@ -179,8 +246,15 @@ export default function EditInventoryItemPage({
       targetPrice: values.targetPrice === "" ? undefined : values.targetPrice,
       weight: values.weight === "" ? undefined : values.weight,
       images: images
-        .map((url, i) =>
-          url ? { url, key: url, isPrimary: i === 0, sortOrder: i } : null
+        .map((slot, i) =>
+          slot && !slot.uploading
+            ? {
+                url: slot.s3Url ?? slot.src,
+                key: slot.s3Url ?? slot.src,
+                isPrimary: i === 0,
+                sortOrder: i,
+              }
+            : null
         )
         .filter(Boolean) as { url: string; key: string; isPrimary: boolean; sortOrder: number }[],
     };
@@ -210,8 +284,9 @@ export default function EditInventoryItemPage({
     );
   }
 
-  const busy = isSubmitting || updateMutation.isPending;
-  const filledCount = images.filter(Boolean).length;
+  const uploading = images.some((s) => s?.uploading);
+  const busy = isSubmitting || updateMutation.isPending || uploading;
+  const filledCount = images.filter((s) => s && !s.uploading).length;
 
   return (
     <div className="min-h-screen bg-[#f6f5f3]">
@@ -382,7 +457,7 @@ export default function EditInventoryItemPage({
               <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
                 <SectionHeader step="04" title="Photos" />
                 <p className="mt-1 text-xs text-zinc-500">
-                  First photo is the primary listing image. {" "}
+                  First photo is the primary listing image.{" "}
                   {filledCount > 0 && (
                     <span className="font-medium text-zinc-700">
                       {filledCount} / {MAX_IMAGES} added
@@ -390,16 +465,58 @@ export default function EditInventoryItemPage({
                   )}
                 </p>
 
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                    AI Enhancements
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(
+                      [
+                        { key: "removeBackground", label: "Remove bg", Icon: Eraser },
+                        { key: "flatLay", label: "Flat lay", Icon: Layers },
+                        { key: "ironing", label: "Ironing", Icon: Sparkles },
+                      ] as const
+                    ).map(({ key, label, Icon }) => {
+                      const active = editOptions[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleEditOption(key)}
+                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                            active
+                              ? "bg-violet-100 text-violet-700 ring-1 ring-violet-300"
+                              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="mt-4 grid grid-cols-3 gap-2">
-                  {images.map((src, i) =>
-                    src ? (
+                  {images.map((slot, i) =>
+                    slot ? (
                       <div key={i} className="group relative aspect-square">
                         <img
-                          src={src}
+                          src={slot.src}
                           alt={`Photo ${i + 1}`}
                           className="h-full w-full rounded-xl object-cover"
                         />
-                        {i === 0 && (
+                        {slot.uploading && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
+                            <Loader2 className="h-5 w-5 animate-spin text-white" />
+                          </div>
+                        )}
+                        {slot.error && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60 p-1">
+                            <span className="text-center text-[10px] leading-tight text-white">{slot.error}</span>
+                          </div>
+                        )}
+                        {i === 0 && !slot.uploading && (
                           <span className="absolute bottom-1.5 left-1.5 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow">
                             Primary
                           </span>
@@ -456,7 +573,7 @@ export default function EditInventoryItemPage({
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Save changes
+                  {uploading ? "Processing photos…" : "Save changes"}
                 </button>
                 <Link
                   href={`/inventory/${id}`}
