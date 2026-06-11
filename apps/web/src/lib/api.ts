@@ -228,6 +228,11 @@ export const subscriptionApi = {
       method: "POST",
       body: JSON.stringify({ plan }),
     }),
+  createAddonCheckout: (addon: string, packs = 1) =>
+    request<any>("/api/subscriptions/addon-checkout", {
+      method: "POST",
+      body: JSON.stringify({ addon, packs }),
+    }),
   createPortal: () =>
     request<any>("/api/subscriptions/portal", { method: "POST" }),
 };

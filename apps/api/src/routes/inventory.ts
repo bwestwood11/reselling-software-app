@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { InventoryService } from "../services/inventory.service";
+import { SubscriptionService } from "../services/subscription.service";
 
 const imageSchema = z.object({
   url: z.string().min(1),
@@ -44,6 +45,7 @@ const createItemSchema = z.object({
 
 export async function inventoryRoutes(fastify: FastifyInstance) {
   const svc = new InventoryService(fastify.prisma);
+  const subSvc = new SubscriptionService(fastify.prisma);
 
   // GET /api/inventory
   fastify.get(
@@ -89,8 +91,18 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
     "/",
     { preHandler: [requireAuth] },
     async (request, reply) => {
+      const canAdd = await subSvc.checkInventoryCredits(request.user!.id);
+      if (!canAdd) {
+        return reply.status(403).send({
+          success: false,
+          error:
+            "You've reached the 40-item inventory limit on the free plan. Upgrade to add unlimited items.",
+        });
+      }
+
       const body = createItemSchema.parse(request.body);
       const item = await svc.create(request.user!.id, body);
+      await subSvc.deductInventoryCredit(request.user!.id);
       return reply.status(201).send({ success: true, data: item });
     }
   );

@@ -1,58 +1,107 @@
-export type PlanKey = "FREE" | "STARTER" | "PRO" | "PREMIUM";
+export type PlanKey = "FREE" | "SIDE_HUSTLE" | "FULL_TIME" | "ENTERPRISE";
+export type AddonKey = "IRON_TOOL" | "FLAT_LAY";
 
 export interface PlanConfig {
   name: string;
   description: string;
   priceMonthly: number; // USD cents
-  credits: number;
+  /** Listing credits per billing cycle. 0 = unlimited (enforced by plan check). */
+  listingCredits: number;
+  /** Inventory item credits on signup / cycle. 0 = unlimited (enforced by plan check). */
+  inventoryCredits: number;
+  /** Background removal credits replenished each billing cycle. 0 = not available. */
+  bgRemovalCredits: number;
   stripePriceId: string;
 }
 
-// ─── Pricing Configuration ────────────────────────────────────────────────────
-// To change plan prices:
-//   1. Update `priceMonthly` below (in cents, e.g. 999 = $9.99)
-//   2. Create matching Price objects in your Stripe dashboard
-//   3. Set the corresponding STRIPE_*_PRICE_ID env vars to the new Price IDs
-//
-// To change credits per plan, update the `credits` field below.
-// FREE_PLAN_CREDITS is used both here and in the auth onboarding hook — update
-// both places if you want to change the free tier credit amount.
+export interface AddonConfig {
+  name: string;
+  description: string;
+  creditsPerPack: number;
+  packPrice: number; // USD cents
+  stripePriceId: string;
+}
 
-export const FREE_PLAN_CREDITS = 20;
+// ─── Free tier limits ─────────────────────────────────────────────────────────
+export const FREE_INVENTORY_CREDITS = 40;
+export const FREE_LISTING_CREDITS = 20;
 
 export const PLANS: Record<PlanKey, PlanConfig> = {
   FREE: {
     name: "Free",
     description: "Get started with no commitment",
-    priceMonthly: 0, // $0 — no Stripe charge
-    credits: FREE_PLAN_CREDITS,
-    stripePriceId: "", // no Stripe price for free tier
+    priceMonthly: 0,
+    listingCredits: FREE_LISTING_CREDITS,
+    inventoryCredits: FREE_INVENTORY_CREDITS,
+    bgRemovalCredits: 0,
+    stripePriceId: "",
   },
-  STARTER: {
-    name: "Starter",
-    description: "Perfect for casual sellers getting started",
-    priceMonthly: 999, // $9.99 / month
-    credits: 50,
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID ?? "",
+  SIDE_HUSTLE: {
+    name: "Side Hustle",
+    description: "For casual sellers ready to scale up",
+    priceMonthly: 1499, // $14.99/month
+    listingCredits: 0, // unlimited
+    inventoryCredits: 0,
+    bgRemovalCredits: 0, // bg removal not included
+    stripePriceId: process.env.STRIPE_SIDE_HUSTLE_PRICE_ID ?? "",
   },
-  PRO: {
-    name: "Pro",
-    description: "For serious resellers ready to scale",
-    priceMonthly: 2499, // $24.99 / month
-    credits: 200,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? "",
+  FULL_TIME: {
+    name: "Full-Time",
+    description: "For serious resellers growing their business",
+    priceMonthly: 2999, // $29.99/month
+    listingCredits: 0,
+    inventoryCredits: 0,
+    bgRemovalCredits: 300, // 300 bg removals per month
+    stripePriceId: process.env.STRIPE_FULL_TIME_PRICE_ID ?? "",
   },
-  PREMIUM: {
-    name: "Premium",
+  ENTERPRISE: {
+    name: "Enterprise",
     description: "Maximum power for high-volume sellers",
-    priceMonthly: 4999, // $49.99 / month
-    credits: 500,
-    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID ?? "",
+    priceMonthly: 5999, // $59.99/month
+    listingCredits: 0,
+    inventoryCredits: 0,
+    bgRemovalCredits: 500, // 500 bg removals per month
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "",
   },
 };
+
+export const ADDONS: Record<AddonKey, AddonConfig> = {
+  IRON_TOOL: {
+    name: "Iron Tool",
+    description: "AI wrinkle removal for clothing photos",
+    creditsPerPack: 100,
+    packPrice: 1500, // $15.00 for 100 credits ($0.15 each)
+    stripePriceId: process.env.STRIPE_IRON_TOOL_PRICE_ID ?? "",
+  },
+  FLAT_LAY: {
+    name: "Flat Lay Tool",
+    description: "AI flat lay generation for clothing photos",
+    creditsPerPack: 100,
+    packPrice: 1500, // $15.00 for 100 credits ($0.15 each)
+    stripePriceId: process.env.STRIPE_FLAT_LAY_PRICE_ID ?? "",
+  },
+};
+
+export const FREE_PLAN: PlanKey = "FREE";
+export const PAID_PLANS: PlanKey[] = ["SIDE_HUSTLE", "FULL_TIME", "ENTERPRISE"];
+export const BG_REMOVAL_PLANS: PlanKey[] = ["FULL_TIME", "ENTERPRISE"];
+
+export function isPaidPlan(plan: PlanKey): boolean {
+  return plan !== "FREE";
+}
+
+export function hasBgRemoval(plan: PlanKey): boolean {
+  return BG_REMOVAL_PLANS.includes(plan);
+}
 
 /** Look up a plan key by its Stripe Price ID. Returns null if not found. */
 export function getPlanByStripePriceId(priceId: string): PlanKey | null {
   const entry = Object.entries(PLANS).find(([, cfg]) => cfg.stripePriceId === priceId);
   return entry ? (entry[0] as PlanKey) : null;
+}
+
+/** Look up an add-on key by its Stripe Price ID. Returns null if not found. */
+export function getAddonByStripePriceId(priceId: string): AddonKey | null {
+  const entry = Object.entries(ADDONS).find(([, cfg]) => cfg.stripePriceId === priceId);
+  return entry ? (entry[0] as AddonKey) : null;
 }

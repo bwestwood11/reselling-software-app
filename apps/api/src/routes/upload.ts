@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../middleware/auth";
+import { SubscriptionService } from "../services/subscription.service";
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION ?? "us-east-1",
@@ -59,11 +60,11 @@ async function callPhotoroomV2(
 }
 
 export async function uploadRoutes(fastify: FastifyInstance) {
-  // POST /api/upload — upload a single image to S3
+  // POST /api/upload
   // Optional PhotoRoom v2 editing via query params:
-  //   ?removeBackground=true  — AI background removal
-  //   ?flatLay=true           — AI flat lay generation
-  //   ?ironing=true           — AI wrinkle removal
+  //   ?removeBackground=true  — bg removal (Full-Time / Enterprise plan, monthly credits)
+  //   ?flatLay=true           — flat lay generation (add-on credits required)
+  //   ?ironing=true           — wrinkle removal (add-on credits required)
   fastify.post(
     "/",
     { preHandler: [requireAuth] },
@@ -87,6 +88,56 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         });
       }
 
+      const q = request.query as {
+        removeBackground?: string;
+        flatLay?: string;
+        ironing?: string;
+      };
+      const editOptions: PhotoroomEditOptions = {
+        removeBackground: q.removeBackground === "true",
+        flatLay: q.flatLay === "true",
+        ironing: q.ironing === "true",
+      };
+      const usePhotoroom =
+        editOptions.removeBackground || editOptions.flatLay || editOptions.ironing;
+
+      // ── Credit pre-checks (before consuming file buffer) ────────────────────
+      if (usePhotoroom) {
+        const subSvc = new SubscriptionService(fastify.prisma);
+        const userId = request.user!.id;
+
+        if (editOptions.removeBackground) {
+          const ok = await subSvc.checkBgRemovalCredit(userId);
+          if (!ok) {
+            return reply.status(403).send({
+              success: false,
+              error:
+                "Background removal requires the Full-Time or Enterprise plan with credits remaining.",
+            });
+          }
+        }
+        if (editOptions.ironing) {
+          const ok = await subSvc.checkIronToolCredit(userId);
+          if (!ok) {
+            return reply.status(403).send({
+              success: false,
+              error: "No Iron Tool credits remaining. Purchase a pack from your billing settings.",
+            });
+          }
+        }
+        if (editOptions.flatLay) {
+          const ok = await subSvc.checkFlatLayCredit(userId);
+          if (!ok) {
+            return reply.status(403).send({
+              success: false,
+              error:
+                "No Flat Lay credits remaining. Purchase a pack from your billing settings.",
+            });
+          }
+        }
+      }
+
+      // ── Buffer the file ───────────────────────────────────────────────────────
       const chunks: Buffer[] = [];
       for await (const chunk of data.file) {
         chunks.push(chunk as Buffer);
@@ -96,14 +147,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       let contentType = data.mimetype;
       let ext = data.mimetype.split("/")[1] ?? "jpg";
 
-      const q = request.query as { removeBackground?: string; flatLay?: string; ironing?: string };
-      const editOptions: PhotoroomEditOptions = {
-        removeBackground: q.removeBackground === "true",
-        flatLay: q.flatLay === "true",
-        ironing: q.ironing === "true",
-      };
-      const usePhotoroom = editOptions.removeBackground || editOptions.flatLay || editOptions.ironing;
-
+      // ── Call PhotoRoom ────────────────────────────────────────────────────────
       if (usePhotoroom) {
         try {
           body = await callPhotoroomV2(body, contentType, editOptions);
@@ -113,8 +157,21 @@ export async function uploadRoutes(fastify: FastifyInstance) {
           const message = err instanceof Error ? err.message : "PhotoRoom processing failed";
           return reply.status(502).send({ success: false, error: message });
         }
+
+        // Deduct credits only after successful PhotoRoom processing
+        const subSvc = new SubscriptionService(fastify.prisma);
+        const userId = request.user!.id;
+        try {
+          if (editOptions.removeBackground) await subSvc.deductBgRemovalCredit(userId);
+          if (editOptions.ironing) await subSvc.deductIronToolCredit(userId);
+          if (editOptions.flatLay) await subSvc.deductFlatLayCredit(userId);
+        } catch (err) {
+          fastify.log.error({ err }, "[upload] Credit deduction failed after PhotoRoom success");
+          // Non-fatal: image was processed successfully, don't fail the upload
+        }
       }
 
+      // ── Upload to S3 ──────────────────────────────────────────────────────────
       const key = `inventory/${request.user!.id}/${randomUUID()}.${ext}`;
 
       await s3.send(
@@ -127,7 +184,6 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       );
 
       const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
-
       return reply.status(201).send({ success: true, data: { url, key } });
     }
   );

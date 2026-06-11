@@ -159,7 +159,7 @@ export class ListingService {
     if (!listing) throw new Error("Listing not found");
 
     // Deduct 1 credit (throws if user has no active subscription or no credits)
-    await this.subscriptionSvc.deductCredit(
+    await this.subscriptionSvc.deductListingCredit(
       userId,
       id,
       listing.marketplace as string
@@ -261,7 +261,7 @@ export class ListingService {
       return updated;
     } catch (err) {
       // Refund the credit since the publish failed
-      await this.subscriptionSvc.refundCredit(
+      await this.subscriptionSvc.refundListingCredit(
         userId,
         id,
         listing.marketplace as string
@@ -391,7 +391,7 @@ export class ListingService {
     });
     if (!listing) throw new Error("Listing not found or already published");
 
-    await this.subscriptionSvc.deductCredit(userId, id, "MERCARI");
+    await this.subscriptionSvc.deductListingCredit(userId, id, "MERCARI");
 
     const updated = await this.db.listing.update({
       where: { id },

@@ -212,7 +212,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         });
         try {
           const subscriptionSvc = new SubscriptionService(fastify.prisma);
-          await subscriptionSvc.refundCredit(
+          await subscriptionSvc.refundListingCredit(
             request.user!.id,
             existing.listingId,
             "MERCARI"

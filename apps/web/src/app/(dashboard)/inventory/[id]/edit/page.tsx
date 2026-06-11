@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,12 +17,15 @@ import {
   SelectValue,
   Button,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Eraser, Layers, Loader2, Plus, Sparkles, X, Package } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Plus, X, Package } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory";
-import { uploadApi } from "@/lib/api";
+import { uploadApi, subscriptionApi } from "@/lib/api";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
+import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
+import type { EditOptions } from "@/components/inventory/PhotoToolbar";
+import type { SubscriptionInfo } from "@repo/types";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -98,16 +102,23 @@ export default function EditInventoryItemPage({
   const { data, isLoading } = useInventoryItem(id);
   const updateMutation = useUpdateInventoryItem(id);
 
+  const { data: subData } = useQuery<{ data: SubscriptionInfo }>({
+    queryKey: ["subscription"],
+    queryFn: () => subscriptionApi.getCurrent(),
+    staleTime: 60_000,
+  });
+  const subscription = subData?.data;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number>(0);
   const [images, setImages] = useState<(ImageSlot | undefined)[]>(Array(INITIAL_SLOTS).fill(undefined));
-  const [editOptions, setEditOptions] = useState({
+  const [editOptions, setEditOptions] = useState<EditOptions>({
     removeBackground: false,
     flatLay: false,
     ironing: false,
   });
 
-  function toggleEditOption(key: keyof typeof editOptions) {
+  function toggleEditOption(key: keyof EditOptions) {
     setEditOptions((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
@@ -465,37 +476,11 @@ export default function EditInventoryItemPage({
                   )}
                 </p>
 
-                <div className="mt-3 space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                    AI Enhancements
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(
-                      [
-                        { key: "removeBackground", label: "Remove bg", Icon: Eraser },
-                        { key: "flatLay", label: "Flat lay", Icon: Layers },
-                        { key: "ironing", label: "Ironing", Icon: Sparkles },
-                      ] as const
-                    ).map(({ key, label, Icon }) => {
-                      const active = editOptions[key];
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => toggleEditOption(key)}
-                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                            active
-                              ? "bg-violet-100 text-violet-700 ring-1 ring-violet-300"
-                              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-                          }`}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <PhotoToolbar
+                  subscription={subscription}
+                  editOptions={editOptions}
+                  onToggle={toggleEditOption}
+                />
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {images.map((slot, i) =>

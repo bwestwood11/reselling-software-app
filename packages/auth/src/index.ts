@@ -3,9 +3,8 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 
-// Number of credits granted to every new account on the free tier.
-// Update this value to change the free tier credit amount.
-const FREE_TIER_CREDITS = 20;
+const FREE_INVENTORY_CREDITS = 40; // max inventory items on free plan
+const FREE_LISTING_CREDITS = 20; // max crosspost credits on free plan
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -80,15 +79,16 @@ export const auth = betterAuth({
                 userId: user.id,
                 plan: "FREE",
                 status: "ACTIVE",
-                credits: FREE_TIER_CREDITS,
+                credits: FREE_LISTING_CREDITS,
+                inventoryCredits: FREE_INVENTORY_CREDITS,
               },
             });
             await prisma.creditTransaction.create({
               data: {
                 subscriptionId: subscription.id,
                 userId: user.id,
-                amount: FREE_TIER_CREDITS,
-                description: `Welcome gift — ${FREE_TIER_CREDITS} free credits`,
+                amount: FREE_LISTING_CREDITS,
+                description: `Free tier — ${FREE_INVENTORY_CREDITS} inventory slots, ${FREE_LISTING_CREDITS} listing credits`,
               },
             });
           } catch (err) {

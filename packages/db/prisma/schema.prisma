@@ -207,9 +207,9 @@ model Listing {
 
 enum PlanType {
   FREE
-  STARTER
-  PRO
-  PREMIUM
+  SIDE_HUSTLE
+  FULL_TIME
+  ENTERPRISE
 }
 
 enum SubscriptionStatus {
@@ -227,12 +227,16 @@ model Subscription {
   stripeCustomerId     String?            @unique
   stripeSubscriptionId String?            @unique
   stripePriceId        String?
-  plan                 PlanType           @default(STARTER)
+  plan                 PlanType           @default(FREE)
   status               SubscriptionStatus @default(INACTIVE)
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean            @default(false)
-  credits              Int                @default(0)
+  credits              Int                @default(0) // listing credits (FREE tier: 20, paid: unused)
+  inventoryCredits     Int                @default(0) // inventory item credits (FREE tier: 40, paid: unused)
+  bgRemovalCredits     Int                @default(0) // plan-based monthly credits (FULL_TIME: 300, ENTERPRISE: 500)
+  ironToolCredits      Int                @default(0) // add-on credits, bought in packs of 100
+  flatLayCredits       Int                @default(0) // add-on credits, bought in packs of 100
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 

@@ -156,7 +156,7 @@ export interface AuthUser {
 
 // ─── Subscription & Credits Types ─────────────────────────────────────────────
 
-export type PlanType = "FREE" | "STARTER" | "PRO" | "PREMIUM";
+export type PlanType = "FREE" | "SIDE_HUSTLE" | "FULL_TIME" | "ENTERPRISE";
 
 export type SubscriptionStatus =
   | "ACTIVE"
@@ -169,7 +169,17 @@ export interface SubscriptionInfo {
   plan: PlanType | null;
   status: SubscriptionStatus;
   credits: number;
-  monthlyCredits: number;
+  inventoryCredits: number;
+  bgRemovalCredits: number;
+  ironToolCredits: number;
+  flatLayCredits: number;
+  /** null = unlimited (paid plan) */
+  monthlyCredits: number | null;
+  /** null = unlimited (paid plan) */
+  monthlyInventoryCredits: number | null;
+  /** null = plan does not include bg removal */
+  monthlyBgRemovalCredits: number | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  isUnlimited: boolean;
 }

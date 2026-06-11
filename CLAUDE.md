@@ -38,9 +38,11 @@ Each app needs its own `.env` file. Copy `apps/api/.env.example` → `apps/api/.
 Stripe env vars required in `apps/api/.env`:
 - `STRIPE_SECRET_KEY` — Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
-- `STRIPE_STARTER_PRICE_ID` — recurring price ID for Starter plan ($9.99/mo)
-- `STRIPE_PRO_PRICE_ID` — recurring price ID for Pro plan ($24.99/mo)
-- `STRIPE_PREMIUM_PRICE_ID` — recurring price ID for Premium plan ($49.99/mo)
+- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle plan ($14.99/mo)
+- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time plan ($29.99/mo)
+- `STRIPE_ENTERPRISE_PRICE_ID` — recurring price ID for Enterprise plan ($59.99/mo)
+- `STRIPE_IRON_TOOL_PRICE_ID` — one-time price ID for Iron Tool add-on (100 credits, $15.00)
+- `STRIPE_FLAT_LAY_PRICE_ID` — one-time price ID for Flat Lay add-on (100 credits, $15.00)
 
 ## Architecture
 
