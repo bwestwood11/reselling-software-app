@@ -19,6 +19,8 @@ import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
 import { uploadApi } from "@/lib/api";
 import { Textarea } from "@/components/ui/textarea";
+import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
+import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -71,6 +73,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -227,10 +230,11 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
 
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Brand">
-                      <Input
-                        placeholder="e.g. Levi's"
-                        className="border-zinc-200 focus-visible:ring-orange-400"
-                        {...register("brand")}
+                      <MercariBrandCombobox
+                        value={watch("brand")}
+                        onChange={(name) => setValue("brand", name)}
+                        storeName
+                        variant="orange"
                       />
                     </Field>
                     <Field label="SKU">
@@ -261,10 +265,10 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                       </Select>
                     </Field>
                     <Field label="Category">
-                      <Input
-                        placeholder="e.g. Clothing › Jeans"
-                        className="border-zinc-200 focus-visible:ring-orange-400"
-                        {...register("category")}
+                      <MercariCategoryCombobox
+                        value={watch("category")}
+                        onChange={(path) => setValue("category", path)}
+                        variant="orange"
                       />
                     </Field>
                   </div>

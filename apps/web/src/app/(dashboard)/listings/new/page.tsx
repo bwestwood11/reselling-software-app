@@ -517,7 +517,44 @@ export default function NewListingPage(): import("react").JSX.Element {
                           if (attr.name && attr.value) seed[attr.name] = attr.value;
                         }
                         setSpecificValues(seed);
-                        // Auto-search category using item category or title
+                        // Pre-populate Mercari brand ID by looking up the brand name
+                        if (item.brand) {
+                          import("@/data/mercari-brands.json").then((m) => {
+                            const brands = m.default as Array<{ id: number; name: string }>;
+                            const match = brands.find(
+                              (b) => b.name.toLowerCase() === item.brand.toLowerCase()
+                            );
+                            if (match) setValue("mercariBrandId", String(match.id));
+                          });
+                        }
+                        // Pre-populate Mercari category from the stored path (e.g. "Women › Tops & Tees › T-Shirts")
+                        if (item.category?.includes(" › ")) {
+                          import("@/data/mercari-categories.json").then((m) => {
+                            const raw = (m.default as { itemCategories: Array<{ id: number; name: string; parentId: number }> }).itemCategories;
+                            const parentIdSet = new Set(raw.filter((c) => c.parentId > 0).map((c) => c.parentId));
+                            const rawById = new Map(raw.map((c) => [c.id, c]));
+                            function buildPath(cat: { id: number; name: string; parentId: number }): string[] {
+                              const path: string[] = [];
+                              let cur: { id: number; name: string; parentId: number } | undefined = cat;
+                              while (cur) { path.unshift(cur.name); cur = cur.parentId > 0 ? rawById.get(cur.parentId) : undefined; }
+                              return path;
+                            }
+                            const match = raw.find((c) => buildPath(c).join(" › ") === item.category);
+                            if (match) {
+                              const node = {
+                                id: String(match.id),
+                                label: match.name,
+                                hasChildren: parentIdSet.has(match.id),
+                                fullPath: buildPath(match),
+                                isSizeRequired: false,
+                                sizeSchemaId: null,
+                              };
+                              setSelectedMercariCat(node as any);
+                              setValue("mercariCategoryId", node.id);
+                            }
+                          });
+                        }
+                        // Auto-search eBay category using item category or title
                         const searchTerm = item.category?.trim() || item.title;
                         if (searchTerm) {
                           setCategoryQuery(searchTerm);
@@ -814,6 +851,11 @@ export default function NewListingPage(): import("react").JSX.Element {
                         value={watch("mercariBrandId")}
                         onChange={(id) => setValue("mercariBrandId", id)}
                       />
+                      {selectedItem?.brand && !watch("mercariBrandId") && (
+                        <p className="text-xs text-zinc-400">
+                          &ldquo;{selectedItem.brand}&rdquo; isn&apos;t in Mercari&apos;s list — search for the closest match or leave blank.
+                        </p>
+                      )}
                     </Field>
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
@@ -1159,7 +1201,27 @@ export default function NewListingPage(): import("react").JSX.Element {
                                     setExtraSpecifics([]);
                                     try {
                                       const res = await marketplacesApi.getEbayCategoryAspects(cat.categoryId);
-                                      setAspects(res?.data ?? []);
+                                      const loaded = res?.data ?? [];
+                                      setAspects(loaded);
+                                      // If a seeded value (e.g. Brand from inventory) isn't in the
+                                      // dropdown's suggested list, route it through the custom input
+                                      // so it doesn't silently render as blank.
+                                      setSpecificValues((prev) => {
+                                        const next = { ...prev };
+                                        for (const aspect of loaded) {
+                                          const seeded = prev[aspect.name];
+                                          if (
+                                            seeded &&
+                                            seeded !== "__custom__" &&
+                                            aspect.suggestedValues.length > 0 &&
+                                            !aspect.suggestedValues.includes(seeded)
+                                          ) {
+                                            next[aspect.name] = "__custom__";
+                                            next[`${aspect.name}__custom`] = seeded;
+                                          }
+                                        }
+                                        return next;
+                                      });
                                     } catch (err) {
                                       setAspects([]);
                                       setAspectsError(err instanceof Error ? err.message : "Failed to load item specifics");

@@ -19,6 +19,8 @@ import {
 import { ArrowLeft, Camera, Loader2, Plus, X, Package } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory";
+import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
+import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -94,6 +96,7 @@ export default function EditInventoryItemPage({
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -255,10 +258,11 @@ export default function EditInventoryItemPage({
 
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Brand">
-                      <Input
-                        placeholder="e.g. Levi's"
-                        className="border-zinc-200 focus-visible:ring-orange-400"
-                        {...register("brand")}
+                      <MercariBrandCombobox
+                        value={watch("brand")}
+                        onChange={(name) => setValue("brand", name)}
+                        storeName
+                        variant="orange"
                       />
                     </Field>
                     <Field label="SKU">
@@ -289,10 +293,10 @@ export default function EditInventoryItemPage({
                       </Select>
                     </Field>
                     <Field label="Category">
-                      <Input
-                        placeholder="e.g. Clothing › Jeans"
-                        className="border-zinc-200 focus-visible:ring-orange-400"
-                        {...register("category")}
+                      <MercariCategoryCombobox
+                        value={watch("category")}
+                        onChange={(path) => setValue("category", path)}
+                        variant="orange"
                       />
                     </Field>
                   </div>
