@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Loader2, Plus, X } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Plus, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { PhotoProvider, PhotoView } from "react-photo-view";
 import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
 import { uploadApi, subscriptionApi } from "@/lib/api";
@@ -391,17 +392,57 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                 />
 
                 {/* Image grid */}
+                <PhotoProvider
+                  toolbarRender={({ scale, onScale }) => (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onScale(scale + 1)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                      >
+                        <ZoomIn className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => onScale(scale - 1)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                      >
+                        <ZoomOut className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => onScale(1)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                >
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {images.map((slot, i) =>
                     slot ? (
                       /* Filled slot */
                       <div key={i} className="group relative aspect-square">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={slot.preview}
-                          alt={`Photo ${i + 1}`}
-                          className="h-full w-full rounded-xl object-cover"
-                        />
+                        {slot.url && !slot.uploading && !slot.error ? (
+                          <PhotoView src={slot.url}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={slot.url}
+                              alt={`Photo ${i + 1}`}
+                              className="h-full w-full cursor-zoom-in rounded-xl object-cover"
+                            />
+                          </PhotoView>
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={slot.preview}
+                            alt={`Photo ${i + 1}`}
+                            className="h-full w-full rounded-xl object-cover"
+                          />
+                        )}
+                        {slot.url && !slot.uploading && !slot.error && (
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover:bg-black/10">
+                            <ZoomIn className="h-5 w-5 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-100" />
+                          </div>
+                        )}
                         {slot.uploading && (
                           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
                             <Loader2 className="h-5 w-5 animate-spin text-white" />
@@ -419,7 +460,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                         )}
                         <button
                           type="button"
-                          onClick={() => removeImage(i)}
+                          onClick={(e) => { e.stopPropagation(); removeImage(i); }}
                           className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           <X className="h-3 w-3" />
@@ -458,6 +499,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                     </button>
                   )}
                 </div>
+                </PhotoProvider>
 
                 <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
                   Click any slot to pick from your device. You can select multiple files at once.
