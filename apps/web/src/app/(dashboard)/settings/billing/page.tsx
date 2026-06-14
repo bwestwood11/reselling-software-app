@@ -56,7 +56,7 @@ const PLAN_DISPLAY = {
       "Import from existing marketplaces",
       "Sale detection & auto-delist",
     ],
-    popular: true,
+    popular: false,
     isPaid: true,
   },
   FULL_TIME: {
@@ -70,7 +70,7 @@ const PLAN_DISPLAY = {
       "AI description generation",
       "300 background removals / month",
     ],
-    popular: false,
+    popular: true,
     isPaid: true,
   },
   ENTERPRISE: {

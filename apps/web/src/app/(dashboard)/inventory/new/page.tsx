@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Loader2, Plus, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Camera, Download, Loader2, Plus, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
@@ -155,6 +155,21 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
         }
       })
     );
+  }
+
+  async function downloadImage(url: string, index: number) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `photo-${index + 1}.${blob.type.split("/")[1] ?? "png"}`;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // silent — user can still right-click save
+    }
   }
 
   function removeImage(index: number) {
@@ -466,6 +481,15 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        {slot.url && !slot.uploading && !slot.error && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); void downloadImage(slot.url!, i); }}
+                            className="absolute bottom-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Download className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     ) : (
                       /* Empty slot */
