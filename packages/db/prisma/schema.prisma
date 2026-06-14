@@ -235,8 +235,9 @@ model Subscription {
   credits              Int                @default(0) // listing credits (FREE tier: 20, paid: unused)
   inventoryCredits     Int                @default(0) // inventory item credits (FREE tier: 40, paid: unused)
   bgRemovalCredits     Int                @default(0) // plan-based monthly credits (FULL_TIME: 300, ENTERPRISE: 500)
-  ironToolCredits      Int                @default(0) // add-on credits, bought in packs of 100
-  flatLayCredits       Int                @default(0) // add-on credits, bought in packs of 100
+  ironToolCredits          Int                @default(0) // add-on credits, bought in packs of 100
+  flatLayCredits           Int                @default(0) // add-on credits, bought in packs of 100
+  ghostMannequinCredits    Int                @default(0) // add-on credits, bought in packs of 100
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 

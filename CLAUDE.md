@@ -43,6 +43,7 @@ Stripe env vars required in `apps/api/.env`:
 - `STRIPE_ENTERPRISE_PRICE_ID` — recurring price ID for Enterprise plan ($59.99/mo)
 - `STRIPE_IRON_TOOL_PRICE_ID` — one-time price ID for Iron Tool add-on (100 credits, $15.00)
 - `STRIPE_FLAT_LAY_PRICE_ID` — one-time price ID for Flat Lay add-on (100 credits, $15.00)
+- `STRIPE_GHOST_MANNEQUIN_PRICE_ID` — one-time price ID for Ghost Mannequin add-on (100 credits, $20.00)
 
 ## Architecture
 

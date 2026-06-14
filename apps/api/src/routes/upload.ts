@@ -29,6 +29,7 @@ interface PhotoroomEditOptions {
   removeBackground: boolean;
   flatLay: boolean;
   ironing: boolean;
+  ghostMannequin: boolean;
 }
 
 async function callPhotoroomV2(
@@ -44,6 +45,7 @@ async function callPhotoroomV2(
   formData.append("removeBackground", String(options.removeBackground));
   if (options.flatLay) formData.append("flatLay.mode", "ai.auto");
   if (options.ironing) formData.append("ironing.mode", "ai.auto");
+  if (options.ghostMannequin) formData.append("ghostMannequin.mode", "ai.auto");
 
   const res = await fetch(PHOTOROOM_V2_URL, {
     method: "POST",
@@ -65,6 +67,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
   //   ?removeBackground=true  — bg removal (Full-Time / Enterprise plan, monthly credits)
   //   ?flatLay=true           — flat lay generation (add-on credits required)
   //   ?ironing=true           — wrinkle removal (add-on credits required)
+  //   ?ghostMannequin=true    — mannequin removal (add-on credits required)
   fastify.post(
     "/",
     { preHandler: [requireAuth] },
@@ -92,14 +95,16 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         removeBackground?: string;
         flatLay?: string;
         ironing?: string;
+        ghostMannequin?: string;
       };
       const editOptions: PhotoroomEditOptions = {
         removeBackground: q.removeBackground === "true",
         flatLay: q.flatLay === "true",
         ironing: q.ironing === "true",
+        ghostMannequin: q.ghostMannequin === "true",
       };
       const usePhotoroom =
-        editOptions.removeBackground || editOptions.flatLay || editOptions.ironing;
+        editOptions.removeBackground || editOptions.flatLay || editOptions.ironing || editOptions.ghostMannequin;
 
       // ── Credit pre-checks (before consuming file buffer) ────────────────────
       if (usePhotoroom) {
@@ -135,6 +140,16 @@ export async function uploadRoutes(fastify: FastifyInstance) {
             });
           }
         }
+        if (editOptions.ghostMannequin) {
+          const ok = await subSvc.checkGhostMannequinCredit(userId);
+          if (!ok) {
+            return reply.status(403).send({
+              success: false,
+              error:
+                "No Ghost Mannequin credits remaining. Purchase a pack from your billing settings.",
+            });
+          }
+        }
       }
 
       // ── Buffer the file ───────────────────────────────────────────────────────
@@ -165,6 +180,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
           if (editOptions.removeBackground) await subSvc.deductBgRemovalCredit(userId);
           if (editOptions.ironing) await subSvc.deductIronToolCredit(userId);
           if (editOptions.flatLay) await subSvc.deductFlatLayCredit(userId);
+          if (editOptions.ghostMannequin) await subSvc.deductGhostMannequinCredit(userId);
         } catch (err) {
           fastify.log.error({ err }, "[upload] Credit deduction failed after PhotoRoom success");
           // Non-fatal: image was processed successfully, don't fail the upload

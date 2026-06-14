@@ -35,6 +35,7 @@ export class SubscriptionService {
         bgRemovalCredits: 0,
         ironToolCredits: 0,
         flatLayCredits: 0,
+        ghostMannequinCredits: 0,
         monthlyCredits: 0,
         monthlyInventoryCredits: 0,
         monthlyBgRemovalCredits: 0,
@@ -54,6 +55,7 @@ export class SubscriptionService {
       bgRemovalCredits: sub.bgRemovalCredits,
       ironToolCredits: sub.ironToolCredits,
       flatLayCredits: sub.flatLayCredits,
+      ghostMannequinCredits: sub.ghostMannequinCredits,
       monthlyCredits: unlimited ? null : FREE_LISTING_CREDITS,
       monthlyInventoryCredits: unlimited ? null : FREE_INVENTORY_CREDITS,
       monthlyBgRemovalCredits: unlimited ? (PLANS[planKey].bgRemovalCredits || null) : null,
@@ -96,6 +98,12 @@ export class SubscriptionService {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub) return false;
     return sub.flatLayCredits > 0;
+  }
+
+  async checkGhostMannequinCredit(userId: string): Promise<boolean> {
+    const sub = await this.db.subscription.findUnique({ where: { userId } });
+    if (!sub) return false;
+    return sub.ghostMannequinCredits > 0;
   }
 
   // ── Credit operations ───────────────────────────────────────────────────────
@@ -223,6 +231,28 @@ export class SubscriptionService {
           userId,
           amount: -1,
           description: "Flat Lay Tool used",
+        },
+      });
+    });
+  }
+
+  async deductGhostMannequinCredit(userId: string) {
+    await this.db.$transaction(async (tx) => {
+      const sub = await tx.subscription.findUnique({ where: { userId } });
+      if (!sub) throw new Error("Subscription not found.");
+      if (sub.ghostMannequinCredits <= 0) {
+        throw new Error("No Ghost Mannequin credits remaining. Purchase a pack to continue.");
+      }
+      await tx.subscription.update({
+        where: { id: sub.id },
+        data: { ghostMannequinCredits: { decrement: 1 } },
+      });
+      await tx.creditTransaction.create({
+        data: {
+          subscriptionId: sub.id,
+          userId,
+          amount: -1,
+          description: "Ghost Mannequin used",
         },
       });
     });
@@ -550,7 +580,9 @@ export class SubscriptionService {
         ? "ironToolCredits"
         : addonKey === "FLAT_LAY"
           ? "flatLayCredits"
-          : null;
+          : addonKey === "GHOST_MANNEQUIN"
+            ? "ghostMannequinCredits"
+            : null;
     if (!creditField) return;
 
     await this.db.$transaction(async (tx) => {

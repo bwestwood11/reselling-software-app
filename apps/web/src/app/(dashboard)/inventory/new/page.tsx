@@ -81,6 +81,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     removeBackground: false,
     flatLay: false,
     ironing: false,
+    ghostMannequin: false,
   });
 
   function toggleEditOption(key: keyof EditOptions) {

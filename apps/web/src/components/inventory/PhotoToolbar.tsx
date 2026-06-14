@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eraser, Layers, Sparkles, Lock, ShoppingCart } from "lucide-react";
+import { Eraser, Layers, Sparkles, Lock, ShoppingCart, Ghost } from "lucide-react";
 import { cn } from "@repo/ui";
 import type { SubscriptionInfo } from "@repo/types";
 
@@ -9,6 +9,7 @@ export interface EditOptions {
   removeBackground: boolean;
   flatLay: boolean;
   ironing: boolean;
+  ghostMannequin: boolean;
 }
 
 interface ToolConfig {
@@ -96,6 +97,26 @@ const TOOLS: ToolConfig[] = [
     upgradeLink: "/settings/billing#addons",
     upgradeText: "Buy Flat Lay credits",
   },
+  {
+    key: "ghostMannequin",
+    label: "Ghost Mannequin",
+    sublabel: "Remove mannequins",
+    Icon: Ghost,
+    activeIconBg: "bg-teal-500",
+    activeTextColor: "text-teal-700",
+    activeBorder: "border-teal-200",
+    activeBg: "bg-teal-50",
+    iconBg: "bg-teal-100 text-teal-600",
+    creditBadgeActive: "bg-teal-100 text-teal-700",
+    creditBadgeLow: "bg-red-100 text-red-600",
+    getLockReason: (sub) => {
+      if ((sub?.ghostMannequinCredits ?? 0) === 0) return "No credits";
+      return null;
+    },
+    getCredits: (sub) => sub?.ghostMannequinCredits ?? null,
+    upgradeLink: "/settings/billing#addons",
+    upgradeText: "Buy Ghost Mannequin credits",
+  },
 ];
 
 interface Props {
@@ -111,7 +132,7 @@ export function PhotoToolbar({ subscription, editOptions, onToggle }: Props) {
         AI Photo Tools
       </p>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {TOOLS.map(
           ({
             key,
@@ -241,6 +262,14 @@ export function PhotoToolbar({ subscription, editOptions, onToggle }: Props) {
                 Buy credits
               </Link>{" "}
               for Iron / Flat Lay ($15 · 100 uses)
+            </p>
+          )}
+          {subscription.ghostMannequinCredits === 0 && (
+            <p className="text-[10px] text-zinc-400">
+              <Link href="/settings/billing" className="font-medium text-orange-500 hover:underline">
+                Buy credits
+              </Link>{" "}
+              for Ghost Mannequin ($20 · 100 uses)
             </p>
           )}
         </div>

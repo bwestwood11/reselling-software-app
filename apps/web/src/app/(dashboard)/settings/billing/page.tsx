@@ -19,6 +19,7 @@ import {
   Eraser,
   Sparkles,
   Layers,
+  Ghost,
   Package,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -105,6 +106,8 @@ const ADDON_CONFIG = {
     btnClass:
       "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_4px_12px_-4px_rgba(245,158,11,0.5)] hover:opacity-90",
     trackFill: "#f59e0b",
+    creditsPerPack: 100,
+    pricePerPack: 15,
   },
   FLAT_LAY: {
     name: "Flat Lay Tool",
@@ -117,14 +120,28 @@ const ADDON_CONFIG = {
     btnClass:
       "bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-[0_4px_12px_-4px_rgba(139,92,246,0.5)] hover:opacity-90",
     trackFill: "#8b5cf6",
+    creditsPerPack: 100,
+    pricePerPack: 15,
+  },
+  GHOST_MANNEQUIN: {
+    name: "Ghost Mannequin",
+    tagline: "Remove mannequins for clean, professional clothing visuals",
+    Icon: Ghost,
+    accent: "teal",
+    iconBg: "bg-teal-500",
+    headerBg: "bg-gradient-to-br from-teal-50 to-cyan-50",
+    badgeColors: "bg-teal-100 text-teal-700",
+    btnClass:
+      "bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-[0_4px_12px_-4px_rgba(20,184,166,0.5)] hover:opacity-90",
+    trackFill: "#14b8a6",
+    creditsPerPack: 100,
+    pricePerPack: 20,
   },
 } as const;
 
 type AddonKey = keyof typeof ADDON_CONFIG;
-const ADDON_ORDER: AddonKey[] = ["IRON_TOOL", "FLAT_LAY"];
+const ADDON_ORDER: AddonKey[] = ["IRON_TOOL", "FLAT_LAY", "GHOST_MANNEQUIN"];
 
-const CREDITS_PER_PACK = 100;
-const PRICE_PER_PACK = 15;
 const MAX_PACKS = 10;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -201,8 +218,8 @@ function AddonCard({
 }) {
   const cfg = ADDON_CONFIG[addonKey];
   const { Icon } = cfg;
-  const totalCredits = packs * CREDITS_PER_PACK;
-  const totalPrice = packs * PRICE_PER_PACK;
+  const totalCredits = packs * cfg.creditsPerPack;
+  const totalPrice = packs * cfg.pricePerPack;
   const fillPct = ((packs - 1) / (MAX_PACKS - 1)) * 100;
 
   // Tick labels shown under slider
@@ -263,6 +280,7 @@ function AddonCard({
             </span>
           </div>
 
+
           {/* Custom range with gradient fill */}
           <div className="relative">
             <div
@@ -305,7 +323,7 @@ function AddonCard({
                   />
                   {showLabel && (
                     <span className="mt-0.5 text-[10px] tabular-nums text-zinc-400">
-                      {(i + 1) * CREDITS_PER_PACK}
+                      {(i + 1) * cfg.creditsPerPack}
                     </span>
                   )}
                 </div>
@@ -318,10 +336,10 @@ function AddonCard({
         <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3">
           <div className="space-y-0.5">
             <p className="text-xs text-zinc-500">
-              {packs} pack{packs !== 1 ? "s" : ""} × ${PRICE_PER_PACK}.00
+              {packs} pack{packs !== 1 ? "s" : ""} × ${cfg.pricePerPack}.00
             </p>
             <p className="text-[10px] text-zinc-400">
-              ${(PRICE_PER_PACK / CREDITS_PER_PACK).toFixed(2)} per image
+              ${(cfg.pricePerPack / cfg.creditsPerPack).toFixed(2)} per image
             </p>
           </div>
           <p className="text-2xl font-bold text-zinc-900">${totalPrice.toFixed(2)}</p>
@@ -387,6 +405,7 @@ function BillingContent() {
   const [addonPacks, setAddonPacks] = useState<Record<AddonKey, number>>({
     IRON_TOOL: 1,
     FLAT_LAY: 1,
+    GHOST_MANNEQUIN: 1,
   });
 
   const addonMutation = useMutation({
@@ -630,12 +649,14 @@ function BillingContent() {
             One-time credit packs — never expire, work on any plan, stack with every purchase.
           </p>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {ADDON_ORDER.map((addonKey) => {
             const currentCredits =
               addonKey === "IRON_TOOL"
                 ? subscription?.ironToolCredits
-                : subscription?.flatLayCredits;
+                : addonKey === "FLAT_LAY"
+                  ? subscription?.flatLayCredits
+                  : subscription?.ghostMannequinCredits;
 
             return (
               <AddonCard

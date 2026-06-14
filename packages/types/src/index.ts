@@ -173,6 +173,7 @@ export interface SubscriptionInfo {
   bgRemovalCredits: number;
   ironToolCredits: number;
   flatLayCredits: number;
+  ghostMannequinCredits: number;
   /** null = unlimited (paid plan) */
   monthlyCredits: number | null;
   /** null = unlimited (paid plan) */

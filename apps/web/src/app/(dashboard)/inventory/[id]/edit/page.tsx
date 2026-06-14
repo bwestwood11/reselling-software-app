@@ -116,6 +116,7 @@ export default function EditInventoryItemPage({
     removeBackground: false,
     flatLay: false,
     ironing: false,
+    ghostMannequin: false,
   });
 
   function toggleEditOption(key: keyof EditOptions) {
@@ -174,7 +175,7 @@ export default function EditInventoryItemPage({
     const updates = [...images];
     let slot = pendingSlotRef.current;
 
-    const usePhotoroom = editOptions.removeBackground || editOptions.flatLay || editOptions.ironing;
+    const usePhotoroom = editOptions.removeBackground || editOptions.flatLay || editOptions.ironing || editOptions.ghostMannequin;
 
     if (usePhotoroom) {
       // Upload to S3 via PhotoRoom v2 — show preview immediately, update when done

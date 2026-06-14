@@ -1,5 +1,5 @@
 export type PlanKey = "FREE" | "SIDE_HUSTLE" | "FULL_TIME" | "ENTERPRISE";
-export type AddonKey = "IRON_TOOL" | "FLAT_LAY";
+export type AddonKey = "IRON_TOOL" | "FLAT_LAY" | "GHOST_MANNEQUIN";
 
 export interface PlanConfig {
   name: string;
@@ -79,6 +79,13 @@ export const ADDONS: Record<AddonKey, AddonConfig> = {
     creditsPerPack: 100,
     packPrice: 1500, // $15.00 for 100 credits ($0.15 each)
     stripePriceId: process.env.STRIPE_FLAT_LAY_PRICE_ID ?? "",
+  },
+  GHOST_MANNEQUIN: {
+    name: "Ghost Mannequin",
+    description: "AI mannequin removal for clean clothing visuals",
+    creditsPerPack: 100,
+    packPrice: 2000, // $20.00 for 100 credits ($0.20 each)
+    stripePriceId: process.env.STRIPE_GHOST_MANNEQUIN_PRICE_ID ?? "",
   },
 };
 

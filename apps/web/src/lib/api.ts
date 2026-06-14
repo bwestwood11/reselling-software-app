@@ -193,7 +193,7 @@ export const syncApi = {
 export const uploadApi = {
   uploadImage: async (
     file: File,
-    options?: { removeBackground?: boolean; flatLay?: boolean; ironing?: boolean }
+    options?: { removeBackground?: boolean; flatLay?: boolean; ironing?: boolean; ghostMannequin?: boolean }
   ): Promise<{ url: string; key: string }> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -202,6 +202,7 @@ export const uploadApi = {
     if (options?.removeBackground) params.set("removeBackground", "true");
     if (options?.flatLay) params.set("flatLay", "true");
     if (options?.ironing) params.set("ironing", "true");
+    if (options?.ghostMannequin) params.set("ghostMannequin", "true");
     const qs = params.size ? `?${params.toString()}` : "";
     const res = await fetch(`${API_BASE}/api/upload${qs}`, {
       method: "POST",
