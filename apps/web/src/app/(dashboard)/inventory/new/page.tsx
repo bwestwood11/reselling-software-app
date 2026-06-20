@@ -15,11 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Download, Loader2, Plus, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Camera, Download, Loader2, Plus, RotateCcw, Wand2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { toast } from "sonner";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import Link from "next/link";
 import { useCreateInventoryItem } from "@/hooks/use-inventory";
-import { uploadApi, subscriptionApi } from "@/lib/api";
+import { uploadApi, subscriptionApi, aiApi } from "@/lib/api";
 import { Textarea } from "@/components/ui/textarea";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
@@ -77,6 +78,8 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
   const [images, setImages] = useState<(ImageSlot | undefined)[]>(
     Array(INITIAL_SLOTS).fill(undefined)
   );
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const [editOptions, setEditOptions] = useState<EditOptions>({
     removeBackground: false,
     flatLay: false,
@@ -100,6 +103,22 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     resolver: zodResolver(schema),
     defaultValues: { condition: "GOOD", quantity: 1 },
   });
+
+  async function handleGenerateDescription() {
+    const urls = images.filter((s) => s?.url).map((s) => s!.url!);
+    if (urls.length === 0) return;
+    setIsGenerating(true);
+    try {
+      const title = watch("title") || undefined;
+      const result = await aiApi.generateDescription(urls, title);
+      setValue("description", result.data.description);
+      toast.success("Description generated");
+    } catch {
+      toast.error("AI generation failed — check your API key and try again");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   function openPicker(slotIndex: number) {
     pendingSlotRef.current = slotIndex;
@@ -309,14 +328,32 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                     </Field>
                   </div>
 
-                  <Field label="Description">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Description
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => void handleGenerateDescription()}
+                        disabled={filledCount === 0 || isGenerating}
+                        className="flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-1 text-[11px] font-semibold text-orange-600 transition-colors hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-3 w-3" />
+                        )}
+                        {isGenerating ? "Generating…" : "Generate with AI"}
+                      </button>
+                    </div>
                     <Textarea
                       rows={4}
                       placeholder="Describe condition, measurements, notable details…"
                       className="resize-none border-zinc-200 focus-visible:ring-orange-400"
                       {...register("description")}
                     />
-                  </Field>
+                  </div>
                 </div>
               </section>
 

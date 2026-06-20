@@ -13,6 +13,7 @@ import { uploadRoutes } from "./routes/upload";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { webhookRoutes } from "./routes/webhooks";
 import { mercariRoutes } from "./routes/mercari";
+import { aiRoutes } from "./routes/ai";
 import { prismaPlugin } from "./plugins/prisma";
 
 export async function buildApp() {
@@ -110,6 +111,7 @@ export async function buildApp() {
   await app.register(uploadRoutes, { prefix: "/api/upload" });
   await app.register(subscriptionRoutes, { prefix: "/api/subscriptions" });
   await app.register(mercariRoutes, { prefix: "/api/mercari" });
+  await app.register(aiRoutes, { prefix: "/api/ai" });
   // Webhook must be registered AFTER other routes so its content-type parser
   // override is scoped only to the webhook plugin.
   await app.register(webhookRoutes, { prefix: "/api/webhooks" });

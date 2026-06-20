@@ -238,4 +238,14 @@ export const subscriptionApi = {
     request<any>("/api/subscriptions/portal", { method: "POST" }),
 };
 
+// ─── AI ───────────────────────────────────────────────────────────────────────
+
+export const aiApi = {
+  generateDescription: (imageUrls: string[], title?: string) =>
+    request<{ success: true; data: { description: string } }>("/api/ai/generate", {
+      method: "POST",
+      body: JSON.stringify({ imageUrls, title }),
+    }),
+};
+
 export { ApiError };
