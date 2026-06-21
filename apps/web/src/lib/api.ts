@@ -238,6 +238,20 @@ export const subscriptionApi = {
     request<any>("/api/subscriptions/portal", { method: "POST" }),
 };
 
+// ─── Sources ─────────────────────────────────────────────────────────────────
+
+export const sourcesApi = {
+  list: () => request<any>("/api/sources"),
+  getStats: () => request<any>("/api/sources/stats"),
+  get: (id: string) => request<any>(`/api/sources/${id}`),
+  create: (body: { name: string; parentId?: string }) =>
+    request<any>("/api/sources", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: { name?: string; parentId?: string | null }) =>
+    request<any>(`/api/sources/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  delete: (id: string) =>
+    request<any>(`/api/sources/${id}`, { method: "DELETE" }),
+};
+
 // ─── AI ───────────────────────────────────────────────────────────────────────
 
 export const aiApi = {

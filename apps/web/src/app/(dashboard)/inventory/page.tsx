@@ -9,7 +9,8 @@ import {
   Card,
   CardContent,
 } from "@repo/ui";
-import { Plus, Search, Package, Trash2, ExternalLink, Tag, Pencil, Download } from "lucide-react";
+import { Plus, Search, Package, Trash2, ExternalLink, Tag, Pencil, Download, MapPin, ChevronDown, X } from "lucide-react";
+import { SourceSelect } from "@/components/ui/source-select";
 import { formatCurrency } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -22,10 +23,12 @@ const STATUS_COLORS = {
 export default function InventoryPage(): import("react").JSX.Element {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [sourceId, setSourceId] = useState<string | undefined>(undefined);
 
   const params: Record<string, string> = {};
   if (search) params.search = search;
   if (status) params.status = status;
+  if (sourceId) params.sourceId = sourceId;
 
   const { data, isLoading } = useInventory(params);
   const deleteMutation = useDeleteInventoryItem();
@@ -72,29 +75,61 @@ export default function InventoryPage(): import("react").JSX.Element {
       </div>
 
       {/* Filters */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap gap-3">
-        <div className="relative min-w-48 flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search */}
+        <div className="relative min-w-0 flex-1" style={{ minWidth: 180 }}>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search items..."
+            placeholder="Search items…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-9 pr-3 text-sm text-zinc-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 transition-colors focus-visible:border-orange-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/20"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-700"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Status */}
+        <div className="relative">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className={
+              "h-10 appearance-none rounded-xl border bg-white py-2 pl-3 pr-8 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-400/20 " +
+              (status
+                ? "border-orange-400 font-medium text-orange-700 focus:border-orange-400"
+                : "border-zinc-200 text-zinc-600 hover:border-zinc-300 focus:border-orange-400")
+            }
+          >
+            <option value="">All statuses</option>
+            <option value="DRAFT">Draft</option>
+            <option value="ACTIVE">Active</option>
+            <option value="SOLD">Sold</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+          <ChevronDown
+            className={
+              "pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 " +
+              (status ? "text-orange-400" : "text-zinc-400")
+            }
           />
         </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-700"
-        >
-          <option value="">All statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="ACTIVE">Active</option>
-          <option value="SOLD">Sold</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
+
+        {/* Source */}
+        <div className="w-48">
+          <SourceSelect
+            value={sourceId}
+            onChange={setSourceId}
+            placeholder="All sources"
+          />
         </div>
       </div>
 
@@ -156,6 +191,12 @@ export default function InventoryPage(): import("react").JSX.Element {
                     </h3>
                     {item.brand && (
                       <p className="text-xs text-zinc-500">{item.brand}</p>
+                    )}
+                    {item.source && (
+                      <p className="flex items-center gap-1 text-xs text-zinc-400">
+                        <MapPin className="h-3 w-3" />
+                        {item.source.name}
+                      </p>
                     )}
                   </div>
                   <Badge variant={STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] ?? "secondary"}>

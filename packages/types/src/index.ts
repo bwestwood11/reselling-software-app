@@ -69,6 +69,27 @@ export interface Dimensions {
   height: number;
 }
 
+
+
+export interface SourceInfo {
+  id: string;
+  name: string;
+  parentId: string | null;
+  createdAt: string;
+  children?: SourceInfo[];
+}
+
+export interface SourceStats {
+  id: string;
+  name: string;
+  parentId: string | null;
+  itemCount: number;
+  totalCost: number;
+  totalRevenue: number;
+  profit: number;
+  children: SourceStats[];
+}
+
 export interface CreateInventoryItemInput {
   title: string;
   description?: string;
@@ -84,6 +105,7 @@ export interface CreateInventoryItemInput {
   dimensions?: Dimensions;
   notes?: string;
   attributes?: Array<{ name: string; value: string }>;
+  sourceId?: string;
 }
 
 export interface UpdateInventoryItemInput

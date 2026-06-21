@@ -182,6 +182,7 @@ export default function InventoryItemPage({
               <Detail label="Quantity" value={item.quantity} />
               <Detail label="Cost" value={item.costPrice ? formatCurrency(Number(item.costPrice)) : undefined} />
               <Detail label="Target price" value={item.targetPrice ? formatCurrency(Number(item.targetPrice)) : undefined} />
+              {item.source && <Detail label="Source" value={item.source.name} />}
             </CardContent>
           </Card>
 

@@ -41,6 +41,7 @@ const createItemSchema = z.object({
     .array(z.object({ name: z.string(), value: z.string() }))
     .optional(),
   images: z.array(imageSchema).optional(),
+  sourceId: z.string().min(1).nullable().optional(),
 });
 
 export async function inventoryRoutes(fastify: FastifyInstance) {
@@ -57,6 +58,8 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         limit?: string;
         status?: string;
         search?: string;
+        sourceId?: string;
+        unassigned?: string;
       };
 
       const result = await svc.list(request.user!.id, {
@@ -64,6 +67,8 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         limit: query.limit ? parseInt(query.limit) : 20,
         status: query.status as any,
         search: query.search,
+        sourceId: query.sourceId,
+        unassigned: query.unassigned === "true",
       });
 
       return reply.send({ success: true, ...result });

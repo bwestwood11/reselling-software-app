@@ -14,6 +14,7 @@ import {
   Store,
   Zap,
   CreditCard,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@repo/ui";
 import { signOut, useSession } from "@repo/auth/client";
@@ -23,6 +24,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", Icon: Package },
+  { href: "/inventory/sources", label: "Sources", Icon: MapPin },
   { href: "/listings", label: "Listings", Icon: Tag },
   { href: "/marketplaces", label: "Marketplaces", Icon: Store },
   { href: "/dashboard/sync", label: "Sync", Icon: RefreshCw },
@@ -81,7 +83,9 @@ export function Sidebar() {
               href={href}
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                pathname.startsWith(href)
+                (href === "/inventory"
+                  ? pathname === "/inventory" || (pathname.startsWith("/inventory/") && !pathname.startsWith("/inventory/sources"))
+                  : pathname.startsWith(href))
                   ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-[0_14px_24px_-20px_rgba(249,115,22,0.85)]"
                   : "text-zinc-600 hover:bg-white hover:text-zinc-900"
               )}

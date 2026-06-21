@@ -24,6 +24,7 @@ import { uploadApi, subscriptionApi, aiApi } from "@/lib/api";
 import { Textarea } from "@/components/ui/textarea";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
+import { SourceSelect } from "@/components/ui/source-select";
 import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
@@ -46,6 +47,7 @@ const schema = z.object({
   weight: z.coerce.number().positive().optional().or(z.literal("")),
   category: z.string().optional(),
   notes: z.string().optional(),
+  sourceId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -300,6 +302,14 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                       />
                     </Field>
                   </div>
+
+                  <Field label="Source">
+                    <SourceSelect
+                      value={watch("sourceId")}
+                      onChange={(id) => setValue("sourceId", id)}
+                      placeholder="No source"
+                    />
+                  </Field>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Condition *">

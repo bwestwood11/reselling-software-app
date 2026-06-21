@@ -26,6 +26,7 @@ model User {
   subscription           Subscription?
   creditTransactions     CreditTransaction[]
   mercariJobs            MercariJob[]
+  sources                Source[]
 }
 
 model Session {
@@ -117,10 +118,25 @@ enum Condition {
   SATISFACTORY
 }
 
+model Source {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Source?         @relation("SourceChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children Source[]        @relation("SourceChildren")
+  items    InventoryItem[]
+}
+
 model InventoryItem {
   id          String          @id @default(cuid())
   userId      String
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceId    String?
+  source      Source?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   title       String
   description String?
   sku         String?

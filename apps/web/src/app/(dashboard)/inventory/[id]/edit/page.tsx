@@ -23,6 +23,7 @@ import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory"
 import { uploadApi, subscriptionApi } from "@/lib/api";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
+import { SourceSelect } from "@/components/ui/source-select";
 import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
@@ -45,6 +46,7 @@ const schema = z.object({
   weight: z.coerce.number().positive().optional().or(z.literal("")),
   category: z.string().optional(),
   notes: z.string().optional(),
+  sourceId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -152,6 +154,7 @@ export default function EditInventoryItemPage({
       weight: item.weight ? Number(item.weight) : "",
       category: item.category ?? "",
       notes: item.notes ?? "",
+      sourceId: item.source?.id ?? undefined,
     });
 
     const existingImages: (ImageSlot | undefined)[] = (item.images ?? [])
@@ -272,6 +275,7 @@ export default function EditInventoryItemPage({
       costPrice: values.costPrice === "" ? undefined : values.costPrice,
       targetPrice: values.targetPrice === "" ? undefined : values.targetPrice,
       weight: values.weight === "" ? undefined : values.weight,
+      sourceId: values.sourceId ?? null,
       images: images
         .map((slot, i) =>
           slot && !slot.uploading
@@ -375,6 +379,14 @@ export default function EditInventoryItemPage({
                       />
                     </Field>
                   </div>
+
+                  <Field label="Source">
+                    <SourceSelect
+                      value={watch("sourceId") || undefined}
+                      onChange={(id) => setValue("sourceId", id)}
+                      placeholder="No source"
+                    />
+                  </Field>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Condition *">

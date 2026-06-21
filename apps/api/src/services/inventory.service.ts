@@ -6,6 +6,8 @@ interface ListOptions {
   limit: number;
   status?: InventoryStatus;
   search?: string;
+  sourceId?: string;
+  unassigned?: boolean; // true → items with sourceId IS NULL
 }
 
 interface ImageInput {
@@ -31,6 +33,7 @@ interface CreateInput {
   notes?: string;
   attributes?: Array<{ name: string; value: string }>;
   images?: ImageInput[];
+  sourceId?: string | null;
 }
 
 export class InventoryService {
@@ -42,6 +45,7 @@ export class InventoryService {
     const where = {
       userId,
       ...(opts.status && { status: opts.status }),
+      ...(opts.unassigned ? { sourceId: null } : opts.sourceId ? { sourceId: opts.sourceId } : {}),
       ...(opts.search && {
         OR: [
           { title: { contains: opts.search, mode: "insensitive" as const } },
@@ -59,6 +63,7 @@ export class InventoryService {
         orderBy: { createdAt: "desc" },
         include: {
           images: { orderBy: { sortOrder: "asc" } },
+          source: { select: { id: true, name: true, parentId: true } },
           _count: { select: { listings: true } },
         },
       }),
@@ -74,6 +79,7 @@ export class InventoryService {
       include: {
         images: { orderBy: { sortOrder: "asc" } },
         attributes: true,
+        source: { select: { id: true, name: true, parentId: true } },
         listings: {
           include: { marketplaceConnection: true },
           orderBy: { createdAt: "desc" },

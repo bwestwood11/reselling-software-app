@@ -23,6 +23,7 @@ export function useCreateInventoryItem() {
     mutationFn: inventoryApi.create,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["sources"] });
       toast.success("Item created successfully");
     },
     onError: (err: Error) => {
@@ -37,6 +38,7 @@ export function useUpdateInventoryItem(id: string) {
     mutationFn: (body: unknown) => inventoryApi.update(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["sources"] });
       toast.success("Item updated");
     },
     onError: (err: Error) => {
