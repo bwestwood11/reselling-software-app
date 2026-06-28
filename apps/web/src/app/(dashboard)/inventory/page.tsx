@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useInventory, useDeleteInventoryItem } from "@/hooks/use-inventory";
@@ -141,7 +141,7 @@ function Pagination({
   );
 }
 
-export default function InventoryPage(): import("react").JSX.Element {
+function InventoryContent(): import("react").JSX.Element {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -432,5 +432,13 @@ export default function InventoryPage(): import("react").JSX.Element {
         />
       )}
     </div>
+  );
+}
+
+export default function InventoryPage(): import("react").JSX.Element {
+  return (
+    <Suspense>
+      <InventoryContent />
+    </Suspense>
   );
 }
