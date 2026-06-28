@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SourceExplorer } from "@/components/inventory/SourceExplorer";
 
 export default function SourcesPage() {
@@ -14,7 +15,9 @@ export default function SourcesPage() {
         </div>
       </div>
 
-      <SourceExplorer currentId={null} />
+      <Suspense>
+        <SourceExplorer currentId={null} />
+      </Suspense>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SourceExplorer } from "@/components/inventory/SourceExplorer";
 
 export default async function SourceDetailPage({
@@ -20,7 +21,9 @@ export default async function SourceDetailPage({
         </div>
       </div>
 
-      <SourceExplorer currentId={id} />
+      <Suspense>
+        <SourceExplorer currentId={id} />
+      </Suspense>
     </div>
   );
 }
