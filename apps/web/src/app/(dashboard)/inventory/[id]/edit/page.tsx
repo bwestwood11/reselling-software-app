@@ -17,7 +17,7 @@ import {
   SelectValue,
   Button,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Download, Loader2, Plus, X, Package } from "lucide-react";
+import { ArrowLeft, Camera, Download, Loader2, Plus, Star, X, Package } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory";
 import { uploadApi, subscriptionApi } from "@/lib/api";
@@ -113,6 +113,8 @@ export default function EditInventoryItemPage({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number>(0);
+  const draggedIndexRef = useRef<number>(-1);
+  const [dragOverIndex, setDragOverIndex] = useState<number>(-1);
   const [images, setImages] = useState<(ImageSlot | undefined)[]>(Array(INITIAL_SLOTS).fill(undefined));
   const [editOptions, setEditOptions] = useState<EditOptions>({
     removeBackground: false,
@@ -123,6 +125,44 @@ export default function EditInventoryItemPage({
 
   function toggleEditOption(key: keyof EditOptions) {
     setEditOptions((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function handleDragStart(e: React.DragEvent, index: number) {
+    draggedIndexRef.current = index;
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  }
+
+  function handleDrop(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    const from = draggedIndexRef.current;
+    if (from === -1 || from === index) { setDragOverIndex(-1); return; }
+    setImages((prev) => {
+      const next = [...prev];
+      [next[from], next[index]] = [next[index], next[from]];
+      return next;
+    });
+    setDragOverIndex(-1);
+    draggedIndexRef.current = -1;
+  }
+
+  function handleDragEnd() {
+    setDragOverIndex(-1);
+    draggedIndexRef.current = -1;
+  }
+
+  function makePrimary(index: number) {
+    setImages((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.unshift(item);
+      return next;
+    });
   }
 
   const {
@@ -513,7 +553,17 @@ export default function EditInventoryItemPage({
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {images.map((slot, i) =>
                     slot ? (
-                      <div key={i} className="group relative aspect-square">
+                      <div
+                        key={i}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, i)}
+                        onDragOver={(e) => handleDragOver(e, i)}
+                        onDrop={(e) => handleDrop(e, i)}
+                        onDragEnd={handleDragEnd}
+                        className={`group relative aspect-square cursor-grab active:cursor-grabbing ${
+                          dragOverIndex === i ? "rounded-xl ring-2 ring-orange-500 ring-offset-1" : ""
+                        }`}
+                      >
                         <img
                           src={slot.src}
                           alt={`Photo ${i + 1}`}
@@ -533,6 +583,16 @@ export default function EditInventoryItemPage({
                           <span className="absolute bottom-1.5 left-1.5 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow">
                             Primary
                           </span>
+                        )}
+                        {i > 0 && !slot.uploading && !slot.error && (
+                          <button
+                            type="button"
+                            onClick={() => makePrimary(i)}
+                            title="Make primary"
+                            className="absolute bottom-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Star className="h-3 w-3" />
+                          </button>
                         )}
                         <button
                           type="button"
@@ -584,7 +644,7 @@ export default function EditInventoryItemPage({
                 </div>
 
                 <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                  Click any slot to pick from your device. You can select multiple files at once.
+                  Drag to reorder · click a slot to add photos · ★ to make primary.
                 </p>
               </section>
 

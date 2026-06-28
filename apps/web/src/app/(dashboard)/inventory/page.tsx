@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useInventory, useDeleteInventoryItem } from "@/hooks/use-inventory";
 import {
   Button,
@@ -9,7 +10,21 @@ import {
   Card,
   CardContent,
 } from "@repo/ui";
-import { Plus, Search, Package, Trash2, ExternalLink, Tag, Pencil, Download, MapPin, ChevronDown, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Package,
+  Trash2,
+  ExternalLink,
+  Tag,
+  Pencil,
+  Download,
+  MapPin,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import { SourceSelect } from "@/components/ui/source-select";
 import { formatCurrency } from "@repo/utils";
 
@@ -20,20 +35,161 @@ const STATUS_COLORS = {
   ARCHIVED: "outline",
 } as const;
 
+const PAGE_SIZE = 20;
+
+function ProfitPill({ cost, target }: { cost: number | null; target: number | null }) {
+  if (!cost || !target) return null;
+  const profit = target - cost;
+  return (
+    <span
+      className={
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums " +
+        (profit > 0
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70"
+          : profit < 0
+            ? "bg-red-50 text-red-600 ring-1 ring-red-200/70"
+            : "bg-zinc-100 text-zinc-500")
+      }
+    >
+      {profit > 0 ? "+" : ""}
+      {formatCurrency(profit)}
+    </span>
+  );
+}
+
+function Pagination({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  pageSize: number;
+  onPage: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  const pages: (number | "…")[] = [];
+  const seen = new Set<number | "…">();
+  function push(n: number) {
+    if (n >= 1 && n <= totalPages && !seen.has(n)) {
+      seen.add(n);
+      pages.push(n);
+    }
+  }
+  push(1);
+  if (page - 2 > 2) pages.push("…");
+  push(page - 1);
+  push(page);
+  push(page + 1);
+  if (page + 2 < totalPages - 1) pages.push("…");
+  push(totalPages);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+      <p className="text-xs text-zinc-500">
+        Showing{" "}
+        <span className="font-medium text-zinc-800">
+          {start}–{end}
+        </span>{" "}
+        of{" "}
+        <span className="font-medium text-zinc-800">{total}</span> items
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPage(page - 1)}
+          disabled={page <= 1}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {pages.map((p, i) =>
+          p === "…" ? (
+            <span key={`el-${i}`} className="px-1 text-xs text-zinc-400">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPage(p as number)}
+              className={
+                "flex h-8 min-w-[2rem] items-center justify-center rounded-lg border px-2 text-xs font-medium transition-colors " +
+                (p === page
+                  ? "border-orange-400 bg-orange-500 text-white shadow-sm"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50")
+              }
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          onClick={() => onPage(page + 1)}
+          disabled={page >= totalPages}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function InventoryPage(): import("react").JSX.Element {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [sourceId, setSourceId] = useState<string | undefined>(undefined);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const params: Record<string, string> = {};
-  if (search) params.search = search;
-  if (status) params.status = status;
-  if (sourceId) params.sourceId = sourceId;
+  const search = searchParams.get("search") ?? "";
+  const status = searchParams.get("status") ?? "";
+  const sourceId = searchParams.get("sourceId") ?? undefined;
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
-  const { data, isLoading } = useInventory(params);
+  const updateParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val) params.set(key, val);
+        else params.delete(key);
+      }
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
+
+  function handleSearch(val: string) {
+    updateParams({ search: val || undefined, page: undefined });
+  }
+  function handleStatus(val: string) {
+    updateParams({ status: val || undefined, page: undefined });
+  }
+  function handleSource(val: string | undefined) {
+    updateParams({ sourceId: val, page: undefined });
+  }
+  function handlePage(p: number) {
+    updateParams({ page: String(p) });
+  }
+
+  const apiParams: Record<string, string> = {
+    page: String(page),
+    limit: String(PAGE_SIZE),
+  };
+  if (search) apiParams.search = search;
+  if (status) apiParams.status = status;
+  if (sourceId) apiParams.sourceId = sourceId;
+
+  const { data, isLoading } = useInventory(apiParams);
   const deleteMutation = useDeleteInventoryItem();
 
   const items = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className="space-y-7">
@@ -46,9 +202,7 @@ export default function InventoryPage(): import("react").JSX.Element {
               Inventory Hub
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">Inventory</h1>
-            <p className="mt-1 text-sm text-orange-50">
-              {data?.total ?? 0} items total
-            </p>
+            <p className="mt-1 text-sm text-orange-50">{total} items total</p>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-xs font-medium text-orange-50 backdrop-blur-sm">
             Internal tracking enabled
@@ -76,20 +230,19 @@ export default function InventoryPage(): import("react").JSX.Element {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Search */}
         <div className="relative min-w-0 flex-1" style={{ minWidth: 180 }}>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
             placeholder="Search items…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 transition-colors focus-visible:border-orange-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/20"
           />
           {search && (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() => handleSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-700"
             >
               <X className="h-3.5 w-3.5" />
@@ -97,11 +250,10 @@ export default function InventoryPage(): import("react").JSX.Element {
           )}
         </div>
 
-        {/* Status */}
         <div className="relative">
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => handleStatus(e.target.value)}
             className={
               "h-10 appearance-none rounded-xl border bg-white py-2 pl-3 pr-8 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-400/20 " +
               (status
@@ -123,11 +275,10 @@ export default function InventoryPage(): import("react").JSX.Element {
           />
         </div>
 
-        {/* Source */}
         <div className="w-48">
           <SourceSelect
             value={sourceId}
-            onChange={setSourceId}
+            onChange={handleSource}
             placeholder="All sources"
           />
         </div>
@@ -158,109 +309,128 @@ export default function InventoryPage(): import("react").JSX.Element {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((item: any) => (
-            <Card
-              key={item.id}
-              className="group relative overflow-hidden rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            >
-              {/* SKU badge for internal tracking */}
-              <div className="absolute right-3 top-3 z-20 rounded-full border border-orange-200 bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700 shadow-sm backdrop-blur">
-                SKU: {item.sku || "Unassigned"}
-              </div>
+          {items.map((item: any) => {
+            const cost = item.costPrice ? Number(item.costPrice) : null;
+            const target = item.targetPrice ? Number(item.targetPrice) : null;
 
-              {/* Primary image */}
-              {item.images?.[0] ? (
-                <div className="aspect-square overflow-hidden bg-zinc-100">
-                  <img
-                    src={item.images[0].url}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
+            return (
+              <Card
+                key={item.id}
+                className="group relative overflow-hidden rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="absolute right-3 top-3 z-20 rounded-full border border-orange-200 bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700 shadow-sm backdrop-blur">
+                  SKU: {item.sku || "Unassigned"}
                 </div>
-              ) : (
-                <div className="flex aspect-square items-center justify-center bg-zinc-100">
-                  <Package className="h-12 w-12 text-zinc-300" />
-                </div>
-              )}
 
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-zinc-900">
-                      {item.title}
-                    </h3>
-                    {item.brand && (
-                      <p className="text-xs text-zinc-500">{item.brand}</p>
-                    )}
-                    {item.source && (
-                      <p className="flex items-center gap-1 text-xs text-zinc-400">
-                        <MapPin className="h-3 w-3" />
-                        {item.source.name}
-                      </p>
-                    )}
+                {item.images?.[0] ? (
+                  <div className="aspect-square overflow-hidden bg-zinc-100">
+                    <img
+                      src={item.images[0].url}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
                   </div>
-                  <Badge variant={STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] ?? "secondary"}>
-                    {item.status}
-                  </Badge>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    {item.targetPrice && (
-                      <p className="text-sm font-semibold text-zinc-900">
-                        {formatCurrency(Number(item.targetPrice))}
-                      </p>
-                    )}
-                    {item.costPrice && (
-                      <p className="text-xs text-zinc-500">
-                        Cost: {formatCurrency(Number(item.costPrice))}
-                      </p>
-                    )}
+                ) : (
+                  <div className="flex aspect-square items-center justify-center bg-zinc-100">
+                    <Package className="h-12 w-12 text-zinc-300" />
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-zinc-400">
-                    <Tag className="h-3 w-3" />
-                    {item._count?.listings ?? 0} listings
-                  </div>
-                </div>
+                )}
 
-                {/* Actions */}
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-zinc-900 text-white hover:bg-zinc-800"
-                    asChild
-                  >
-                    <Link href={`/inventory/${item.id}`}>
-                      <ExternalLink className="mr-1 h-3 w-3" />
-                      View
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
-                    asChild
-                  >
-                    <Link href={`/inventory/${item.id}/edit`}>
-                      <Pencil className="mr-1 h-3 w-3" />
-                      Edit
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(item.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold text-zinc-900">
+                        {item.title}
+                      </h3>
+                      {item.brand && (
+                        <p className="text-xs text-zinc-500">{item.brand}</p>
+                      )}
+                      {item.source && (
+                        <p className="flex items-center gap-1 text-xs text-zinc-400">
+                          <MapPin className="h-3 w-3" />
+                          {item.source.name}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant={
+                        STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] ??
+                        "secondary"
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 flex items-end justify-between">
+                    <div className="space-y-0.5">
+                      {target && (
+                        <p className="text-sm font-semibold text-zinc-900">
+                          {formatCurrency(target)}
+                        </p>
+                      )}
+                      {cost && (
+                        <p className="text-xs text-zinc-500">
+                          Cost: {formatCurrency(cost)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <ProfitPill cost={cost} target={target} />
+                      <div className="flex items-center gap-1 text-xs text-zinc-400">
+                        <Tag className="h-3 w-3" />
+                        {item._count?.listings ?? 0} listings
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-zinc-900 text-white hover:bg-zinc-800"
+                      asChild
+                    >
+                      <Link href={`/inventory/${item.id}`}>
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        View
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
+                      asChild
+                    >
+                      <Link href={`/inventory/${item.id}/edit`}>
+                        <Pencil className="mr-1 h-3 w-3" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(item.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+      )}
+
+      {!isLoading && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPage={handlePage}
+        />
       )}
     </div>
   );
 }
-

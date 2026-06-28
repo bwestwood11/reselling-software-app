@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSources, useSourceStats, useDeleteSource } from "@/hooks/use-sources";
 import { useInventory } from "@/hooks/use-inventory";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ChevronRight,
+  ChevronLeft,
   Folder,
   FolderOpen,
   Package,
@@ -71,6 +72,8 @@ function buildBreadcrumb(
 // ─── Grid columns shared across all rows ─────────────────────────────────────
 // [Name flex | Items 60px | Cost 100px | Revenue 100px | Profit 90px | Actions 52px]
 const GRID = "grid-cols-[minmax(0,1fr)_60px_100px_100px_90px_52px]";
+
+const ITEMS_PAGE_SIZE = 5;
 
 // ─── Profit pill ──────────────────────────────────────────────────────────────
 
@@ -322,6 +325,50 @@ function SkeletonRows() {
         </div>
       ))}
     </>
+  );
+}
+
+// ─── Items pagination bar ─────────────────────────────────────────────────────
+
+function ItemsPager({
+  page,
+  totalPages,
+  total,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  const start = (page - 1) * ITEMS_PAGE_SIZE + 1;
+  const end = Math.min(page * ITEMS_PAGE_SIZE, total);
+  return (
+    <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/60 px-4 py-2">
+      <span className="text-xs text-zinc-400 tabular-nums">
+        {start}–{end} of {total}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPage(page - 1)}
+          disabled={page <= 1}
+          className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <span className="min-w-[3rem] text-center text-xs font-medium text-zinc-600">
+          {page} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPage(page + 1)}
+          disabled={page >= totalPages}
+          className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -624,6 +671,8 @@ interface SourceExplorerProps {
 
 export function SourceExplorer({ currentId }: SourceExplorerProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: sources = [] } = useSources();
   const { data: statsTree = [] } = useSourceStats();
   const deleteSource = useDeleteSource();
@@ -632,25 +681,36 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
   const [editSource, setEditSource] = useState<FlatSource | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
 
+  // Page lives in the URL so refresh / browser-back preserves position.
+  // Use a per-source key ("page" when at root, "page" when in a folder — the
+  // URL changes on folder navigation so the param resets naturally).
+  const itemPage = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+
+  function setItemPage(p: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p <= 1) params.delete("page");
+    else params.set("page", String(p));
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
   const inventoryParams = useMemo<Record<string, string>>(() => {
-    const p: Record<string, string> = { limit: "200" };
+    const p: Record<string, string> = {
+      limit: String(ITEMS_PAGE_SIZE),
+      page: String(itemPage),
+    };
     if (currentId) {
       p.sourceId = currentId;
     } else {
       p.unassigned = "true";
     }
     return p;
-  }, [currentId]);
+  }, [currentId, itemPage]);
 
   const { data: itemsData, isLoading: itemsLoading } = useInventory(inventoryParams);
 
-  const items: any[] = useMemo(() => {
-    const all: any[] = itemsData?.data ?? [];
-    if (currentId) {
-      return all.filter((i: any) => i.source?.id === currentId);
-    }
-    return all.filter((i: any) => !i.source);
-  }, [itemsData, currentId]);
+  const items: any[] = itemsData?.data ?? [];
+  const itemsTotal: number = itemsData?.total ?? 0;
+  const itemsTotalPages: number = itemsData?.totalPages ?? 1;
 
   const currentSource = currentId
     ? sources.find((s) => s.id === currentId) ?? null
@@ -663,26 +723,12 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
     ? (currentNodeStats?.children ?? [])
     : statsTree;
 
-  const footerItems = currentId ? (currentNodeStats?.itemCount ?? 0) : items.length;
-  const footerCost = currentId
-    ? (currentNodeStats?.totalCost ?? 0)
-    : items.reduce(
-        (a: number, i: any) => a + Number(i.costPrice ?? 0) * (i.quantity ?? 1),
-        0
-      );
-  const footerRevenue = currentId
-    ? (currentNodeStats?.totalRevenue ?? 0)
-    : items
-        .filter((i: any) => i.status === "SOLD")
-        .reduce(
-          (a: number, i: any) => a + Number(i.targetPrice ?? 0) * (i.quantity ?? 1),
-          0
-        );
-  const footerProfit = currentId
-    ? (currentNodeStats?.profit ?? 0)
-    : footerRevenue - footerCost;
+  const footerItems = currentNodeStats?.itemCount ?? itemsTotal;
+  const footerCost = currentNodeStats?.totalCost ?? 0;
+  const footerRevenue = currentNodeStats?.totalRevenue ?? 0;
+  const footerProfit = currentNodeStats?.profit ?? 0;
 
-  const isEmpty = childrenFolders.length === 0 && items.length === 0 && !itemsLoading;
+  const isEmpty = childrenFolders.length === 0 && itemsTotal === 0 && !itemsLoading;
 
   async function handleDeleteFolder(child: FlatSource) {
     if (confirm(`Delete "${child.name}"? Items inside will become unassigned.`)) {
@@ -834,7 +880,15 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
         {itemsLoading ? (
           <SkeletonRows />
         ) : (
-          items.map((item: any) => <ItemRow key={item.id} item={item} />)
+          <>
+            {items.map((item: any) => <ItemRow key={item.id} item={item} />)}
+            <ItemsPager
+              page={itemPage}
+              totalPages={itemsTotalPages}
+              total={itemsTotal}
+              onPage={setItemPage}
+            />
+          </>
         )}
 
         {/* Empty state */}

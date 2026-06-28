@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { ArrowLeft, Camera, Download, Loader2, Plus, RotateCcw, Wand2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Camera, Download, Loader2, Plus, RotateCcw, Star, Wand2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import Link from "next/link";
@@ -94,6 +94,8 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
   }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number>(0);
+  const draggedIndexRef = useRef<number>(-1);
+  const [dragOverIndex, setDragOverIndex] = useState<number>(-1);
 
   const {
     register,
@@ -210,6 +212,44 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
   function addSlot() {
     if (images.length >= MAX_IMAGES) return;
     setImages((prev) => [...prev, undefined]);
+  }
+
+  function handleDragStart(e: React.DragEvent, index: number) {
+    draggedIndexRef.current = index;
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  }
+
+  function handleDrop(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    const from = draggedIndexRef.current;
+    if (from === -1 || from === index) { setDragOverIndex(-1); return; }
+    setImages((prev) => {
+      const next = [...prev];
+      [next[from], next[index]] = [next[index], next[from]];
+      return next;
+    });
+    setDragOverIndex(-1);
+    draggedIndexRef.current = -1;
+  }
+
+  function handleDragEnd() {
+    setDragOverIndex(-1);
+    draggedIndexRef.current = -1;
+  }
+
+  function makePrimary(index: number) {
+    setImages((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.unshift(item);
+      return next;
+    });
   }
 
   const uploading = images.some((s) => s?.uploading);
@@ -483,7 +523,17 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                   {images.map((slot, i) =>
                     slot ? (
                       /* Filled slot */
-                      <div key={i} className="group relative aspect-square">
+                      <div
+                        key={i}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, i)}
+                        onDragOver={(e) => handleDragOver(e, i)}
+                        onDrop={(e) => handleDrop(e, i)}
+                        onDragEnd={handleDragEnd}
+                        className={`group relative aspect-square cursor-grab active:cursor-grabbing ${
+                          dragOverIndex === i ? "rounded-xl ring-2 ring-orange-500 ring-offset-1" : ""
+                        }`}
+                      >
                         {slot.url && !slot.uploading && !slot.error ? (
                           <PhotoView src={slot.url}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -520,6 +570,16 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                           <span className="absolute bottom-1.5 left-1.5 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow">
                             Primary
                           </span>
+                        )}
+                        {i > 0 && !slot.uploading && !slot.error && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); makePrimary(i); }}
+                            title="Make primary"
+                            className="absolute bottom-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Star className="h-3 w-3" />
+                          </button>
                         )}
                         <button
                           type="button"
@@ -574,7 +634,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                 </PhotoProvider>
 
                 <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                  Click any slot to pick from your device. You can select multiple files at once.
+                  Drag to reorder · click a slot to add photos · ★ to make primary.
                 </p>
               </section>
 

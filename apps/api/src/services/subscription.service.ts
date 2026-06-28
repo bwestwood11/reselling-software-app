@@ -81,6 +81,12 @@ export class SubscriptionService {
     return sub.inventoryCredits > 0;
   }
 
+  async checkAiDescriptionAccess(userId: string): Promise<boolean> {
+    const sub = await this.db.subscription.findUnique({ where: { userId } });
+    if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;
+    return isPaidPlan(sub.plan as PlanKey);
+  }
+
   async checkBgRemovalCredit(userId: string): Promise<boolean> {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;

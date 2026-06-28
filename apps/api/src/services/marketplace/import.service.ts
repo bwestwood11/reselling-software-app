@@ -221,14 +221,24 @@ function normalizeEbayTitle(raw: string): string {
 }
 
 function normalizeEbayDescription(raw: string): string {
-  return decodeEntities(
-    raw
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/p>/gi, "\n")
-      .replace(/<\/div>/gi, "\n")
-      .replace(/<\/li>/gi, "\n")
-      .replace(/<[^>]+>/g, ""),
-  )
+  // First pass: strip literal HTML tags (converting block-level closes to newlines first)
+  const firstPass = raw
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+
+  // Decode HTML entities — this may surface encoded tags like &lt;p&gt; → <p>
+  const decoded = decodeEntities(firstPass);
+
+  // Second pass: strip any tags that appeared after entity decoding
+  return decoded
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
