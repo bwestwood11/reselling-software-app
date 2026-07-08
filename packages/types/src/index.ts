@@ -176,6 +176,42 @@ export interface AuthUser {
   image?: string | null;
 }
 
+// ─── Prefill Types ────────────────────────────────────────────────────────────
+
+export interface InventoryPrefillMercari {
+  brandId?: string;
+  sizeId?: string;
+  zipCode?: string;
+  addressId?: number;      // Mercari delivery address ID (from connection's synced address list)
+  categorySuggestions?: string[];  // ordered Mercari category IDs, best first (from ebay-to-mercari mapping)
+  categoryPath?: string[];         // human-readable path segments for display / live-search fallback
+  shippingMethod: "SOYO" | "PREPAID";
+  shippingPayerId?: 1 | 2;         // 1 = buyer pays, 2 = seller pays (PREPAID only)
+  weightOz?: number;               // total oz
+  dimL?: number;
+  dimW?: number;
+  dimH?: number;
+}
+
+export interface InventoryPrefillEbay {
+  conditionId?: string;
+  postalCode?: string;
+  location?: string;
+  weightLbs?: number;
+  itemSpecifics: Record<string, string>;
+  categorySearchTerm?: string;
+}
+
+export interface InventoryPrefillData {
+  title?: string;
+  price?: number;
+  description?: string;
+  mercari?: InventoryPrefillMercari;
+  ebay?: InventoryPrefillEbay;
+  source?: string;        // "EBAY", "MERCARI", "INVENTORY" etc.
+  filledFields: string[];
+}
+
 // ─── Subscription & Credits Types ─────────────────────────────────────────────
 
 export type PlanType = "FREE" | "SIDE_HUSTLE" | "FULL_TIME" | "ENTERPRISE";

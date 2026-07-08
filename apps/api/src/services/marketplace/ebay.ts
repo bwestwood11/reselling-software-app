@@ -30,6 +30,8 @@ export interface EbayItemDetail {
   listedAt: Date | null;
   brand: string;
   sku: string;
+  weightLbs?: number;
+  dimensions?: { length: number; width: number; height: number };
 }
 
 /** Build eBay <ItemSpecifics> XML from a key→value map. */
@@ -715,6 +717,19 @@ ${policiesXml}
     const sku = this.xmlValue(text, "SKU") ?? "";
     const brand = itemSpecifics.find((s) => s.name.toLowerCase() === "brand")?.value ?? "";
 
+    // ShippingPackageDetails — weight/dimensions the seller already entered on eBay
+    const weightMajor = Number.parseFloat(this.xmlValue(text, "WeightMajor") ?? "0") || 0;
+    const weightMinor = Number.parseFloat(this.xmlValue(text, "WeightMinor") ?? "0") || 0;
+    const weightLbs = weightMajor + weightMinor / 16 > 0 ? weightMajor + weightMinor / 16 : undefined;
+
+    const packageLength = Number.parseFloat(this.xmlValue(text, "PackageLength") ?? "0") || 0;
+    const packageWidth = Number.parseFloat(this.xmlValue(text, "PackageWidth") ?? "0") || 0;
+    const packageDepth = Number.parseFloat(this.xmlValue(text, "PackageDepth") ?? "0") || 0;
+    const dimensions =
+      packageLength > 0 && packageWidth > 0 && packageDepth > 0
+        ? { length: packageLength, width: packageWidth, height: packageDepth }
+        : undefined;
+
     return {
       itemId,
       title: this.xmlValue(text, "Title") ?? "",
@@ -732,6 +747,8 @@ ${policiesXml}
       listedAt,
       brand,
       sku,
+      weightLbs,
+      dimensions,
     };
   }
 

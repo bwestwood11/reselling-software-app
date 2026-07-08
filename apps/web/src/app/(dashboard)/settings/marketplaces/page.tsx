@@ -2,11 +2,117 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { marketplacesApi } from "@/lib/api";
-import { Button, Badge, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui";
 import { Plus, Trash2, ExternalLink, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getMarketplaceLabel } from "@repo/utils";
 import type { MarketplaceType } from "@repo/types";
+
+type MercariAddress = {
+  id: number;
+  address1: string;
+  address2: string;
+  city: string;
+  stateAbbreviation: string;
+  zipCode1: string;
+  isDefault: boolean;
+};
+
+function MercariPreferences() {
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["mercari-addresses"],
+    queryFn: marketplacesApi.getMercariAddresses,
+  });
+
+  const addresses: MercariAddress[] = data?.data ?? [];
+  const preferredAddressId: number | null = data?.preferredAddressId ?? null;
+  const preferredShippingMethod: "SOYO" | "PREPAID" | null = data?.preferredShippingMethod ?? null;
+
+  const setPreferredAddressMutation = useMutation({
+    mutationFn: (addressId: number) => marketplacesApi.setMercariPreferredAddress(addressId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mercari-addresses"] });
+      toast.success("Preferred Mercari address saved");
+    },
+    onError: () => toast.error("Failed to save preferred address"),
+  });
+
+  const setPreferredShippingMethodMutation = useMutation({
+    mutationFn: (method: "SOYO" | "PREPAID") => marketplacesApi.setMercariPreferredShippingMethod(method),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mercari-addresses"] });
+      toast.success("Preferred Mercari shipping method saved");
+    },
+    onError: () => toast.error("Failed to save preferred shipping method"),
+  });
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-gray-100 px-5 py-4">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium text-gray-500">
+          Default shipping method for new Mercari listings
+        </Label>
+        <Select
+          value={preferredShippingMethod ?? "PREPAID"}
+          onValueChange={(val) =>
+            setPreferredShippingMethodMutation.mutate(val as "SOYO" | "PREPAID")
+          }
+          disabled={isLoading || setPreferredShippingMethodMutation.isPending}
+        >
+          <SelectTrigger className="max-w-md">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PREPAID">Prepaid Label</SelectItem>
+            <SelectItem value="SOYO">Ship on Your Own</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {addresses.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-medium text-gray-500">
+            Preferred shipping address for new Mercari listings
+          </Label>
+          <Select
+            value={preferredAddressId ? String(preferredAddressId) : ""}
+            onValueChange={(val) => setPreferredAddressMutation.mutate(Number(val))}
+            disabled={isLoading || setPreferredAddressMutation.isPending}
+          >
+            <SelectTrigger className="max-w-md">
+              <SelectValue placeholder="Use Mercari's default address" />
+            </SelectTrigger>
+            <SelectContent>
+              {addresses.map((addr) => (
+                <SelectItem key={addr.id} value={String(addr.id)}>
+                  {addr.address1}
+                  {addr.address2 ? ` ${addr.address2}` : ""}, {addr.city}, {addr.stateAbbreviation}{" "}
+                  {addr.zipCode1}
+                  {addr.isDefault ? " (Mercari default)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const SUPPORTED_MARKETPLACES: {
   key: MarketplaceType;
@@ -119,6 +225,7 @@ export default function MarketplacesSettingsPage(): import("react").JSX.Element 
                   )}
                 </div>
               </CardContent>
+              {key === "MERCARI" && isConnected && <MercariPreferences />}
             </Card>
           );
         })}

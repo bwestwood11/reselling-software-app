@@ -8,6 +8,7 @@ interface ListOptions {
   search?: string;
   sourceId?: string;
   unassigned?: boolean; // true → items with sourceId IS NULL
+  withListings?: boolean; // include listing status per marketplace
 }
 
 interface ImageInput {
@@ -55,17 +56,35 @@ export class InventoryService {
       }),
     };
 
+    const baseInclude = {
+      images: { orderBy: { sortOrder: "asc" as const } },
+      source: { select: { id: true, name: true, parentId: true } },
+      _count: { select: { listings: true } },
+    };
+
     const [data, total] = await Promise.all([
       this.db.inventoryItem.findMany({
         where,
         skip,
         take,
         orderBy: { createdAt: "desc" },
-        include: {
-          images: { orderBy: { sortOrder: "asc" } },
-          source: { select: { id: true, name: true, parentId: true } },
-          _count: { select: { listings: true } },
-        },
+        include: opts.withListings
+          ? {
+              ...baseInclude,
+              listings: {
+                select: {
+                  id: true,
+                  marketplace: true,
+                  status: true,
+                  price: true,
+                  externalUrl: true,
+                  title: true,
+                  description: true,
+                  marketplaceData: true,
+                },
+              },
+            }
+          : baseInclude,
       }),
       this.db.inventoryItem.count({ where }),
     ]);

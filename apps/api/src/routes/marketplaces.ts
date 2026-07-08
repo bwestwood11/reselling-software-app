@@ -635,7 +635,79 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
 
       const meta = parseMeta(connection.metadata);
       const addresses = Array.isArray(meta.addresses) ? meta.addresses : [];
-      return reply.send({ success: true, data: addresses });
+      const preferredAddressId = typeof meta.preferredAddressId === "number" ? meta.preferredAddressId : null;
+      const preferredShippingMethod =
+        meta.preferredShippingMethod === "SOYO" || meta.preferredShippingMethod === "PREPAID"
+          ? meta.preferredShippingMethod
+          : null;
+      return reply.send({ success: true, data: addresses, preferredAddressId, preferredShippingMethod });
+    }
+  );
+
+  // PATCH /api/marketplaces/mercari/preferred-address — sets the address prefill should
+  // default new Mercari listings to, chosen from the account's synced address list.
+  fastify.patch(
+    "/mercari/preferred-address",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { addressId } = (request.body ?? {}) as { addressId?: number };
+      if (typeof addressId !== "number") {
+        return reply.status(400).send({ success: false, error: "addressId is required" });
+      }
+
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { metadata: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      const meta = parseMeta(connection.metadata);
+      const addresses = Array.isArray(meta.addresses) ? meta.addresses : [];
+      const exists = addresses.some((a: any) => Number(a?.id) === addressId);
+      if (!exists) {
+        return reply.status(400).send({ success: false, error: "Unknown address ID" });
+      }
+
+      await fastify.prisma.marketplaceConnection.update({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        data: { metadata: { ...meta, preferredAddressId: addressId } as any },
+      });
+
+      return reply.send({ success: true, data: { preferredAddressId: addressId } });
+    }
+  );
+
+  // PATCH /api/marketplaces/mercari/preferred-shipping-method — sets the shipping method
+  // (SOYO/PREPAID) prefill should default new Mercari listings to when no prior listing
+  // or item weight already implies one.
+  fastify.patch(
+    "/mercari/preferred-shipping-method",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { method } = (request.body ?? {}) as { method?: string };
+      if (method !== "SOYO" && method !== "PREPAID") {
+        return reply.status(400).send({ success: false, error: "method must be SOYO or PREPAID" });
+      }
+
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        select: { metadata: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Mercari account not connected" });
+      }
+
+      const meta = parseMeta(connection.metadata);
+      await fastify.prisma.marketplaceConnection.update({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+        data: { metadata: { ...meta, preferredShippingMethod: method } as any },
+      });
+
+      return reply.send({ success: true, data: { preferredShippingMethod: method } });
     }
   );
 

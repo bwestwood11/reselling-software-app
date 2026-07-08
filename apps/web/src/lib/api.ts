@@ -59,6 +59,8 @@ export const inventoryApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  getPrefill: (id: string, marketplace: string) =>
+    request<any>(`/api/inventory/${id}/prefill?marketplace=${encodeURIComponent(marketplace)}`),
 };
 
 // ─── Listings ─────────────────────────────────────────────────────────────────
@@ -115,6 +117,16 @@ export const marketplacesApi = {
   // from mobile (body contains addresses). Web always gets a jobId back.
   triggerRefreshMercariAddresses: () =>
     request<any>("/api/marketplaces/mercari/refresh-addresses", { method: "POST" }),
+  setMercariPreferredAddress: (addressId: number) =>
+    request<any>("/api/marketplaces/mercari/preferred-address", {
+      method: "PATCH",
+      body: JSON.stringify({ addressId }),
+    }),
+  setMercariPreferredShippingMethod: (method: "SOYO" | "PREPAID") =>
+    request<any>("/api/marketplaces/mercari/preferred-shipping-method", {
+      method: "PATCH",
+      body: JSON.stringify({ method }),
+    }),
 };
 
 // ─── eBay Import ──────────────────────────────────────────────────────────────

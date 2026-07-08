@@ -142,6 +142,8 @@ export class ImportService {
               brand: detail.brand || undefined,
               sku: detail.sku || undefined,
               category: detail.categoryName ? decodeEntities(detail.categoryName) : undefined,
+              weight: detail.weightLbs,
+              dimensions: detail.dimensions,
               status: "ACTIVE",
               images:
                 detail.imageUrls.length > 0

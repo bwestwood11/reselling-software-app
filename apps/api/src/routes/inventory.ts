@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { InventoryService } from "../services/inventory.service";
 import { SubscriptionService } from "../services/subscription.service";
+import { getPrefillProvider } from "../services/prefill/factory.js";
 
 const imageSchema = z.object({
   url: z.string().min(1),
@@ -60,6 +61,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         search?: string;
         sourceId?: string;
         unassigned?: string;
+        withListings?: string;
       };
 
       const result = await svc.list(request.user!.id, {
@@ -69,6 +71,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         search: query.search,
         sourceId: query.sourceId,
         unassigned: query.unassigned === "true",
+        withListings: query.withListings === "true",
       });
 
       return reply.send({ success: true, ...result });
@@ -149,6 +152,28 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
       const { status } = request.body as { status: string };
       const item = await svc.updateStatus(id, request.user!.id, status as any);
       return reply.send({ success: true, data: item });
+    }
+  );
+
+  // GET /api/inventory/:id/prefill?marketplace=MERCARI
+  fastify.get(
+    "/:id/prefill",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { marketplace } = request.query as { marketplace?: string };
+      if (!marketplace) {
+        return reply.status(400).send({ success: false, error: "marketplace query param required" });
+      }
+      try {
+        const provider = getPrefillProvider(marketplace.toUpperCase(), fastify.prisma);
+        const data = await provider.getPrefill(id, request.user!.id);
+        return reply.send({ success: true, data });
+      } catch (err: any) {
+        if (err.statusCode === 404) return reply.status(404).send({ success: false, error: "Item not found" });
+        if (err.statusCode === 400) return reply.status(400).send({ success: false, error: err.message });
+        throw err;
+      }
     }
   );
 }
