@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CreateListingForm } from "../_components/CreateListingForm";
+import { CrosslistForm } from "../_components/crosslist/CrosslistForm";
 
 export default function NewListingPage(): import("react").JSX.Element {
   const router = useRouter();
@@ -20,9 +20,12 @@ export default function NewListingPage(): import("react").JSX.Element {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">Listings</p>
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Create Listing</h1>
+            <p className="mt-0.5 text-xs text-zinc-400">
+              List to multiple marketplaces at once from a single item.
+            </p>
           </div>
         </div>
-        <CreateListingForm onClose={() => router.push("/listings")} />
+        <CrosslistForm onClose={() => router.push("/listings")} />
       </div>
     </div>
   );

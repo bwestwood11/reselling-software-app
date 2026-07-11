@@ -76,6 +76,11 @@ export const listingsApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  crosslist: (body: unknown) =>
+    request<any>("/api/listings/crosslist", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   update: (id: string, body: unknown) =>
     request<any>(`/api/listings/${id}`, {
       method: "PUT",

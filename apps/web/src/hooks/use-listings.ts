@@ -33,6 +33,17 @@ export function useCreateListing() {
   });
 }
 
+export function useCrosslistListings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: listingsApi.crosslist,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Failed to crosslist"),
+  });
+}
+
 export function usePublishListing() {
   const qc = useQueryClient();
   return useMutation({

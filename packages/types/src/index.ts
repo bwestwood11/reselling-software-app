@@ -132,6 +132,29 @@ export interface UpdateListingInput {
   marketplaceData?: Record<string, unknown>;
 }
 
+// ─── Crosslist Types ──────────────────────────────────────────────────────────
+
+export interface CrosslistMarketplaceInput {
+  connectionId: string;
+  marketplaceData?: Record<string, unknown>;
+}
+
+export interface CrosslistInput {
+  inventoryItemId: string;
+  price: number;
+  title: string;
+  description?: string;
+  publishImmediately: boolean;
+  marketplaces: CrosslistMarketplaceInput[];
+}
+
+export interface CrosslistResult {
+  marketplace: MarketplaceType | string;
+  listingId?: string;
+  status: "DRAFT" | "ACTIVE" | "NEEDS_WEBVIEW" | "error";
+  error?: string;
+}
+
 // ─── Marketplace Connection Types ─────────────────────────────────────────────
 
 export interface MarketplaceOAuthCallbackInput {
