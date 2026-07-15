@@ -184,6 +184,18 @@ export const mercariApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
+  // Server-side (Browserless + CapSolver) credential login — see
+  // apps/api/src/services/playwright/mercari-browserless.service.ts.
+  loginStart: (email: string, password: string) =>
+    request<{ success: true; data: { status: "success" | "otp_required" } }>(
+      "/api/mercari/login/start",
+      { method: "POST", body: JSON.stringify({ email, password }) }
+    ),
+  loginVerify: (code: string) =>
+    request<{ success: true; data: { connected: boolean } }>("/api/mercari/login/verify", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

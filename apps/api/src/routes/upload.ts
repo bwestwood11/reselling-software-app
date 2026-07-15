@@ -41,7 +41,7 @@ async function callPhotoroomV2(
   if (!apiKey) throw new Error("PHOTOROOM_API_KEY is not configured.");
 
   const formData = new FormData();
-  formData.append("imageFile", new Blob([imageBuffer], { type: mimeType }), "image");
+  formData.append("imageFile", new Blob([new Uint8Array(imageBuffer)], { type: mimeType }), "image");
   formData.append("removeBackground", String(options.removeBackground));
   if (options.flatLay) formData.append("flatLay.mode", "ai.auto");
   if (options.ironing) formData.append("ironing.mode", "ai.auto");

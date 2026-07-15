@@ -25,6 +25,11 @@ import {
   getLeafCategories,
   getCategoryCount,
 } from "../services/mercari-categories.service";
+import {
+  MercariBrowserlessService,
+  CaptchaChallengeError,
+  MercariLoginFailedError,
+} from "../services/playwright/mercari-browserless.service";
 
 export async function mercariRoutes(fastify: FastifyInstance) {
   // GET /api/mercari/categories — browse categories (served from in-memory JSON, no DB)
@@ -248,5 +253,56 @@ export async function mercariRoutes(fastify: FastifyInstance) {
       success: true,
       data: { data: { availableShippingClassesV2: { shippingClasses } } },
     });
+  });
+
+  // POST /api/mercari/login/start — submits email/password via Browserless.
+  // Returns { status: "success" } if that's all Mercari needed, or
+  // { status: "otp_required" } if Mercari wants the emailed/texted verification code —
+  // the client should prompt for it and call POST /api/mercari/login/verify next.
+  fastify.post("/login/start", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { email, password } = request.body as { email?: string; password?: string };
+
+    if (!email?.trim() || !password) {
+      return reply.status(400).send({ success: false, error: "email and password are required" });
+    }
+
+    try {
+      const svc = new MercariBrowserlessService(fastify.prisma);
+      const result = await svc.startLogin(request.user!.id, email.trim(), password);
+      return reply.send({ success: true, data: result });
+    } catch (err) {
+      if (err instanceof CaptchaChallengeError) {
+        return reply.status(409).send({ success: false, error: err.message, code: "CAPTCHA_CHALLENGE" });
+      }
+      if (err instanceof MercariLoginFailedError) {
+        return reply.status(400).send({ success: false, error: err.message });
+      }
+      const message = err instanceof Error ? err.message : "Mercari login failed";
+      fastify.log.error({ err }, "Mercari Browserless login/start failed");
+      return reply.status(500).send({ success: false, error: message });
+    }
+  });
+
+  // POST /api/mercari/login/verify — completes login with the emailed/texted code
+  // from a prior /login/start call that returned { status: "otp_required" }.
+  fastify.post("/login/verify", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { code } = request.body as { code?: string };
+
+    if (!code?.trim()) {
+      return reply.status(400).send({ success: false, error: "code is required" });
+    }
+
+    try {
+      const svc = new MercariBrowserlessService(fastify.prisma);
+      await svc.submitOtp(request.user!.id, code.trim());
+      return reply.send({ success: true, data: { connected: true } });
+    } catch (err) {
+      if (err instanceof MercariLoginFailedError) {
+        return reply.status(400).send({ success: false, error: err.message });
+      }
+      const message = err instanceof Error ? err.message : "Mercari verification failed";
+      fastify.log.error({ err }, "Mercari Browserless login/verify failed");
+      return reply.status(500).send({ success: false, error: message });
+    }
   });
 }
