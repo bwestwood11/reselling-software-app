@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { buildApp } from "./app";
 import { startSyncJob } from "./jobs/sync.job";
-import { startPlaywrightWorker } from "./jobs/playwright.worker";
+// import { startPlaywrightWorker } from "./jobs/playwright.worker";
 import { seedMercariCategories } from "./jobs/mercari-categories.worker";
 import { prisma } from "@repo/db";
 import { MercariPlaywrightService } from "./services/playwright/mercari.playwright";
@@ -21,7 +21,7 @@ async function main() {
   }
 
   startSyncJob();
-  startPlaywrightWorker();
+  // startPlaywrightWorker();
 }
 
 // MercariPlaywrightService.testBrowser()
