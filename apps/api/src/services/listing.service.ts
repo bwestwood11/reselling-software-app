@@ -417,13 +417,17 @@ export class ListingService {
     return updated;
   }
 
-  async markSold(id: string, userId: string) {
+  async markSold(id: string, userId: string, soldPrice?: number) {
     const listing = await this.db.listing.findFirst({ where: { id, userId } });
     if (!listing) throw new Error("Listing not found");
 
+    const soldAt = new Date();
+    // Fall back to the listing price when no explicit sale price is provided.
+    const salePrice = soldPrice ?? Number(listing.price);
+
     const updated = await this.db.listing.update({
       where: { id },
-      data: { status: "SOLD", soldAt: new Date() },
+      data: { status: "SOLD", soldAt, soldPrice: salePrice },
     });
 
     // Also mark the inventory item as sold if no other active listings remain
@@ -438,7 +442,12 @@ export class ListingService {
     if (activeListings === 0) {
       await this.db.inventoryItem.update({
         where: { id: listing.inventoryItemId },
-        data: { status: "SOLD" },
+        data: {
+          status: "SOLD",
+          soldPrice: salePrice,
+          soldAt,
+          soldVia: listing.marketplace as string,
+        },
       });
     }
 

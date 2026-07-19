@@ -59,6 +59,14 @@ export const inventoryApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  markSold: (
+    id: string,
+    body: { soldPrice: number; soldVia?: string | null; soldNote?: string | null; soldAt?: string }
+  ) =>
+    request<any>(`/api/inventory/${id}/mark-sold`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   getPrefill: (id: string, marketplace: string) =>
     request<any>(`/api/inventory/${id}/prefill?marketplace=${encodeURIComponent(marketplace)}`),
 };
@@ -92,8 +100,11 @@ export const listingsApi = {
     request<any>(`/api/listings/${id}/publish`, { method: "POST" }),
   delist: (id: string) =>
     request<any>(`/api/listings/${id}/delist`, { method: "POST" }),
-  markSold: (id: string) =>
-    request<any>(`/api/listings/${id}/mark-sold`, { method: "POST" }),
+  markSold: (id: string, soldPrice?: number) =>
+    request<any>(`/api/listings/${id}/mark-sold`, {
+      method: "POST",
+      body: JSON.stringify(soldPrice != null ? { soldPrice } : {}),
+    }),
 };
 
 // ─── Marketplaces ─────────────────────────────────────────────────────────────

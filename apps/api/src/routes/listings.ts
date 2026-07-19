@@ -36,6 +36,10 @@ const crosslistSchema = z.object({
     .min(1),
 });
 
+const markSoldSchema = z.object({
+  soldPrice: z.number().nonnegative().optional(),
+});
+
 export async function listingsRoutes(fastify: FastifyInstance) {
   const svc = new ListingService(fastify.prisma);
 
@@ -175,7 +179,8 @@ export async function listingsRoutes(fastify: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const result = await svc.markSold(id, request.user!.id);
+      const body = markSoldSchema.parse(request.body ?? {});
+      const result = await svc.markSold(id, request.user!.id, body.soldPrice);
       return reply.send({ success: true, data: result });
     }
   );

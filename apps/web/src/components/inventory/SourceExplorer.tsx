@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSources, useSourceStats, useDeleteSource } from "@/hooks/use-sources";
 import { useInventory } from "@/hooks/use-inventory";
 import { SourceModal } from "@/components/ui/source-modal";
+import { MoveToSourceDialog } from "@/components/inventory/MoveToSourceDialog";
 import {
   Dialog,
   DialogContent,
@@ -70,8 +71,8 @@ function buildBreadcrumb(
 }
 
 // ─── Grid columns shared across all rows ─────────────────────────────────────
-// [Name flex | Items 60px | Cost 100px | Revenue 100px | Profit 90px | Actions 52px]
-const GRID = "grid-cols-[minmax(0,1fr)_60px_100px_100px_90px_52px]";
+// [Select 32px | Name flex | Items 60px | Cost 100px | Revenue 100px | Profit 90px | Actions 84px]
+const GRID = "grid-cols-[32px_minmax(0,1fr)_60px_100px_100px_90px_84px]";
 
 const ITEMS_PAGE_SIZE = 5;
 
@@ -116,21 +117,39 @@ function MoneyCell({ value }: { value: number }) {
 
 // ─── Item row ─────────────────────────────────────────────────────────────────
 
-function ItemRow({ item }: { item: any }) {
+function ItemRow({
+  item,
+  selected,
+  onToggleSelect,
+  onMove,
+}: {
+  item: any;
+  selected: boolean;
+  onToggleSelect: (e: React.MouseEvent) => void;
+  onMove: () => void;
+}) {
   const cost = Number(item.costPrice ?? 0) * (item.quantity ?? 1);
   const revenue =
     item.status === "SOLD"
-      ? Number(item.targetPrice ?? 0) * (item.quantity ?? 1)
+      ? item.soldPrice != null
+        ? Number(item.soldPrice)
+        : Number(item.targetPrice ?? 0) * (item.quantity ?? 1)
       : 0;
   const profit = revenue - cost;
 
   return (
     <div
       className={cx(
-        "group grid items-center border-b border-zinc-100 bg-white px-4 py-2.5 transition-colors last:border-0 hover:bg-zinc-50",
+        "group grid items-center border-b border-zinc-100 px-4 py-2.5 transition-colors last:border-0",
+        selected ? "bg-orange-50/70" : "bg-white hover:bg-zinc-50",
         GRID
       )}
     >
+      {/* Select */}
+      <div className="flex items-center">
+        <Checkbox checked={selected} onChange={onToggleSelect} />
+      </div>
+
       {/* Name */}
       <div className="flex min-w-0 items-center gap-3">
         {item.images?.[0] ? (
@@ -184,7 +203,20 @@ function ItemRow({ item }: { item: any }) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-0.5 pr-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div
+        className={cx(
+          "flex items-center justify-end gap-0.5 pr-1 transition-opacity",
+          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}
+      >
+        <button
+          type="button"
+          onClick={onMove}
+          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-orange-100 hover:text-orange-600"
+          title="Move to source"
+        >
+          <FolderInput className="h-3.5 w-3.5" />
+        </button>
         <Link
           href={`/inventory/${item.id}`}
           className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
@@ -222,14 +254,17 @@ function FolderRow({
   return (
     <div
       className={cx(
-        "group grid items-center border-b border-zinc-100 bg-white transition-colors hover:bg-amber-50/60",
+        "group grid items-center border-b border-zinc-100 bg-white px-4 transition-colors hover:bg-amber-50/60",
         GRID
       )}
     >
+      {/* Select (folders are not selectable) */}
+      <div />
+
       {/* Name */}
       <Link
         href={`/inventory/sources/${child.id}`}
-        className="flex min-w-0 items-center gap-3 py-3 pl-4"
+        className="flex min-w-0 items-center gap-3 py-3"
       >
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-100 to-amber-200/60 text-amber-600 ring-1 ring-amber-200/60 transition-colors group-hover:from-amber-200/80 group-hover:to-amber-300/60">
           <Folder className="h-[18px] w-[18px]" />
@@ -302,6 +337,7 @@ function SkeletonRows() {
           key={i}
           className={cx("grid border-b border-zinc-100 px-4 py-3", GRID)}
         >
+          <div />
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 animate-pulse rounded-lg bg-zinc-100" />
             <div className="space-y-1.5">
@@ -681,6 +717,10 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
   const [editSource, setEditSource] = useState<FlatSource | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
 
+  // Item selection + move-to-source
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveIds, setMoveIds] = useState<string[] | null>(null);
+
   // Page lives in the URL so refresh / browser-back preserves position.
   // Use a per-source key ("page" when at root, "page" when in a folder — the
   // URL changes on folder navigation so the param resets naturally).
@@ -711,6 +751,37 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
   const items: any[] = itemsData?.data ?? [];
   const itemsTotal: number = itemsData?.total ?? 0;
   const itemsTotalPages: number = itemsData?.totalPages ?? 1;
+
+  // Clear the selection when navigating folders or changing pages.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [currentId, itemPage]);
+
+  function toggleItem(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allSelected = items.length > 0 && items.every((i) => selected.has(i.id));
+  const someSelected = items.some((i) => selected.has(i.id)) && !allSelected;
+
+  function toggleSelectAll(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        items.forEach((i) => next.delete(i.id));
+      } else {
+        items.forEach((i) => next.add(i.id));
+      }
+      return next;
+    });
+  }
 
   const currentSource = currentId
     ? sources.find((s) => s.id === currentId) ?? null
@@ -825,6 +896,32 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
         </div>
       </div>
 
+      {/* ── Bulk selection bar ───────────────────────────────────────────── */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/80 px-4 py-2.5">
+          <span className="text-xs font-semibold text-orange-700">
+            {selected.size} item{selected.size !== 1 ? "s" : ""} selected
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="rounded-lg border border-orange-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => setMoveIds([...selected])}
+              className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-orange-500"
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+              Move
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Column headers ───────────────────────────────────────────────── */}
       <div
         className={cx(
@@ -832,6 +929,15 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
           GRID
         )}
       >
+        <div className="flex items-center">
+          {items.length > 0 && (
+            <Checkbox
+              checked={allSelected}
+              indeterminate={someSelected}
+              onChange={toggleSelectAll}
+            />
+          )}
+        </div>
         <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
           Name
         </span>
@@ -881,7 +987,15 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
           <SkeletonRows />
         ) : (
           <>
-            {items.map((item: any) => <ItemRow key={item.id} item={item} />)}
+            {items.map((item: any) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                selected={selected.has(item.id)}
+                onToggleSelect={(e) => toggleItem(item.id, e)}
+                onMove={() => setMoveIds([item.id])}
+              />
+            ))}
             <ItemsPager
               page={itemPage}
               totalPages={itemsTotalPages}
@@ -1014,6 +1128,13 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
           targetName={currentSource.name}
         />
       )}
+      <MoveToSourceDialog
+        open={moveIds !== null}
+        onClose={() => setMoveIds(null)}
+        itemIds={moveIds ?? []}
+        currentSourceId={currentId}
+        onMoved={() => setSelected(new Set())}
+      />
     </div>
   );
 }

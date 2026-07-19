@@ -157,9 +157,41 @@ export class InventoryService {
   }
 
   async updateStatus(id: string, userId: string, status: InventoryStatus) {
+    // Moving an item away from SOLD clears any recorded sale details so stale
+    // revenue never lingers on an item that's back in stock.
+    const clearSold =
+      status !== "SOLD"
+        ? { soldPrice: null, soldAt: null, soldVia: null, soldNote: null }
+        : {};
+
     return this.db.inventoryItem.updateMany({
       where: { id, userId },
-      data: { status },
+      data: { status, ...clearSold },
+    });
+  }
+
+  async markSold(
+    id: string,
+    userId: string,
+    input: { soldPrice: number; soldVia?: string | null; soldNote?: string | null; soldAt?: Date }
+  ) {
+    const existing = await this.db.inventoryItem.findFirst({ where: { id, userId } });
+    if (!existing) return null;
+
+    return this.db.inventoryItem.update({
+      where: { id },
+      data: {
+        status: "SOLD",
+        soldPrice: input.soldPrice,
+        soldAt: input.soldAt ?? new Date(),
+        soldVia: input.soldVia ?? null,
+        soldNote: input.soldNote ?? null,
+      },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        attributes: true,
+        source: { select: { id: true, name: true, parentId: true } },
+      },
     });
   }
 }

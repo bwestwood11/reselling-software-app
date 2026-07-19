@@ -72,6 +72,7 @@ export function CrosslistForm(props: CrosslistFormProps) {
           eligibleConnections={cf.eligibleConnections}
           selectedConnectionIds={cf.selectedConnectionIds}
           onToggle={cf.toggleConnection}
+          existingListingsByMarketplace={cf.existingListingsByMarketplace}
         />
 
         <ListingDetails form={form as any} isEbay={cf.isEbay} />

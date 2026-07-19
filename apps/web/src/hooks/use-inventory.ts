@@ -47,6 +47,30 @@ export function useUpdateInventoryItem(id: string) {
   });
 }
 
+export function useMarkInventorySold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      soldPrice: number;
+      soldVia?: string | null;
+      soldNote?: string | null;
+      soldAt?: string;
+    }) => inventoryApi.markSold(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["sources"] });
+      toast.success("Marked as sold");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to mark as sold");
+    },
+  });
+}
+
 export function useDeleteInventoryItem() {
   const qc = useQueryClient();
   return useMutation({

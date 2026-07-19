@@ -45,6 +45,13 @@ const createItemSchema = z.object({
   sourceId: z.string().min(1).nullable().optional(),
 });
 
+const markSoldSchema = z.object({
+  soldPrice: z.number().nonnegative(),
+  soldVia: z.string().max(255).nullable().optional(),
+  soldNote: z.string().max(2000).nullable().optional(),
+  soldAt: z.string().datetime().optional(),
+});
+
 export async function inventoryRoutes(fastify: FastifyInstance) {
   const svc = new InventoryService(fastify.prisma);
   const subSvc = new SubscriptionService(fastify.prisma);
@@ -151,6 +158,26 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const { status } = request.body as { status: string };
       const item = await svc.updateStatus(id, request.user!.id, status as any);
+      return reply.send({ success: true, data: item });
+    }
+  );
+
+  // POST /api/inventory/:id/mark-sold
+  fastify.post(
+    "/:id/mark-sold",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = markSoldSchema.parse(request.body);
+      const item = await svc.markSold(id, request.user!.id, {
+        soldPrice: body.soldPrice,
+        soldVia: body.soldVia,
+        soldNote: body.soldNote,
+        soldAt: body.soldAt ? new Date(body.soldAt) : undefined,
+      });
+      if (!item) {
+        return reply.status(404).send({ success: false, error: "Item not found" });
+      }
       return reply.send({ success: true, data: item });
     }
   );

@@ -54,7 +54,14 @@ export class SourceService {
       this.db.source.findMany({ where: { userId }, orderBy: { name: "asc" } }),
       this.db.inventoryItem.findMany({
         where: { userId, sourceId: { not: null } },
-        select: { sourceId: true, costPrice: true, targetPrice: true, quantity: true, status: true },
+        select: {
+          sourceId: true,
+          costPrice: true,
+          targetPrice: true,
+          soldPrice: true,
+          quantity: true,
+          status: true,
+        },
       }),
     ]);
 
@@ -69,8 +76,14 @@ export class SourceService {
       if (!s) continue;
       s.directItemCount += 1;
       if (item.costPrice) s.totalCost += Number(item.costPrice) * item.quantity;
-      if (item.status === "SOLD" && item.targetPrice) {
-        s.totalRevenue += Number(item.targetPrice) * item.quantity;
+      if (item.status === "SOLD") {
+        // Prefer the actual sale price (total received for the item). Fall back to
+        // the target price for legacy sold items recorded before soldPrice existed.
+        if (item.soldPrice != null) {
+          s.totalRevenue += Number(item.soldPrice);
+        } else if (item.targetPrice) {
+          s.totalRevenue += Number(item.targetPrice) * item.quantity;
+        }
       }
     }
 

@@ -24,6 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { CreateListingForm } from "./_components/CreateListingForm";
+import { MarkSoldDialog } from "@/components/inventory/MarkSoldDialog";
 
 // ─── Marketplace config ───────────────────────────────────────────────────────
 
@@ -75,6 +76,9 @@ export default function ListingsPage(): import("react").JSX.Element {
   const [dialogInventoryItemId, setDialogInventoryItemId] = useState<string | undefined>();
   const [dialogMarketplace, setDialogMarketplace] = useState<string | undefined>();
   const [dialogConnectionId, setDialogConnectionId] = useState<string | undefined>();
+  const [soldTarget, setSoldTarget] = useState<
+    { id: string; price: number; marketplace: string; title?: string } | null
+  >(null);
 
   function openListingDialog(inventoryItemId: string, marketplace: string) {
     const conn = connections.find((c: any) => c.marketplace === marketplace && c.isActive);
@@ -129,10 +133,13 @@ export default function ListingsPage(): import("react").JSX.Element {
   });
 
   const markSoldMutation = useMutation({
-    mutationFn: listingsApi.markSold,
+    mutationFn: ({ id, soldPrice }: { id: string; soldPrice?: number }) =>
+      listingsApi.markSold(id, soldPrice),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
+      qc.invalidateQueries({ queryKey: ["sources"] });
       toast.success("Marked as sold");
+      setSoldTarget(null);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -201,6 +208,22 @@ export default function ListingsPage(): import("react").JSX.Element {
 
   return (
     <>
+      {/* ── Mark Sold Dialog ── */}
+      <MarkSoldDialog
+        open={soldTarget !== null}
+        onClose={() => setSoldTarget(null)}
+        isPending={markSoldMutation.isPending}
+        itemTitle={soldTarget?.title}
+        defaultPrice={soldTarget?.price}
+        defaultChannel={soldTarget?.marketplace}
+        hideChannel
+        onConfirm={(values) => {
+          if (soldTarget) {
+            markSoldMutation.mutate({ id: soldTarget.id, soldPrice: values.soldPrice });
+          }
+        }}
+      />
+
       {/* ── Create Listing Dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeListingDialog(); }}>
         <DialogContent
@@ -474,7 +497,7 @@ export default function ListingsPage(): import("react").JSX.Element {
                                   )}
                                   {listing.status === "ACTIVE" && (
                                     <>
-                                      <button onClick={() => markSoldMutation.mutate(listing.id)} disabled={markSoldMutation.isPending} className="opacity-50 hover:opacity-100 disabled:opacity-30" title="Mark sold">Sold</button>
+                                      <button onClick={() => setSoldTarget({ id: listing.id, price: Number(listing.price ?? 0), marketplace: mp.label, title: item.title })} disabled={markSoldMutation.isPending} className="opacity-50 hover:opacity-100 disabled:opacity-30" title="Mark sold">Sold</button>
                                       <span className="opacity-30">·</span>
                                       <button onClick={() => delistMutation.mutate(listing.id)} disabled={delistMutation.isPending} className="opacity-50 hover:opacity-100 disabled:opacity-30" title="Delist">End</button>
                                     </>

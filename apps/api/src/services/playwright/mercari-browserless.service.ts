@@ -344,19 +344,7 @@ export class MercariBrowserlessService {
         );
       }
 
-      const cookies = await page.browserContext().cookies();
-      const profile = await page.evaluate(async () => {
-        const res = await fetch("/v1/users/me", { credentials: "include" });
-        return res.ok ? ((await res.json()) as { data?: { id?: string | number; name?: string } }) : null;
-      });
-
-      await this.upsertConnection(userId, {
-        isActive: true,
-        sessionCookies: JSON.stringify(cookies),
-        accountId: profile?.data?.id != null ? String(profile.data.id) : undefined,
-        accountName: profile?.data?.name ?? undefined,
-      });
-
+      await this.persistSession(userId, page);
       return { status: "success" };
     } catch (err) {
       // Nothing left to hold onto on a hard failure — release the session immediately.
@@ -550,20 +538,58 @@ export class MercariBrowserlessService {
       throw new MercariLoginFailedError("Mercari rejected the verification code.");
     }
 
+    await this.persistSession(userId, page);
+    clearPendingLogin(userId);
+  }
+
+  /**
+   * Captures the authenticated session from a logged-in Mercari page and persists it to the
+   * user's MarketplaceConnection.
+   *
+   * Mirrors the browser-extension connect flow (see `extension/background.js` →
+   * `captureMercariToken`): `/v1/initialize` is the canonical source for the bearer `accessToken`
+   * (and CSRF token) when authenticating via session cookies, so we grab it here rather than
+   * leaving the connection with the `"browserless-session"` placeholder. The full cookie jar is
+   * still stored as a fallback auth path. Both fetches run inside the page so Mercari's session
+   * cookies are sent automatically and clear Cloudflare.
+   */
+  private async persistSession(userId: string, page: Page): Promise<void> {
     const cookies = await page.browserContext().cookies();
+
+    // /v1/initialize returns { accessToken, csrf, ... } at the top level for a cookie-authenticated
+    // session. refreshToken is captured defensively if Mercari ever includes one — observed traffic
+    // (see mercari-auth.service.ts) shows a long-lived ~30-day accessToken and no refresh endpoint,
+    // so it is typically absent.
+    const init = await page.evaluate(async () => {
+      try {
+        const res = await fetch("/v1/initialize", { credentials: "include" });
+        if (!res.ok) return null;
+        return (await res.json()) as {
+          accessToken?: string;
+          refreshToken?: string;
+          csrf?: string;
+        };
+      } catch {
+        return null;
+      }
+    });
+
     const profile = await page.evaluate(async () => {
       const res = await fetch("/v1/users/me", { credentials: "include" });
-      return res.ok ? ((await res.json()) as { data?: { id?: string | number; name?: string } }) : null;
+      return res.ok
+        ? ((await res.json()) as { data?: { id?: string | number; name?: string } })
+        : null;
     });
 
     await this.upsertConnection(userId, {
       isActive: true,
       sessionCookies: JSON.stringify(cookies),
+      accessToken: init?.accessToken ?? undefined,
+      refreshToken: init?.refreshToken ?? undefined,
+      csrfToken: init?.csrf ?? undefined,
       accountId: profile?.data?.id != null ? String(profile.data.id) : undefined,
       accountName: profile?.data?.name ?? undefined,
     });
-
-    clearPendingLogin(userId);
   }
 
   private async upsertConnection(
@@ -571,21 +597,50 @@ export class MercariBrowserlessService {
     fields: {
       isActive?: boolean;
       sessionCookies?: string;
+      accessToken?: string;
+      refreshToken?: string;
+      csrfToken?: string;
       accountId?: string;
       accountName?: string;
-      metadata?: Record<string, unknown>;
     }
   ): Promise<void> {
+    const { csrfToken, ...rest } = fields;
+
+    // Merge the CSRF token into metadata rather than overwriting it, so we don't clobber other
+    // keys already stored there (e.g. `addresses` captured by the extension flow — see the
+    // metadata merge in routes/mercari.ts). Only read/write metadata when we actually have a
+    // CSRF token to persist.
+    let metadata: Record<string, unknown> | undefined;
+    if (csrfToken) {
+      const existing = await this.db.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId, marketplace: this.marketplace } },
+        select: { metadata: true },
+      });
+      const existingMeta =
+        existing?.metadata &&
+        typeof existing.metadata === "object" &&
+        !Array.isArray(existing.metadata)
+          ? (existing.metadata as Record<string, unknown>)
+          : {};
+      metadata = { ...existingMeta, csrfToken };
+    }
+
+    // `undefined` fields are no-ops in a Prisma update, so this never overwrites a previously
+    // captured accessToken/refreshToken with null when /v1/initialize comes back empty.
+    const data = { ...rest, ...(metadata ? { metadata } : {}) };
+
     await this.db.marketplaceConnection.upsert({
       where: { userId_marketplace: { userId, marketplace: this.marketplace } },
       // Prisma's generated Json input types don't structurally accept a plain
       // Record — same pattern as the existing metadata merge in routes/mercari.ts.
-      update: fields as any,
+      update: data as any,
       create: {
         userId,
         marketplace: this.marketplace,
-        accessToken: "browserless-session", // auth lives in cookies, not a bearer token
-        ...fields,
+        ...data,
+        // accessToken is a required column — fall back to the cookie-session placeholder when
+        // /v1/initialize didn't yield a real bearer token (auth still works via sessionCookies).
+        accessToken: rest.accessToken ?? "browserless-session",
       } as any,
     });
   }

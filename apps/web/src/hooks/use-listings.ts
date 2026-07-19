@@ -71,7 +71,8 @@ export function useDelistListing() {
 export function useMarkSold() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: listingsApi.markSold,
+    mutationFn: ({ id, soldPrice }: { id: string; soldPrice?: number }) =>
+      listingsApi.markSold(id, soldPrice),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["listings"] });
       qc.invalidateQueries({ queryKey: ["inventory"] });

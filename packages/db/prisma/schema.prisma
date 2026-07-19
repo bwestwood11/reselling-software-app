@@ -145,6 +145,10 @@ model InventoryItem {
   quantity    Int             @default(1)
   costPrice   Decimal?        @db.Decimal(10, 2)
   targetPrice Decimal?        @db.Decimal(10, 2)
+  soldPrice   Decimal?        @db.Decimal(10, 2) // actual amount received when sold
+  soldAt      DateTime? // when the item was marked sold
+  soldVia     String? // where it sold, e.g. "In person", "eBay", "Facebook"
+  soldNote    String? // optional note about the sale
   brand       String?
   category    String?
   tags        String[]
@@ -202,6 +206,7 @@ model Listing {
   externalUrl             String?
   status                  ListingStatus         @default(DRAFT)
   price                   Decimal               @db.Decimal(10, 2)
+  soldPrice               Decimal?              @db.Decimal(10, 2) // actual sale price when marked sold
   title                   String
   description             String?
   listedAt                DateTime?

@@ -1,9 +1,11 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { PhotoProvider, PhotoView } from "react-photo-view";
-import { useInventoryItem } from "@/hooks/use-inventory";
+import { useInventoryItem, useMarkInventorySold } from "@/hooks/use-inventory";
+import { MarkSoldDialog } from "@/components/inventory/MarkSoldDialog";
+import { MoveToSourceDialog } from "@/components/inventory/MoveToSourceDialog";
 import {
   Button,
   Badge,
@@ -12,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui";
-import { ArrowLeft, Package, Tag, ExternalLink, Pencil, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ArrowLeft, Package, Tag, ExternalLink, Pencil, ZoomIn, ZoomOut, RotateCcw, CheckCircle2, FolderInput } from "lucide-react";
 import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -30,6 +32,9 @@ export default function InventoryItemPage({
   const { id } = use(params);
   const { data, isLoading } = useInventoryItem(id);
   const item = data?.data;
+  const [soldOpen, setSoldOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const markSold = useMarkInventorySold();
 
   if (isLoading) {
     return (
@@ -89,14 +94,64 @@ export default function InventoryItemPage({
               )}
             </div>
           </div>
-          <Button variant="outline" size="sm" className="border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white" asChild>
-            <Link href={`/inventory/${item.id}/edit`}>
-              <Pencil className="mr-1 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {item.status !== "SOLD" && (
+              <Button
+                size="sm"
+                className="bg-white text-emerald-700 hover:bg-emerald-50"
+                onClick={() => setSoldOpen(true)}
+              >
+                <CheckCircle2 className="mr-1 h-4 w-4" />
+                Mark as sold
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              onClick={() => setMoveOpen(true)}
+            >
+              <FolderInput className="mr-1 h-4 w-4" />
+              Move
+            </Button>
+            <Button variant="outline" size="sm" className="border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white" asChild>
+              <Link href={`/inventory/${item.id}/edit`}>
+                <Pencil className="mr-1 h-4 w-4" />
+                Edit
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
+
+      <MoveToSourceDialog
+        open={moveOpen}
+        onClose={() => setMoveOpen(false)}
+        itemIds={[item.id]}
+        currentSourceId={item.source?.id ?? null}
+      />
+
+      <MarkSoldDialog
+        open={soldOpen}
+        onClose={() => setSoldOpen(false)}
+        isPending={markSold.isPending}
+        itemTitle={item.title}
+        defaultPrice={
+          item.soldPrice != null
+            ? Number(item.soldPrice)
+            : item.targetPrice
+              ? Number(item.targetPrice)
+              : null
+        }
+        defaultChannel={item.soldVia ?? null}
+        defaultNote={item.soldNote ?? null}
+        onConfirm={(values) => {
+          markSold.mutate(
+            { id: item.id, ...values },
+            { onSuccess: () => setSoldOpen(false) }
+          );
+        }}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Images */}
@@ -185,6 +240,51 @@ export default function InventoryItemPage({
               {item.source && <Detail label="Source" value={item.source.name} />}
             </CardContent>
           </Card>
+
+          {item.status === "SOLD" && (
+            <Card className="rounded-2xl border-emerald-200 bg-white shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/70">
+                <CardTitle className="flex items-center gap-2 text-base text-zinc-900">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  Sale
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => setSoldOpen(true)}
+                >
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4 pt-5 text-sm">
+                <Detail
+                  label="Sale price"
+                  value={item.soldPrice != null ? formatCurrency(Number(item.soldPrice)) : undefined}
+                />
+                <Detail
+                  label="Profit"
+                  value={
+                    item.soldPrice != null && item.costPrice != null
+                      ? formatCurrency(Number(item.soldPrice) - Number(item.costPrice) * (item.quantity ?? 1))
+                      : undefined
+                  }
+                />
+                <Detail label="Sold via" value={item.soldVia} />
+                <Detail
+                  label="Sold on"
+                  value={item.soldAt ? new Date(item.soldAt).toLocaleDateString() : undefined}
+                />
+                {item.soldNote && (
+                  <div className="col-span-2">
+                    <p className="text-xs uppercase tracking-wide text-zinc-500">Note</p>
+                    <p className="font-medium text-zinc-900">{item.soldNote}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {item.description && (
             <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">

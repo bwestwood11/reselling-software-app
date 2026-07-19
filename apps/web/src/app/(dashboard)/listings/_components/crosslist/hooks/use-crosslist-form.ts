@@ -92,6 +92,35 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
   const selectedExistingItem =
     itemDetail ?? inventoryItems.find((i: any) => i.id === selectedItemId);
 
+  // ── Already-posted detection ────────────────────────────────────────────────
+  // A DRAFT/PENDING/ACTIVE listing already exists for this item on a marketplace —
+  // block re-selecting that marketplace so the user doesn't create a duplicate listing.
+  // ENDED/FAILED/SOLD listings don't block — those marketplaces are free to re-list on.
+
+  const existingListingsByMarketplace: Record<string, any> =
+    itemMode === "existing" && itemDetail?.listings
+      ? itemDetail.listings.reduce((acc: Record<string, any>, l: any) => {
+          if (["DRAFT", "PENDING", "ACTIVE"].includes(l.status) && !acc[l.marketplace]) {
+            acc[l.marketplace] = l;
+          }
+          return acc;
+        }, {})
+      : {};
+
+  // Drop any already-selected marketplace that just became blocked (e.g. switching items, or
+  // the item detail finishing its async load). Keyed on the blocked-marketplace set itself
+  // (not the object reference, which is new every render) to avoid re-running every render.
+  const blockedMarketplacesKey = Object.keys(existingListingsByMarketplace).sort().join(",");
+  useEffect(() => {
+    setSelectedConnectionIds((prev) =>
+      prev.filter((id) => {
+        const conn = connections.find((c: any) => c.id === id);
+        return !conn || !existingListingsByMarketplace[conn.marketplace];
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemMode, selectedItemId, blockedMarketplacesKey]);
+
   // ── Mercari category init ─────────────────────────────────────────────────
 
   useEffect(() => {
@@ -731,6 +760,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     isEbay,
     isMercari,
     crossFillBanners,
+    existingListingsByMarketplace,
 
     // Sub-hooks
     ebay,
