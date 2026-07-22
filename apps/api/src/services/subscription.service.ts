@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { PrismaClient } from "@repo/db";
+import { Prisma, type PrismaClient } from "@repo/db";
 import {
   PLANS,
   AI_CREDIT_TOPUP,
@@ -209,7 +209,7 @@ export class SubscriptionService {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${webUrl}/settings/billing?success=true`,
+      success_url: `${webUrl}/settings/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/settings/billing`,
       metadata: { userId, plan, interval },
       subscription_data: {
@@ -236,7 +236,7 @@ export class SubscriptionService {
       mode: "payment",
       payment_method_types: ["card"],
       line_items: [{ price: AI_CREDIT_TOPUP.stripePriceId, quantity: packs }],
-      success_url: `${webUrl}/settings/billing?topup_success=true`,
+      success_url: `${webUrl}/settings/billing?topup_success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/settings/billing`,
       metadata: { userId, topup: "AI_CREDITS", totalCredits: String(totalCredits) },
     });
@@ -261,13 +261,39 @@ export class SubscriptionService {
   // ── Webhook handling ────────────────────────────────────────────────────────
 
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
+    // Idempotency: Stripe delivers events at-least-once and redelivers on retry.
+    // Record each event id first; if the insert conflicts, we've already handled
+    // it — skip. The @id primary key makes this atomic, so two concurrent
+    // deliveries of the same event can't both proceed.
+    try {
+      await this.db.stripeWebhookEvent.create({
+        data: { id: event.id, type: event.type },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        return; // duplicate delivery — already processed
+      }
+      throw err;
+    }
+
+    try {
+      await this.dispatchWebhookEvent(event);
+    } catch (err) {
+      // A genuine handler failure: drop the marker so Stripe's retry can
+      // reprocess the event cleanly instead of being deduped away.
+      await this.db.stripeWebhookEvent.delete({ where: { id: event.id } }).catch(() => {});
+      throw err;
+    }
+  }
+
+  private async dispatchWebhookEvent(event: Stripe.Event): Promise<void> {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription" && session.subscription) {
           const stripe = getStripe();
           const stripeSub = await stripe.subscriptions.retrieve(session.subscription as string);
-          await this.provisionSubscription(stripeSub);
+          await this.provisionSubscription(stripeSub, session.id);
         } else if (session.mode === "payment") {
           await this.provisionTopupPurchase(session);
         }
@@ -350,7 +376,17 @@ export class SubscriptionService {
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
-  private async provisionSubscription(stripeSub: Stripe.Subscription): Promise<void> {
+  /**
+   * Upsert a subscription and grant its AI allotment. Idempotent: credits are SET
+   * (never incremented), and when a `checkoutSessionId` is supplied the grant
+   * ledger row is keyed on it so the webhook and the landing-page verify endpoint
+   * — which both provision the same checkout — can't double-grant. The unique
+   * `stripeSessionId` constraint is the hard backstop against a concurrent race.
+   */
+  private async provisionSubscription(
+    stripeSub: Stripe.Subscription,
+    checkoutSessionId?: string
+  ): Promise<void> {
     const priceId = stripeSub.items.data[0]?.price.id;
     if (!priceId) return;
 
@@ -373,49 +409,73 @@ export class SubscriptionService {
       existing.plan !== planKey ||
       existing.status !== status;
 
+    // Cross-path dedup: if a grant for this checkout session already exists, the
+    // other path (webhook or verify) beat us to it — sync the sub fields but skip
+    // the grant so credits and the ledger aren't duplicated.
+    const alreadyGranted =
+      isNewOrChanged && checkoutSessionId
+        ? (await this.db.creditTransaction.findUnique({
+            where: { stripeSessionId: checkoutSessionId },
+          })) !== null
+        : false;
+    const shouldGrant = isNewOrChanged && !alreadyGranted;
+
     const trialEnd = stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null;
 
-    await this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.upsert({
-        where: { userId },
-        create: {
-          userId,
-          stripeCustomerId: stripeSub.customer as string,
-          stripeSubscriptionId: stripeSub.id,
-          stripePriceId: priceId,
-          plan: planKey,
-          status,
-          billingInterval: interval,
-          aiCredits: allotment,
-          currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
-          trialEndsAt: trialEnd,
-          cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-        },
-        update: {
-          stripeSubscriptionId: stripeSub.id,
-          stripePriceId: priceId,
-          plan: planKey,
-          status,
-          billingInterval: interval,
-          currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
-          trialEndsAt: trialEnd,
-          cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-          ...(isNewOrChanged && { aiCredits: allotment }),
-        },
-      });
-
-      if (isNewOrChanged) {
-        const label =
-          status === "TRIALING"
-            ? `${PLANS[planKey].name} trial started — ${allotment} smart AI credits`
-            : `${PLANS[planKey].name} plan activated — ${allotment} smart AI credits`;
-        await tx.creditTransaction.create({
-          data: { subscriptionId: sub.id, userId, amount: allotment, description: label },
+    try {
+      await this.db.$transaction(async (tx) => {
+        const sub = await tx.subscription.upsert({
+          where: { userId },
+          create: {
+            userId,
+            stripeCustomerId: stripeSub.customer as string,
+            stripeSubscriptionId: stripeSub.id,
+            stripePriceId: priceId,
+            plan: planKey,
+            status,
+            billingInterval: interval,
+            aiCredits: allotment,
+            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+            trialEndsAt: trialEnd,
+            cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+          },
+          update: {
+            stripeSubscriptionId: stripeSub.id,
+            stripePriceId: priceId,
+            plan: planKey,
+            status,
+            billingInterval: interval,
+            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+            trialEndsAt: trialEnd,
+            cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+            ...(shouldGrant && { aiCredits: allotment }),
+          },
         });
-      }
-    });
+
+        if (shouldGrant) {
+          const label =
+            status === "TRIALING"
+              ? `${PLANS[planKey].name} trial started — ${allotment} smart AI credits`
+              : `${PLANS[planKey].name} plan activated — ${allotment} smart AI credits`;
+          await tx.creditTransaction.create({
+            data: {
+              subscriptionId: sub.id,
+              userId,
+              amount: allotment,
+              description: label,
+              ...(checkoutSessionId && { stripeSessionId: checkoutSessionId }),
+            },
+          });
+        }
+      });
+    } catch (err) {
+      // A concurrent path already recorded the grant for this session — its
+      // unique stripeSessionId rolled our transaction back. Safe to treat as done.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return;
+      throw err;
+    }
   }
 
   private async provisionTopupPurchase(session: Stripe.Checkout.Session): Promise<void> {
@@ -423,26 +483,82 @@ export class SubscriptionService {
     const creditsStr = session.metadata?.["totalCredits"];
     if (!userId || session.metadata?.["topup"] !== "AI_CREDITS" || !creditsStr) return;
 
+    // Only credit an actually-paid one-time purchase.
+    if (session.payment_status !== "paid") return;
+
     const credits = parseInt(creditsStr, 10);
     if (isNaN(credits) || credits <= 0) return;
 
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub) return;
 
-    await this.db.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: { bonusAiCredits: { increment: credits } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: credits,
-          description: `${AI_CREDIT_TOPUP.name} — purchased ${credits} credits`,
-        },
-      });
+    // Idempotency: the unique stripeSessionId guarantees the top-up is applied
+    // exactly once no matter how many times this runs (webhook + verify race).
+    const already = await this.db.creditTransaction.findUnique({
+      where: { stripeSessionId: session.id },
     });
+    if (already) return;
+
+    try {
+      await this.db.$transaction(async (tx) => {
+        await tx.creditTransaction.create({
+          data: {
+            subscriptionId: sub.id,
+            userId,
+            amount: credits,
+            description: `${AI_CREDIT_TOPUP.name} — purchased ${credits} credits`,
+            stripeSessionId: session.id,
+          },
+        });
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { bonusAiCredits: { increment: credits } },
+        });
+      });
+    } catch (err) {
+      // Unique-constraint violation → a concurrent caller already provisioned it.
+      if (err instanceof Error && err.message.includes("stripeSessionId")) return;
+      throw err;
+    }
+  }
+
+  /**
+   * Verify a completed Checkout Session directly with Stripe and provision the
+   * result, without waiting for (or trusting) the webhook. Called when the user
+   * lands back on the billing page with `?session_id=…`. Safe to call repeatedly:
+   * subscription upserts are idempotent and top-ups are keyed on the session id.
+   */
+  async verifyAndProvisionSession(userId: string, sessionId: string) {
+    if (!sessionId || typeof sessionId !== "string") {
+      throw new Error("A checkout session id is required.");
+    }
+
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    // Ownership: the session must belong to the authenticated user. This is the
+    // critical guard — the session id comes from a URL and must not let one user
+    // provision against another's checkout.
+    if (session.metadata?.["userId"] !== userId) {
+      throw new Error("This checkout session does not belong to your account.");
+    }
+
+    if (session.mode === "subscription" && session.subscription) {
+      // A subscription session is "complete" once the trial/subscription is set
+      // up, even before the first charge — provision from the live subscription.
+      if (session.status !== "complete") {
+        throw new Error("Checkout is not complete yet. Please try again in a moment.");
+      }
+      const stripeSub = await stripe.subscriptions.retrieve(session.subscription as string);
+      await this.provisionSubscription(stripeSub, session.id);
+    } else if (session.mode === "payment") {
+      if (session.payment_status !== "paid") {
+        throw new Error("Payment has not completed yet. Please try again in a moment.");
+      }
+      await this.provisionTopupPurchase(session);
+    }
+
+    return this.getCurrent(userId);
   }
 
   private mapStripeStatus(

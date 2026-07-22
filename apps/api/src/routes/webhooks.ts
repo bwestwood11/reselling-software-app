@@ -50,7 +50,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Handler error";
       fastify.log.error(`Stripe webhook handler error [${event.type}]: ${message}`);
-      // Return 200 to prevent Stripe retrying — log the error instead
+      // Ask Stripe to retry: handleWebhookEvent rolled back its dedup marker on
+      // failure, and every handler is idempotent, so a redelivery is safe.
+      return reply.status(500).send({ error: "Webhook handler failed" });
     }
 
     return reply.send({ received: true });

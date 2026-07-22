@@ -272,7 +272,21 @@ model CreditTransaction {
   amount         Int // positive = credits added, negative = credits used
   description    String
   listingId      String?
+  // Stripe Checkout Session id that produced this ledger entry. Unique so a
+  // one-time purchase is provisioned exactly once, whether the webhook or the
+  // post-checkout verify endpoint gets there first.
+  stripeSessionId String?     @unique
   createdAt      DateTime     @default(now())
+}
+
+// Dedup log for Stripe webhook deliveries. Stripe delivers events at-least-once
+// (and may redeliver on retries), so we record each processed event id and skip
+// any we've already handled. The @id primary key makes the insert atomic, so
+// concurrent duplicate deliveries can't both be processed.
+model StripeWebhookEvent {
+  id        String   @id // Stripe event id (evt_...)
+  type      String
+  createdAt DateTime @default(now())
 }
 
 // ─── Mercari Extension Jobs ───────────────────────────────────────────────────

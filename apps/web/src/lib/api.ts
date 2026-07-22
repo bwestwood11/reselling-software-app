@@ -274,6 +274,11 @@ export const subscriptionApi = {
       method: "POST",
       body: JSON.stringify({ packs }),
     }),
+  verifySession: (sessionId: string) =>
+    request<any>("/api/subscriptions/verify-session", {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    }),
   createPortal: () =>
     request<any>("/api/subscriptions/portal", { method: "POST" }),
 };

@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { subscriptionApi } from "@/lib/api";
 import type { SubscriptionInfo, PlanType, BillingInterval } from "@repo/types";
 import {
@@ -186,8 +186,10 @@ export default function BillingPage() {
 
 function BillingContent() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const justSubscribed = searchParams.get("success") === "true";
   const topupSuccess = searchParams.get("topup_success") === "true";
+  const sessionId = searchParams.get("session_id");
 
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [packs, setPacks] = useState(1);
@@ -197,6 +199,37 @@ function BillingContent() {
     queryFn: () => subscriptionApi.getCurrent(),
     staleTime: 30_000,
   });
+
+  // On return from Stripe, verify the checkout session server-side (which
+  // provisions the subscription/credits idempotently) rather than trusting the
+  // webhook alone. Runs once per session_id.
+  const verifiedRef = useRef<string | null>(null);
+  const verifyMutation = useMutation({
+    mutationFn: (id: string) =>
+      subscriptionApi.verifySession(id) as Promise<{ data: SubscriptionInfo }>,
+    onSuccess: ({ data }) => {
+      queryClient.setQueryData(["subscription"], { data });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      // Strip session_id from the URL so a refresh doesn't re-verify.
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?${topupSuccess ? "topup_success" : "success"}=true`
+      );
+    },
+    onError: (err: Error) =>
+      toast.error(err.message ?? "We couldn't confirm your payment. Please contact support."),
+  });
+
+  useEffect(() => {
+    if (sessionId && verifiedRef.current !== sessionId) {
+      verifiedRef.current = sessionId;
+      verifyMutation.mutate(sessionId);
+    }
+  }, [sessionId, verifyMutation]);
+
+  const isVerifying = verifyMutation.isPending;
+  const verifyFailed = verifyMutation.isError;
 
   const subscription = subData?.data;
   const isActive = subscription?.isActive ?? false;
@@ -250,8 +283,31 @@ function BillingContent() {
         </p>
       </div>
 
-      {/* Success banners */}
-      {justSubscribed && (
+      {/* Verification / success banners */}
+      {isVerifying && (
+        <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-blue-600" />
+          <div>
+            <p className="text-sm font-medium text-blue-800">Confirming your payment…</p>
+            <p className="text-xs text-blue-600">
+              We&apos;re verifying your checkout with Stripe and activating your account.
+            </p>
+          </div>
+        </div>
+      )}
+      {verifyFailed && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+          <div>
+            <p className="text-sm font-medium text-red-800">We couldn&apos;t confirm your payment</p>
+            <p className="text-xs text-red-600">
+              {verifyMutation.error?.message ??
+                "Your payment may still be processing. Refresh in a moment, or contact support if this persists."}
+            </p>
+          </div>
+        </div>
+      )}
+      {justSubscribed && !isVerifying && !verifyFailed && (
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
           <div>
@@ -262,7 +318,7 @@ function BillingContent() {
           </div>
         </div>
       )}
-      {topupSuccess && (
+      {topupSuccess && !isVerifying && !verifyFailed && (
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
           <div>

@@ -59,6 +59,27 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // POST /api/subscriptions/verify-session
+  // Body: { sessionId: string } — verify a Stripe Checkout Session on return and
+  // provision the subscription/credits idempotently (does not trust the webhook).
+  fastify.post<{ Body: { sessionId?: string } }>(
+    "/verify-session",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { sessionId } = request.body ?? {};
+      if (!sessionId) {
+        return reply.status(400).send({ success: false, error: "sessionId is required" });
+      }
+      try {
+        const data = await svc.verifyAndProvisionSession(request.user!.id, sessionId);
+        return reply.send({ success: true, data });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
   // POST /api/subscriptions/portal
   fastify.post("/portal", { preHandler: requireAuth }, async (request, reply) => {
     try {
