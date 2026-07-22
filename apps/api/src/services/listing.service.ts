@@ -7,7 +7,6 @@ import type {
 import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
-import { SubscriptionService } from "./subscription.service";
 
 interface ListOptions {
   page: number;
@@ -36,11 +35,7 @@ interface UpdateInput {
 }
 
 export class ListingService {
-  private subscriptionSvc: SubscriptionService;
-
-  constructor(private db: PrismaClient) {
-    this.subscriptionSvc = new SubscriptionService(db);
-  }
+  constructor(private db: PrismaClient) {}
 
   async list(userId: string, opts: ListOptions) {
     const { skip, take, page, limit } = getPaginationParams(opts.page, opts.limit);
@@ -158,12 +153,7 @@ export class ListingService {
 
     if (!listing) throw new Error("Listing not found");
 
-    // Deduct 1 credit (throws if user has no active subscription or no credits)
-    await this.subscriptionSvc.deductListingCredit(
-      userId,
-      id,
-      listing.marketplace as string
-    );
+    // Cross-listing is unlimited on every plan — no per-listing credit is charged.
 
     // Create a sync event
     await this.db.syncEvent.create({
@@ -260,13 +250,6 @@ export class ListingService {
 
       return updated;
     } catch (err) {
-      // Refund the credit since the publish failed
-      await this.subscriptionSvc.refundListingCredit(
-        userId,
-        id,
-        listing.marketplace as string
-      );
-
       const message = err instanceof Error ? err.message : "Unknown error";
       await this.db.listing.update({
         where: { id },
@@ -390,8 +373,6 @@ export class ListingService {
       where: { id, userId, marketplace: "MERCARI", status: "DRAFT" },
     });
     if (!listing) throw new Error("Listing not found or already published");
-
-    await this.subscriptionSvc.deductListingCredit(userId, id, "MERCARI");
 
     const updated = await this.db.listing.update({
       where: { id },

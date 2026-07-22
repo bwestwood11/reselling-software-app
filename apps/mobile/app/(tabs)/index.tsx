@@ -32,11 +32,13 @@ export default function DashboardScreen() {
   const stats: DashboardStats | undefined = statsData?.data;
   const subscription: SubscriptionInfo | undefined = subData?.data;
 
-  const isActive =
-    subscription?.status === "ACTIVE" || subscription?.status === "TRIALING";
+  const isActive = subscription?.isActive ?? false;
+  const totalCredits = subscription
+    ? subscription.aiCredits + subscription.bonusAiCredits
+    : 0;
   const creditPct =
-    isActive && subscription?.monthlyCredits
-      ? Math.max(0, Math.min(1, subscription.credits / subscription.monthlyCredits))
+    isActive && subscription?.monthlyAiCredits
+      ? Math.max(0, Math.min(1, subscription.aiCredits / subscription.monthlyAiCredits))
       : 0;
 
   return (
@@ -91,17 +93,21 @@ export default function DashboardScreen() {
                   <Feather name="zap" size={12} color="#ea580c" />
                 </View>
                 <Text style={s.creditsPlan}>
-                  {subscription.plan ? `${subscription.plan} Plan` : "No Plan"}
+                  {subscription.isTrialing
+                    ? "Free Trial"
+                    : subscription.plan
+                      ? `${subscription.plan} Plan`
+                      : "No Plan"}
                 </Text>
               </View>
 
               {isActive ? (
                 <Text style={s.creditsCount}>
-                  <Text style={s.creditsNum}>{subscription.credits}</Text>
-                  <Text style={s.creditsMax}> / {subscription.monthlyCredits}</Text>
+                  <Text style={s.creditsNum}>{totalCredits}</Text>
+                  <Text style={s.creditsMax}> / {subscription.monthlyAiCredits}</Text>
                 </Text>
               ) : (
-                <Text style={s.upgradeText}>Upgrade →</Text>
+                <Text style={s.upgradeText}>Start trial →</Text>
               )}
             </View>
 
@@ -113,14 +119,10 @@ export default function DashboardScreen() {
 
             <Text style={s.creditsHint}>
               {!isActive
-                ? "Subscribe to unlock crossposting to marketplaces"
-                : subscription.plan === "FREE" && subscription.credits > 0
-                  ? "Free credits — upgrade for monthly renewals"
-                  : subscription.credits === 0
-                    ? subscription.plan === "FREE"
-                      ? "No credits left — upgrade for more"
-                      : "Credits renew at the start of your next billing cycle"
-                    : "1 credit used per marketplace crosspost"}
+                ? "Start your free trial to unlock crossposting & AI tools"
+                : totalCredits === 0
+                  ? "No AI credits left — buy a top-up to keep using AI tools"
+                  : "Smart AI credits — BG removal costs 1, other tools cost 5"}
             </Text>
           </View>
         ) : null}

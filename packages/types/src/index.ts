@@ -246,22 +246,25 @@ export type SubscriptionStatus =
   | "CANCELLED"
   | "TRIALING";
 
+export type BillingInterval = "monthly" | "yearly";
+
 export interface SubscriptionInfo {
   plan: PlanType | null;
   status: SubscriptionStatus;
-  credits: number;
-  inventoryCredits: number;
-  bgRemovalCredits: number;
-  ironToolCredits: number;
-  flatLayCredits: number;
-  ghostMannequinCredits: number;
-  /** null = unlimited (paid plan) */
-  monthlyCredits: number | null;
-  /** null = unlimited (paid plan) */
-  monthlyInventoryCredits: number | null;
-  /** null = plan does not include bg removal */
-  monthlyBgRemovalCredits: number | null;
+  billingInterval: BillingInterval | null;
+  /** Remaining smart AI credits from the monthly allotment. */
+  aiCredits: number;
+  /** Remaining purchased top-up credits (never expire). */
+  bonusAiCredits: number;
+  /** Monthly smart AI credit allotment for the current plan/status. */
+  monthlyAiCredits: number;
+  /** Hard cap on distinct inventory items for the current plan/status. */
+  inventoryLimit: number;
+  /** How many inventory items the user currently holds. */
+  inventoryUsed: number;
   currentPeriodEnd: string | null;
+  trialEndsAt: string | null;
   cancelAtPeriodEnd: boolean;
-  isUnlimited: boolean;
+  isTrialing: boolean;
+  isActive: boolean;
 }

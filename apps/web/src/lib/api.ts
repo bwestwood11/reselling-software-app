@@ -264,15 +264,15 @@ export const uploadApi = {
 
 export const subscriptionApi = {
   getCurrent: () => request<any>("/api/subscriptions/current"),
-  createCheckout: (plan: string) =>
+  createCheckout: (plan: string, interval: "monthly" | "yearly" = "monthly") =>
     request<any>("/api/subscriptions/checkout", {
       method: "POST",
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, interval }),
     }),
-  createAddonCheckout: (addon: string, packs = 1) =>
-    request<any>("/api/subscriptions/addon-checkout", {
+  createTopupCheckout: (packs = 1) =>
+    request<any>("/api/subscriptions/topup-checkout", {
       method: "POST",
-      body: JSON.stringify({ addon, packs }),
+      body: JSON.stringify({ packs }),
     }),
   createPortal: () =>
     request<any>("/api/subscriptions/portal", { method: "POST" }),

@@ -250,15 +250,13 @@ model Subscription {
   stripePriceId        String?
   plan                 PlanType           @default(FREE)
   status               SubscriptionStatus @default(INACTIVE)
+  billingInterval      String?            // "monthly" | "yearly" (null until a plan is chosen)
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
+  trialEndsAt          DateTime?          // end of the 7-day free trial, if trialing
   cancelAtPeriodEnd    Boolean            @default(false)
-  credits              Int                @default(0) // listing credits (FREE tier: 20, paid: unused)
-  inventoryCredits     Int                @default(0) // inventory item credits (FREE tier: 40, paid: unused)
-  bgRemovalCredits     Int                @default(0) // plan-based monthly credits (FULL_TIME: 300, ENTERPRISE: 500)
-  ironToolCredits          Int                @default(0) // add-on credits, bought in packs of 100
-  flatLayCredits           Int                @default(0) // add-on credits, bought in packs of 100
-  ghostMannequinCredits    Int                @default(0) // add-on credits, bought in packs of 100
+  aiCredits            Int                @default(0) // monthly "smart AI credit" allotment, reset each cycle & on plan change
+  bonusAiCredits       Int                @default(0) // purchased top-up credits, never expire
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 

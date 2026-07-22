@@ -3,9 +3,6 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 
-const FREE_INVENTORY_CREDITS = 40; // max inventory items on free plan
-const FREE_LISTING_CREDITS = 20; // max crosspost credits on free plan
-
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -72,28 +69,20 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          // Provision a free-tier subscription for every new account
+          // Create an inactive subscription placeholder. There is no perpetual
+          // free tier — the user activates a 7-day trial (card required) from the
+          // billing page, which provisions credits via the Stripe webhook.
           try {
-            const subscription = await prisma.subscription.create({
+            await prisma.subscription.create({
               data: {
                 userId: user.id,
                 plan: "FREE",
-                status: "ACTIVE",
-                credits: FREE_LISTING_CREDITS,
-                inventoryCredits: FREE_INVENTORY_CREDITS,
-              },
-            });
-            await prisma.creditTransaction.create({
-              data: {
-                subscriptionId: subscription.id,
-                userId: user.id,
-                amount: FREE_LISTING_CREDITS,
-                description: `Free tier — ${FREE_INVENTORY_CREDITS} inventory slots, ${FREE_LISTING_CREDITS} listing credits`,
+                status: "INACTIVE",
               },
             });
           } catch (err) {
             // Non-fatal: log and continue so signup is never blocked
-            console.error("[auth] Failed to provision free subscription:", err);
+            console.error("[auth] Failed to provision subscription placeholder:", err);
           }
         },
       },

@@ -106,18 +106,15 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
     "/",
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const canAdd = await subSvc.checkInventoryCredits(request.user!.id);
-      if (!canAdd) {
-        return reply.status(403).send({
-          success: false,
-          error:
-            "You've reached the 40-item inventory limit on the free plan. Upgrade to add unlimited items.",
-        });
+      try {
+        await subSvc.assertCanAddInventory(request.user!.id);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Inventory limit reached";
+        return reply.status(403).send({ success: false, error: message });
       }
 
       const body = createItemSchema.parse(request.body);
       const item = await svc.create(request.user!.id, body);
-      await subSvc.deductInventoryCredit(request.user!.id);
       return reply.status(201).send({ success: true, data: item });
     }
   );

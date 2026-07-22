@@ -44,11 +44,13 @@ export function Sidebar() {
   }, [sessionData?.user]);
   const subscription = subData?.data;
 
-  const isActive =
-    subscription?.status === "ACTIVE" || subscription?.status === "TRIALING";
+  const isActive = subscription?.isActive ?? false;
+  const totalCredits = subscription
+    ? subscription.aiCredits + subscription.bonusAiCredits
+    : 0;
   const creditPct =
-    isActive && subscription?.monthlyCredits
-      ? Math.max(0, Math.min(100, (subscription.credits / subscription.monthlyCredits) * 100))
+    isActive && subscription?.monthlyAiCredits
+      ? Math.max(0, Math.min(100, (subscription.aiCredits / subscription.monthlyAiCredits) * 100))
       : 0;
 
   async function handleSignOut() {
@@ -114,7 +116,7 @@ export function Sidebar() {
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3 w-3 text-orange-500" />
                 <span className="text-xs font-semibold text-zinc-700">
-                  {subscription.plan} Plan
+                  {subscription.isTrialing ? "Free Trial" : `${subscription.plan} Plan`}
                 </span>
               </div>
               <Link
@@ -126,10 +128,10 @@ export function Sidebar() {
             </div>
             <div className="mb-1.5 flex items-baseline gap-1">
               <span className="text-lg font-bold tabular-nums text-zinc-900">
-                {subscription.credits}
+                {totalCredits.toLocaleString()}
               </span>
               <span className="text-xs text-zinc-400">
-                / {subscription.monthlyCredits} credits
+                / {subscription.monthlyAiCredits.toLocaleString()} AI credits
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
@@ -138,24 +140,18 @@ export function Sidebar() {
                 style={{ width: `${creditPct}%` }}
               />
             </div>
-            {subscription.credits === 0 && subscription.plan === "FREE" && (
+            {totalCredits === 0 ? (
               <p className="mt-1.5 text-[10px] text-red-500">
-                No credits left —{" "}
+                No AI credits left —{" "}
                 <a href="/settings/billing" className="underline">
-                  upgrade to get more
+                  buy a top-up
                 </a>
               </p>
-            )}
-            {subscription.credits === 0 && subscription.plan !== "FREE" && (
-              <p className="mt-1.5 text-[10px] text-red-500">
-                No credits left — renews next cycle
-              </p>
-            )}
-            {subscription.plan === "FREE" && subscription.credits > 0 && (
+            ) : subscription.bonusAiCredits > 0 ? (
               <p className="mt-1.5 text-[10px] text-zinc-400">
-                Free credits don&apos;t refresh monthly
+                includes {subscription.bonusAiCredits.toLocaleString()} top-up credits
               </p>
-            )}
+            ) : null}
           </div>
         ) : (
           <Link

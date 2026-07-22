@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
+import { photoEditCreditCost } from "../config/plans";
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION ?? "us-east-1",
@@ -63,11 +64,13 @@ async function callPhotoroomV2(
 
 export async function uploadRoutes(fastify: FastifyInstance) {
   // POST /api/upload
-  // Optional PhotoRoom v2 editing via query params:
-  //   ?removeBackground=true  — bg removal (Full-Time / Enterprise plan, monthly credits)
-  //   ?flatLay=true           — flat lay generation (add-on credits required)
-  //   ?ironing=true           — wrinkle removal (add-on credits required)
-  //   ?ghostMannequin=true    — mannequin removal (add-on credits required)
+  // Optional PhotoRoom v2 editing via query params, billed from the smart AI credit pool:
+  //   ?removeBackground=true  — background removal (1 credit)
+  //   ?flatLay=true           — flat lay generation (5 credits)
+  //   ?ironing=true           — wrinkle removal (5 credits)
+  //   ?ghostMannequin=true    — mannequin removal (5 credits)
+  // Combined effects run in one PhotoRoom call and cost the highest single tier
+  // (e.g. ghost mannequin + background removal = 5 credits, not 6).
   fastify.post(
     "/",
     { preHandler: [requireAuth] },
@@ -106,49 +109,17 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       const usePhotoroom =
         editOptions.removeBackground || editOptions.flatLay || editOptions.ironing || editOptions.ghostMannequin;
 
-      // ── Credit pre-checks (before consuming file buffer) ────────────────────
-      if (usePhotoroom) {
+      // ── Credit pre-check (before consuming file buffer) ─────────────────────
+      const creditCost = photoEditCreditCost(editOptions);
+      if (usePhotoroom && creditCost > 0) {
         const subSvc = new SubscriptionService(fastify.prisma);
-        const userId = request.user!.id;
-
-        if (editOptions.removeBackground) {
-          const ok = await subSvc.checkBgRemovalCredit(userId);
-          if (!ok) {
-            return reply.status(403).send({
-              success: false,
-              error:
-                "Background removal requires the Full-Time or Enterprise plan with credits remaining.",
-            });
-          }
-        }
-        if (editOptions.ironing) {
-          const ok = await subSvc.checkIronToolCredit(userId);
-          if (!ok) {
-            return reply.status(403).send({
-              success: false,
-              error: "No Iron Tool credits remaining. Purchase a pack from your billing settings.",
-            });
-          }
-        }
-        if (editOptions.flatLay) {
-          const ok = await subSvc.checkFlatLayCredit(userId);
-          if (!ok) {
-            return reply.status(403).send({
-              success: false,
-              error:
-                "No Flat Lay credits remaining. Purchase a pack from your billing settings.",
-            });
-          }
-        }
-        if (editOptions.ghostMannequin) {
-          const ok = await subSvc.checkGhostMannequinCredit(userId);
-          if (!ok) {
-            return reply.status(403).send({
-              success: false,
-              error:
-                "No Ghost Mannequin credits remaining. Purchase a pack from your billing settings.",
-            });
-          }
+        const ok = await subSvc.checkAiCredits(request.user!.id, creditCost);
+        if (!ok) {
+          return reply.status(403).send({
+            success: false,
+            error:
+              "You don't have enough smart AI credits for this edit. Upgrade your plan or buy a top-up.",
+          });
         }
       }
 
@@ -174,16 +145,24 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         }
 
         // Deduct credits only after successful PhotoRoom processing
-        const subSvc = new SubscriptionService(fastify.prisma);
-        const userId = request.user!.id;
-        try {
-          if (editOptions.removeBackground) await subSvc.deductBgRemovalCredit(userId);
-          if (editOptions.ironing) await subSvc.deductIronToolCredit(userId);
-          if (editOptions.flatLay) await subSvc.deductFlatLayCredit(userId);
-          if (editOptions.ghostMannequin) await subSvc.deductGhostMannequinCredit(userId);
-        } catch (err) {
-          fastify.log.error({ err }, "[upload] Credit deduction failed after PhotoRoom success");
-          // Non-fatal: image was processed successfully, don't fail the upload
+        if (creditCost > 0) {
+          const subSvc = new SubscriptionService(fastify.prisma);
+          const effects = [
+            editOptions.removeBackground && "background removal",
+            editOptions.ghostMannequin && "ghost mannequin",
+            editOptions.flatLay && "flat lay",
+            editOptions.ironing && "iron tool",
+          ].filter(Boolean);
+          try {
+            await subSvc.deductAiCredits(
+              request.user!.id,
+              creditCost,
+              `AI photo edit — ${effects.join(", ")}`
+            );
+          } catch (err) {
+            fastify.log.error({ err }, "[upload] Credit deduction failed after PhotoRoom success");
+            // Non-fatal: image was processed successfully, don't fail the upload
+          }
         }
       }
 

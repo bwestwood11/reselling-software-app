@@ -2,15 +2,14 @@ import Stripe from "stripe";
 import type { PrismaClient } from "@repo/db";
 import {
   PLANS,
-  ADDONS,
+  AI_CREDIT_TOPUP,
+  TRIAL_DAYS,
+  effectiveAllotments,
+  getStripePriceId,
   getPlanByStripePriceId,
-  getAddonByStripePriceId,
   isPaidPlan,
-  hasBgRemoval,
-  FREE_INVENTORY_CREDITS,
-  FREE_LISTING_CREDITS,
   type PlanKey,
-  type AddonKey,
+  type BillingInterval,
 } from "../config/plans";
 
 function getStripe(): Stripe {
@@ -19,266 +18,137 @@ function getStripe(): Stripe {
   return new Stripe(key);
 }
 
+function isEntitled(status: string): boolean {
+  return status === "ACTIVE" || status === "TRIALING";
+}
+
 export class SubscriptionService {
   constructor(private db: PrismaClient) {}
 
   // ── Read ────────────────────────────────────────────────────────────────────
 
   async getCurrent(userId: string) {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
+    const [sub, inventoryUsed] = await Promise.all([
+      this.db.subscription.findUnique({ where: { userId } }),
+      this.db.inventoryItem.count({ where: { userId } }),
+    ]);
+
     if (!sub) {
       return {
         plan: null,
         status: "INACTIVE" as const,
-        credits: 0,
-        inventoryCredits: 0,
-        bgRemovalCredits: 0,
-        ironToolCredits: 0,
-        flatLayCredits: 0,
-        ghostMannequinCredits: 0,
-        monthlyCredits: 0,
-        monthlyInventoryCredits: 0,
-        monthlyBgRemovalCredits: 0,
+        billingInterval: null,
+        aiCredits: 0,
+        bonusAiCredits: 0,
+        monthlyAiCredits: 0,
+        inventoryLimit: 0,
+        inventoryUsed,
         currentPeriodEnd: null,
+        trialEndsAt: null,
         cancelAtPeriodEnd: false,
-        isUnlimited: false,
+        isTrialing: false,
+        isActive: false,
       };
     }
+
     const planKey = sub.plan as PlanKey;
-    const unlimited =
-      isPaidPlan(planKey) && (sub.status === "ACTIVE" || sub.status === "TRIALING");
+    const { inventoryLimit, aiCredits: monthlyAiCredits } = effectiveAllotments(
+      planKey,
+      sub.status
+    );
+
     return {
       plan: sub.plan,
       status: sub.status,
-      credits: sub.credits,
-      inventoryCredits: sub.inventoryCredits,
-      bgRemovalCredits: sub.bgRemovalCredits,
-      ironToolCredits: sub.ironToolCredits,
-      flatLayCredits: sub.flatLayCredits,
-      ghostMannequinCredits: sub.ghostMannequinCredits,
-      monthlyCredits: unlimited ? null : FREE_LISTING_CREDITS,
-      monthlyInventoryCredits: unlimited ? null : FREE_INVENTORY_CREDITS,
-      monthlyBgRemovalCredits: unlimited ? (PLANS[planKey].bgRemovalCredits || null) : null,
+      billingInterval: sub.billingInterval,
+      aiCredits: sub.aiCredits,
+      bonusAiCredits: sub.bonusAiCredits,
+      monthlyAiCredits,
+      inventoryLimit,
+      inventoryUsed,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
       cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-      isUnlimited: unlimited,
+      isTrialing: sub.status === "TRIALING",
+      isActive: isEntitled(sub.status),
     };
   }
 
-  // ── Credit checks ───────────────────────────────────────────────────────────
+  // ── Inventory limit ───────────────────────────────────────────────────────────
 
-  async checkListingCredits(userId: string): Promise<boolean> {
+  /** True if the user may add another inventory item under their plan's cap. */
+  async checkInventoryLimit(userId: string): Promise<boolean> {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;
-    if (isPaidPlan(sub.plan as PlanKey)) return true;
-    return sub.credits > 0;
+    if (!sub || !isEntitled(sub.status)) return false;
+    const { inventoryLimit } = effectiveAllotments(sub.plan as PlanKey, sub.status);
+    const used = await this.db.inventoryItem.count({ where: { userId } });
+    return used < inventoryLimit;
   }
 
-  async checkInventoryCredits(userId: string): Promise<boolean> {
+  async assertCanAddInventory(userId: string): Promise<void> {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;
-    if (isPaidPlan(sub.plan as PlanKey)) return true;
-    return sub.inventoryCredits > 0;
+    if (!sub || !isEntitled(sub.status)) {
+      throw new Error("An active subscription is required to add inventory. Start your free trial.");
+    }
+    const { inventoryLimit } = effectiveAllotments(sub.plan as PlanKey, sub.status);
+    const used = await this.db.inventoryItem.count({ where: { userId } });
+    if (used >= inventoryLimit) {
+      throw new Error(
+        `You've reached your plan's limit of ${inventoryLimit.toLocaleString()} inventory items. Upgrade to add more.`
+      );
+    }
   }
 
-  async checkAiDescriptionAccess(userId: string): Promise<boolean> {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;
-    return isPaidPlan(sub.plan as PlanKey);
+  // ── Smart AI credits ────────────────────────────────────────────────────────
+
+  private aiBalance(sub: { aiCredits: number; bonusAiCredits: number }): number {
+    return sub.aiCredits + sub.bonusAiCredits;
   }
 
-  async checkBgRemovalCredit(userId: string): Promise<boolean> {
+  /** True if the user is entitled and has at least `cost` AI credits available. */
+  async checkAiCredits(userId: string, cost: number): Promise<boolean> {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) return false;
-    if (!hasBgRemoval(sub.plan as PlanKey)) return false;
-    return sub.bgRemovalCredits > 0;
+    if (!sub || !isEntitled(sub.status)) return false;
+    return this.aiBalance(sub) >= cost;
   }
 
-  async checkIronToolCredit(userId: string): Promise<boolean> {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub) return false;
-    return sub.ironToolCredits > 0;
-  }
-
-  async checkFlatLayCredit(userId: string): Promise<boolean> {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub) return false;
-    return sub.flatLayCredits > 0;
-  }
-
-  async checkGhostMannequinCredit(userId: string): Promise<boolean> {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub) return false;
-    return sub.ghostMannequinCredits > 0;
-  }
-
-  // ── Credit operations ───────────────────────────────────────────────────────
-
-  async deductListingCredit(userId: string, listingId: string, marketplace: string) {
-    return this.db.$transaction(async (tx) => {
+  /**
+   * Deduct `cost` AI credits, drawing from the monthly allotment first, then from
+   * purchased top-up credits. Throws if the user is not entitled or is short.
+   */
+  async deductAiCredits(
+    userId: string,
+    cost: number,
+    description: string,
+    listingId?: string
+  ): Promise<void> {
+    if (cost <= 0) return;
+    await this.db.$transaction(async (tx) => {
       const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) {
-        throw new Error("An active subscription is required to publish listings.");
+      if (!sub || !isEntitled(sub.status)) {
+        throw new Error("An active subscription is required to use AI features.");
       }
-      if (isPaidPlan(sub.plan as PlanKey)) return sub;
-      if (sub.credits <= 0) {
+      if (this.aiBalance(sub) < cost) {
         throw new Error(
-          "You have no listing credits remaining. Upgrade your plan to publish more listings."
+          "You don't have enough smart AI credits. Upgrade your plan or buy a top-up to continue."
         );
       }
-      const updated = await tx.subscription.update({
-        where: { id: sub.id },
-        data: { credits: { decrement: 1 } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: -1,
-          description: `Published listing to ${marketplace}`,
-          listingId,
-        },
-      });
-      return updated;
-    });
-  }
-
-  async deductInventoryCredit(userId: string) {
-    return this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) {
-        throw new Error("An active subscription is required to add inventory.");
-      }
-      if (isPaidPlan(sub.plan as PlanKey)) return sub;
-      if (sub.inventoryCredits <= 0) {
-        throw new Error(
-          "You've reached the 40-item inventory limit on the free plan. Upgrade to add unlimited items."
-        );
-      }
-      const updated = await tx.subscription.update({
-        where: { id: sub.id },
-        data: { inventoryCredits: { decrement: 1 } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: -1,
-          description: "Added inventory item",
-        },
-      });
-      return updated;
-    });
-  }
-
-  async deductBgRemovalCredit(userId: string) {
-    await this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub || (sub.status !== "ACTIVE" && sub.status !== "TRIALING")) {
-        throw new Error("Active subscription required for background removal.");
-      }
-      if (!hasBgRemoval(sub.plan as PlanKey)) {
-        throw new Error("Background removal requires the Full-Time or Enterprise plan.");
-      }
-      if (sub.bgRemovalCredits <= 0) {
-        throw new Error("No background removal credits remaining this month.");
-      }
+      const fromMonthly = Math.min(sub.aiCredits, cost);
+      const fromBonus = cost - fromMonthly;
       await tx.subscription.update({
         where: { id: sub.id },
-        data: { bgRemovalCredits: { decrement: 1 } },
-      });
-      await tx.creditTransaction.create({
         data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: -1,
-          description: "Background removal used",
+          aiCredits: { decrement: fromMonthly },
+          ...(fromBonus > 0 && { bonusAiCredits: { decrement: fromBonus } }),
         },
       });
-    });
-  }
-
-  async deductIronToolCredit(userId: string) {
-    await this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub) throw new Error("Subscription not found.");
-      if (sub.ironToolCredits <= 0) {
-        throw new Error("No Iron Tool credits remaining. Purchase a pack to continue.");
-      }
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: { ironToolCredits: { decrement: 1 } },
-      });
       await tx.creditTransaction.create({
         data: {
           subscriptionId: sub.id,
           userId,
-          amount: -1,
-          description: "Iron Tool used",
-        },
-      });
-    });
-  }
-
-  async deductFlatLayCredit(userId: string) {
-    await this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub) throw new Error("Subscription not found.");
-      if (sub.flatLayCredits <= 0) {
-        throw new Error("No Flat Lay credits remaining. Purchase a pack to continue.");
-      }
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: { flatLayCredits: { decrement: 1 } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: -1,
-          description: "Flat Lay Tool used",
-        },
-      });
-    });
-  }
-
-  async deductGhostMannequinCredit(userId: string) {
-    await this.db.$transaction(async (tx) => {
-      const sub = await tx.subscription.findUnique({ where: { userId } });
-      if (!sub) throw new Error("Subscription not found.");
-      if (sub.ghostMannequinCredits <= 0) {
-        throw new Error("No Ghost Mannequin credits remaining. Purchase a pack to continue.");
-      }
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: { ghostMannequinCredits: { decrement: 1 } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: -1,
-          description: "Ghost Mannequin used",
-        },
-      });
-    });
-  }
-
-  async refundListingCredit(userId: string, listingId: string, marketplace: string) {
-    const sub = await this.db.subscription.findUnique({ where: { userId } });
-    if (!sub || isPaidPlan(sub.plan as PlanKey)) return;
-    await this.db.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: { credits: { increment: 1 } },
-      });
-      await tx.creditTransaction.create({
-        data: {
-          subscriptionId: sub.id,
-          userId,
-          amount: 1,
-          description: `Refunded — publish to ${marketplace} failed`,
-          listingId,
+          amount: -cost,
+          description,
+          ...(listingId && { listingId }),
         },
       });
     });
@@ -286,109 +156,89 @@ export class SubscriptionService {
 
   // ── Stripe sessions ─────────────────────────────────────────────────────────
 
-  async createCheckoutSession(userId: string, plan: PlanKey) {
-    if (plan === "FREE") throw new Error("Cannot check out to the free plan.");
-    const planConfig = PLANS[plan];
-    if (!planConfig.stripePriceId) {
-      throw new Error(
-        `Stripe Price ID not configured for plan: ${plan}. Set STRIPE_${plan}_PRICE_ID in your environment.`
-      );
-    }
-
+  private async ensureCustomer(userId: string): Promise<string> {
     const stripe = getStripe();
     const user = await this.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error("User not found");
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    let sub = await this.db.subscription.findUnique({ where: { userId } });
-    let customerId: string;
+    const sub = await this.db.subscription.findUnique({ where: { userId } });
+    if (sub?.stripeCustomerId) return sub.stripeCustomerId;
 
-    if (sub?.stripeCustomerId) {
-      customerId = sub.stripeCustomerId;
-    } else {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: user.name,
-        metadata: { userId },
-      });
-      customerId = customer.id;
-      sub = await this.db.subscription.upsert({
-        where: { userId },
-        create: {
-          userId,
-          stripeCustomerId: customerId,
-          plan: "FREE",
-          status: "INACTIVE",
-          credits: 0,
-          inventoryCredits: 0,
-        },
-        update: { stripeCustomerId: customerId },
-      });
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: user.name,
+      metadata: { userId },
+    });
+    await this.db.subscription.upsert({
+      where: { userId },
+      create: {
+        userId,
+        stripeCustomerId: customer.id,
+        plan: "FREE",
+        status: "INACTIVE",
+      },
+      update: { stripeCustomerId: customer.id },
+    });
+    return customer.id;
+  }
+
+  /**
+   * Start a subscription checkout. Every new paid subscription begins with a
+   * {@link TRIAL_DAYS}-day free trial; a card is collected up front and charged
+   * automatically when the trial ends unless the user cancels.
+   */
+  async createCheckoutSession(userId: string, plan: PlanKey, interval: BillingInterval) {
+    if (!isPaidPlan(plan) || !PLANS[plan].selfServe) {
+      throw new Error(`Plan "${plan}" cannot be purchased self-serve.`);
     }
+    const priceId = getStripePriceId(plan, interval);
+    if (!priceId) {
+      throw new Error(`Stripe Price ID not configured for ${plan} (${interval}).`);
+    }
+
+    const stripe = getStripe();
+    const customerId = await this.ensureCustomer(userId);
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+
+    // Only offer the trial to users who have never subscribed before.
+    const existing = await this.db.subscription.findUnique({ where: { userId } });
+    const eligibleForTrial = !existing?.stripeSubscriptionId;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${webUrl}/settings/billing?success=true`,
       cancel_url: `${webUrl}/settings/billing`,
-      metadata: { userId, plan },
-      subscription_data: { metadata: { userId, plan } },
+      metadata: { userId, plan, interval },
+      subscription_data: {
+        metadata: { userId, plan, interval },
+        ...(eligibleForTrial && { trial_period_days: TRIAL_DAYS }),
+      },
     });
 
     return { url: session.url! };
   }
 
-  async createAddonCheckoutSession(userId: string, addon: AddonKey, packs = 1) {
-    const addonConfig = ADDONS[addon];
-    if (!addonConfig.stripePriceId) {
-      throw new Error(
-        `Stripe Price ID not configured for add-on: ${addon}. Set STRIPE_${addon}_PRICE_ID in your environment.`
-      );
+  /** One-time purchase of AI credit top-up packs. */
+  async createTopupCheckoutSession(userId: string, packs = 1) {
+    if (!AI_CREDIT_TOPUP.stripePriceId) {
+      throw new Error("AI credit top-up is not configured. Set STRIPE_AI_CREDITS_PRICE_ID.");
     }
-
     const stripe = getStripe();
-    const user = await this.db.user.findUnique({ where: { id: userId } });
-    if (!user) throw new Error("User not found");
-
+    const customerId = await this.ensureCustomer(userId);
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    let sub = await this.db.subscription.findUnique({ where: { userId } });
-    let customerId: string;
-
-    if (sub?.stripeCustomerId) {
-      customerId = sub.stripeCustomerId;
-    } else {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: user.name,
-        metadata: { userId },
-      });
-      customerId = customer.id;
-      await this.db.subscription.upsert({
-        where: { userId },
-        create: {
-          userId,
-          stripeCustomerId: customerId,
-          plan: "FREE",
-          status: "ACTIVE",
-          credits: FREE_LISTING_CREDITS,
-          inventoryCredits: FREE_INVENTORY_CREDITS,
-        },
-        update: { stripeCustomerId: customerId },
-      });
-    }
-
-    const totalCredits = packs * addonConfig.creditsPerPack;
+    const totalCredits = packs * AI_CREDIT_TOPUP.creditsPerPack;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "payment",
       payment_method_types: ["card"],
-      line_items: [{ price: addonConfig.stripePriceId, quantity: packs }],
-      success_url: `${webUrl}/settings/billing?addon_success=${addon}`,
+      line_items: [{ price: AI_CREDIT_TOPUP.stripePriceId, quantity: packs }],
+      success_url: `${webUrl}/settings/billing?topup_success=true`,
       cancel_url: `${webUrl}/settings/billing`,
-      metadata: { userId, addon, totalCredits: String(totalCredits) },
+      metadata: { userId, topup: "AI_CREDITS", totalCredits: String(totalCredits) },
     });
 
     return { url: session.url! };
@@ -397,7 +247,7 @@ export class SubscriptionService {
   async createPortalSession(userId: string) {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub?.stripeCustomerId) {
-      throw new Error("Billing portal is only available for paid subscribers.");
+      throw new Error("Billing portal is only available once you've started a subscription.");
     }
     const stripe = getStripe();
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
@@ -416,19 +266,16 @@ export class SubscriptionService {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription" && session.subscription) {
           const stripe = getStripe();
-          const stripeSub = await stripe.subscriptions.retrieve(
-            session.subscription as string
-          );
+          const stripeSub = await stripe.subscriptions.retrieve(session.subscription as string);
           await this.provisionSubscription(stripeSub);
         } else if (session.mode === "payment") {
-          await this.provisionAddonPurchase(session);
+          await this.provisionTopupPurchase(session);
         }
         break;
       }
 
       case "customer.subscription.updated": {
-        const stripeSub = event.data.object as Stripe.Subscription;
-        await this.provisionSubscription(stripeSub);
+        await this.provisionSubscription(event.data.object as Stripe.Subscription);
         break;
       }
 
@@ -439,9 +286,8 @@ export class SubscriptionService {
           data: {
             status: "CANCELLED",
             plan: "FREE",
-            credits: 0,
-            inventoryCredits: 0,
-            bgRemovalCredits: 0,
+            aiCredits: 0,
+            // bonusAiCredits are purchased outright — preserved on cancellation.
           },
         });
         break;
@@ -449,8 +295,8 @@ export class SubscriptionService {
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
+        // Replenish the monthly AI allotment on each renewal cycle.
         if (invoice.billing_reason !== "subscription_cycle") break;
-
         const subId =
           typeof invoice.subscription === "string"
             ? invoice.subscription
@@ -460,34 +306,29 @@ export class SubscriptionService {
         const stripe = getStripe();
         const stripeSub = await stripe.subscriptions.retrieve(subId);
         const priceId = stripeSub.items.data[0]?.price.id;
-        if (!priceId) break;
-
-        const planKey = getPlanByStripePriceId(priceId);
-        if (!planKey) break;
+        const match = priceId ? getPlanByStripePriceId(priceId) : null;
+        if (!match) break;
 
         const sub = await this.db.subscription.findFirst({
           where: { stripeSubscriptionId: subId },
         });
         if (!sub) break;
 
-        // Replenish bg removal credits on monthly renewal
-        const bgRemovalAllotment = PLANS[planKey].bgRemovalCredits;
-        if (bgRemovalAllotment > 0) {
-          await this.db.$transaction(async (tx) => {
-            await tx.subscription.update({
-              where: { id: sub.id },
-              data: { bgRemovalCredits: bgRemovalAllotment },
-            });
-            await tx.creditTransaction.create({
-              data: {
-                subscriptionId: sub.id,
-                userId: sub.userId,
-                amount: bgRemovalAllotment,
-                description: `Monthly renewal — ${bgRemovalAllotment} bg removal credits`,
-              },
-            });
+        const allotment = PLANS[match.plan].aiCredits;
+        await this.db.$transaction(async (tx) => {
+          await tx.subscription.update({
+            where: { id: sub.id },
+            data: { aiCredits: allotment },
           });
-        }
+          await tx.creditTransaction.create({
+            data: {
+              subscriptionId: sub.id,
+              userId: sub.userId,
+              amount: allotment,
+              description: `Monthly renewal — ${allotment} smart AI credits`,
+            },
+          });
+        });
         break;
       }
 
@@ -513,19 +354,26 @@ export class SubscriptionService {
     const priceId = stripeSub.items.data[0]?.price.id;
     if (!priceId) return;
 
-    const planKey = getPlanByStripePriceId(priceId);
-    if (!planKey) return;
+    const match = getPlanByStripePriceId(priceId);
+    if (!match) return;
+    const { plan: planKey, interval } = match;
 
     const userId = stripeSub.metadata["userId"];
     if (!userId) return;
 
     const status = this.mapStripeStatus(stripeSub.status);
-    const bgRemovalAllotment = PLANS[planKey].bgRemovalCredits;
+    const { aiCredits: allotment } = effectiveAllotments(planKey, status);
+
     const existing = await this.db.subscription.findUnique({ where: { userId } });
-    const isPlanChange =
+    // Regrant the AI allotment when the subscription is new, changes plan, or
+    // converts out of the trial into an active paid period.
+    const isNewOrChanged =
       !existing?.stripeSubscriptionId ||
       existing.stripeSubscriptionId !== stripeSub.id ||
-      existing.plan !== planKey;
+      existing.plan !== planKey ||
+      existing.status !== status;
+
+    const trialEnd = stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null;
 
     await this.db.$transaction(async (tx) => {
       const sub = await tx.subscription.upsert({
@@ -537,11 +385,11 @@ export class SubscriptionService {
           stripePriceId: priceId,
           plan: planKey,
           status,
-          credits: 0,
-          inventoryCredits: 0,
-          bgRemovalCredits: bgRemovalAllotment,
+          billingInterval: interval,
+          aiCredits: allotment,
           currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
           currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+          trialEndsAt: trialEnd,
           cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
         },
         update: {
@@ -549,31 +397,31 @@ export class SubscriptionService {
           stripePriceId: priceId,
           plan: planKey,
           status,
+          billingInterval: interval,
           currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
           currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+          trialEndsAt: trialEnd,
           cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-          ...(isPlanChange && { bgRemovalCredits: bgRemovalAllotment }),
+          ...(isNewOrChanged && { aiCredits: allotment }),
         },
       });
 
-      if (isPlanChange) {
+      if (isNewOrChanged) {
+        const label =
+          status === "TRIALING"
+            ? `${PLANS[planKey].name} trial started — ${allotment} smart AI credits`
+            : `${PLANS[planKey].name} plan activated — ${allotment} smart AI credits`;
         await tx.creditTransaction.create({
-          data: {
-            subscriptionId: sub.id,
-            userId,
-            amount: bgRemovalAllotment,
-            description: `${PLANS[planKey].name} plan activated${bgRemovalAllotment > 0 ? ` — ${bgRemovalAllotment} bg removal credits` : " — unlimited listings & inventory"}`,
-          },
+          data: { subscriptionId: sub.id, userId, amount: allotment, description: label },
         });
       }
     });
   }
 
-  private async provisionAddonPurchase(session: Stripe.Checkout.Session): Promise<void> {
+  private async provisionTopupPurchase(session: Stripe.Checkout.Session): Promise<void> {
     const userId = session.metadata?.["userId"];
-    const addonKey = session.metadata?.["addon"] as AddonKey | undefined;
     const creditsStr = session.metadata?.["totalCredits"];
-    if (!userId || !addonKey || !creditsStr) return;
+    if (!userId || session.metadata?.["topup"] !== "AI_CREDITS" || !creditsStr) return;
 
     const credits = parseInt(creditsStr, 10);
     if (isNaN(credits) || credits <= 0) return;
@@ -581,27 +429,17 @@ export class SubscriptionService {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub) return;
 
-    const creditField =
-      addonKey === "IRON_TOOL"
-        ? "ironToolCredits"
-        : addonKey === "FLAT_LAY"
-          ? "flatLayCredits"
-          : addonKey === "GHOST_MANNEQUIN"
-            ? "ghostMannequinCredits"
-            : null;
-    if (!creditField) return;
-
     await this.db.$transaction(async (tx) => {
       await tx.subscription.update({
         where: { id: sub.id },
-        data: { [creditField]: { increment: credits } },
+        data: { bonusAiCredits: { increment: credits } },
       });
       await tx.creditTransaction.create({
         data: {
           subscriptionId: sub.id,
           userId,
           amount: credits,
-          description: `${ADDONS[addonKey].name} — purchased ${credits} credits`,
+          description: `${AI_CREDIT_TOPUP.name} — purchased ${credits} credits`,
         },
       });
     });

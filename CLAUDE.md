@@ -38,12 +38,13 @@ Each app needs its own `.env` file. Copy `apps/api/.env.example` → `apps/api/.
 Stripe env vars required in `apps/api/.env`:
 - `STRIPE_SECRET_KEY` — Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
-- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle plan ($14.99/mo)
-- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time plan ($29.99/mo)
-- `STRIPE_ENTERPRISE_PRICE_ID` — recurring price ID for Enterprise plan ($59.99/mo)
-- `STRIPE_IRON_TOOL_PRICE_ID` — one-time price ID for Iron Tool add-on (100 credits, $15.00)
-- `STRIPE_FLAT_LAY_PRICE_ID` — one-time price ID for Flat Lay add-on (100 credits, $15.00)
-- `STRIPE_GHOST_MANNEQUIN_PRICE_ID` — one-time price ID for Ghost Mannequin add-on (100 credits, $20.00)
+- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle monthly ($39.99/mo)
+- `STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID` — recurring price ID for Side Hustle yearly ($34.99/mo billed annually)
+- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time monthly ($64.99/mo)
+- `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($59.99/mo billed annually)
+- `STRIPE_AI_CREDITS_PRICE_ID` — one-time price ID for the smart AI credit top-up (100 credits/pack)
+
+Enterprise is contact-sales (no self-serve price ID). Every new subscription starts with a 7-day free trial (card required; charged when the trial ends unless cancelled).
 
 ## Architecture
 
@@ -75,7 +76,7 @@ src/services/    inventory.service.ts | listing.service.ts | sync.service.ts | s
 src/middleware/  auth.ts (requireAuth — reads Better Auth session from headers)
 src/plugins/     prisma.ts (decorates fastify with fastify.prisma)
 src/jobs/        sync.job.ts (node-cron, every 30 min, syncs all active listings)
-src/config/      plans.ts (plan definitions: FREE/STARTER/PRO/PREMIUM with Stripe price IDs and credit amounts)
+src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRISE with inventory limits, monthly AI credits, monthly+yearly Stripe price IDs, AI credit costs, top-up config)
 ```
 
 **Plugins registered:** Helmet (CSP disabled), CORS (origin validation), Rate-limit (100/min), Prisma, Multipart (for file uploads).
@@ -110,13 +111,16 @@ src/config/      plans.ts (plan definitions: FREE/STARTER/PRO/PREMIUM with Strip
 - `GET /api/marketplaces/oauth/:marketplace/callback` — OAuth callback (verifies state, exchanges code, stores connection)
 
 **Subscription service (`SubscriptionService`):**
-- `getCurrent(userId)` — fetches subscription with credit balance
-- `checkCredits(userId)` — asserts user has ≥ 1 credit, throws if not
-- `deductCredit(userId, listingId, description)` — deducts 1 credit, creates a `CreditTransaction`
-- `refundCredit(userId, listingId, description)` — refunds 1 credit if a publish fails
-- `createCheckoutSession(userId, priceId)` — creates a Stripe Checkout session
+- `getCurrent(userId)` — subscription snapshot incl. AI credit balance and inventory usage/limit
+- `checkInventoryLimit(userId)` / `assertCanAddInventory(userId)` — enforce the plan's hard item cap (counts `InventoryItem` rows)
+- `checkAiCredits(userId, cost)` — true if entitled and the smart-AI-credit pool ≥ `cost`
+- `deductAiCredits(userId, cost, description, listingId?)` — draws from the monthly allotment first, then purchased top-up credits
+- `createCheckoutSession(userId, plan, interval)` — Stripe Checkout with a 7-day trial for first-time subscribers
+- `createTopupCheckoutSession(userId, packs)` — one-time purchase of AI credit packs
 - `createPortalSession(userId)` — creates a Stripe Customer Portal session
-- `handleWebhookEvent(event)` — handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` to sync subscription state and credit top-ups
+- `handleWebhookEvent(event)` — handles `checkout.session.completed`, `customer.subscription.updated`/`deleted`, `invoice.payment_succeeded` (monthly AI-credit replenish), and `invoice.payment_failed` (→ PAST_DUE)
+
+**Credit model:** A single "smart AI credit" pool powers every AI feature. Monthly allotment (`aiCredits`) is reset each billing cycle; purchased top-ups (`bonusAiCredits`) never expire and are drawn only after the monthly balance is used up. Costs: SEO description = 1, background removal = 1, iron/flat-lay/ghost-mannequin = 5. Combined PhotoRoom effects run in one API call and are charged once at the highest applicable tier (see `photoEditCreditCost` in `config/plans.ts`). Inventory is a hard per-plan item cap (FREE/trial 50, Side Hustle 1,500, Full-Time 3,000), enforced by counting `InventoryItem` rows — cross-listing to multiple marketplaces is unlimited and never charged.
 
 ### Authentication (`packages/auth`)
 
@@ -128,9 +132,9 @@ The web app proxies auth at `app/api/auth/[...all]/route.ts` via `toNextJsHandle
 
 Trusted origins: `localhost:3000`, `127.0.0.1:3000`, `relist://` (mobile scheme), `exp://*` (Expo Go), plus any custom origins from env.
 
-**New user hook:** `databaseHooks.user.create.after` automatically creates a FREE-tier `Subscription` with `FREE_TIER_CREDITS` (= 20) credits for every new user.
+**New user hook:** `databaseHooks.user.create.after` creates an INACTIVE `Subscription` placeholder (plan FREE, no credits). There is no perpetual free tier — the user starts a 7-day trial (card required) from the billing page, and credits are provisioned via the Stripe webhook.
 
-Exports from `packages/auth/src/index.ts`: `auth`, `Auth` (type), `Session` (type), `FREE_TIER_CREDITS`.
+Exports from `packages/auth/src/index.ts`: `auth`, `Auth` (type), `Session` (type).
 Exports from `packages/auth/src/client.ts`: `authClient`, `signIn`, `signOut`, `signUp`, `useSession`, `getSession`.
 
 ### Database (`packages/db`)
@@ -142,7 +146,7 @@ Prisma with PostgreSQL (Neon). Key models:
 - **Listing** — a marketplace listing derived from an `InventoryItem`; tracks `externalId`, `externalUrl`, `status`, `listedAt`, `soldAt`, `endedAt`, `lastSyncAt`, `syncError`, `marketplaceData` (JSON)
 - **MarketplaceConnection** — stored OAuth tokens per user per marketplace; fields: `userId`, `marketplace`, `accessToken`, `refreshToken`, `expiresAt`, `accountId`, `accountName`, `isActive`; unique constraint on `(userId, marketplace)`
 - **SyncEvent** — audit log of every publish/update/delist/error per listing; `status` field is a string (`success`/`failed`/`pending`); `data` is JSON
-- **Subscription** — one per user; fields: `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `plan` (PlanType), `status` (SubscriptionStatus), `currentPeriodStart`, `currentPeriodEnd`, `cancelAtPeriodEnd`, `credits`; unique on `userId`
+- **Subscription** — one per user; fields: `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `plan` (PlanType), `status` (SubscriptionStatus), `billingInterval` ("monthly"/"yearly"), `currentPeriodStart`, `currentPeriodEnd`, `trialEndsAt`, `cancelAtPeriodEnd`, `aiCredits` (monthly allotment), `bonusAiCredits` (purchased top-ups); unique on `userId`
 - **CreditTransaction** — ledger entry; `amount` is positive (add) or negative (use); linked to `subscriptionId`, `userId`, optional `listingId`
 
 `DATABASE_URL` is used for pooled connections; `DIRECT_URL` for migrations.
@@ -159,7 +163,7 @@ Factory pattern: `MarketplaceFactory.create(marketplace, connection)` returns a 
 
 eBay adapter maps internal `Condition` values to eBay `ConditionID` (1000 = NEW_WITH_TAGS, 1500 = NEW_WITHOUT_TAGS, 3000 = pre-owned). Uses the XML-based Trading API.
 
-Publishing a listing deducts 1 credit via `SubscriptionService.deductCredit`; if the adapter throws, the credit is automatically refunded.
+Publishing/cross-listing does not consume credits — it is unlimited on every plan. Credits are only spent on AI features (see the credit model above).
 
 ### Web frontend (`apps/web`)
 
@@ -217,7 +221,7 @@ App metadata: name "ReList", scheme "relist", bundle ID `com.relist.app`. Typed 
 
 ### Shared types (`packages/types`)
 
-Exports all domain enums (mirrored from Prisma for use without importing `@repo/db`), API shapes (`PaginatedResponse<T>`, `ApiResponse<T>`, `PaginationQuery`), input types for creating/updating inventory and listings (`CreateInventoryItemInput`, `UpdateInventoryItemInput`, `CreateListingInput`, `UpdateListingInput`, `MarketplaceOAuthCallbackInput`), `DashboardStats`, `SyncEventSummary`, `MarketplaceCount`, `AuthUser`, `Dimensions`, and `SubscriptionInfo` (includes plan, status, credits, `monthlyCredits`).
+Exports all domain enums (mirrored from Prisma for use without importing `@repo/db`), API shapes (`PaginatedResponse<T>`, `ApiResponse<T>`, `PaginationQuery`), input types for creating/updating inventory and listings (`CreateInventoryItemInput`, `UpdateInventoryItemInput`, `CreateListingInput`, `UpdateListingInput`, `MarketplaceOAuthCallbackInput`), `DashboardStats`, `SyncEventSummary`, `MarketplaceCount`, `AuthUser`, `Dimensions`, and `SubscriptionInfo` (plan, status, `billingInterval`, `aiCredits`, `bonusAiCredits`, `monthlyAiCredits`, `inventoryLimit`, `inventoryUsed`, `trialEndsAt`, `isTrialing`, `isActive`).
 
 Also exports `PlanType` and `SubscriptionStatus` enums mirroring the Prisma schema.
 

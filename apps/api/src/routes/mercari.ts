@@ -17,7 +17,6 @@ function parseMeta(raw: unknown): Record<string, unknown> {
 }
 import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
-import { SubscriptionService } from "../services/subscription.service";
 import {
   getRootCategories,
   getChildCategories,
@@ -215,16 +214,6 @@ export async function mercariRoutes(fastify: FastifyInstance) {
             message: errorMsg,
           },
         });
-        try {
-          const subscriptionSvc = new SubscriptionService(fastify.prisma);
-          await subscriptionSvc.refundListingCredit(
-            request.user!.id,
-            existing.listingId,
-            "MERCARI"
-          );
-        } catch {
-          fastify.log.error("Failed to refund Mercari credit for job %s", id);
-        }
       }
     }
 
