@@ -1,0 +1,14 @@
+{
+  "name": "mercari-publish-script",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Manual standalone script to publish a listing to Mercari (direct photo upload + ZenRows-routed createListing). Zero dependencies.",
+  "bin": {
+    "publish-mercari": "./publish-mercari.mjs"
+  },
+  "scripts": {
+    "publish": "node publish-mercari.mjs listing.json",
+    "dry-run": "node publish-mercari.mjs listing.json --dry-run"
+  }
+}

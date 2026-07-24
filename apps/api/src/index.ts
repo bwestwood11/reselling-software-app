@@ -2,6 +2,7 @@ import "dotenv/config";
 import { buildApp } from "./app";
 import { startSyncJob } from "./jobs/sync.job";
 // import { startPlaywrightWorker } from "./jobs/playwright.worker";
+import { startMercariZenRowsWorker } from "./jobs/mercari-zenrows.worker";
 import { seedMercariCategories } from "./jobs/mercari-categories.worker";
 import { prisma } from "@repo/db";
 import { MercariPlaywrightService } from "./services/playwright/mercari.playwright";
@@ -22,6 +23,8 @@ async function main() {
 
   startSyncJob();
   // startPlaywrightWorker();
+  // Server-side Mercari publish fallback (only active when ZENROWS_API_KEY is set).
+  startMercariZenRowsWorker();
 }
 
 // MercariPlaywrightService.testBrowser()

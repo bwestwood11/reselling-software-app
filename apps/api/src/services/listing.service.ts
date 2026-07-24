@@ -7,6 +7,7 @@ import type {
 import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
+import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
 
 interface ListOptions {
   page: number;
@@ -220,6 +221,10 @@ export class ListingService {
           message: `Mercari job queued (${job.id}) — extension will post directly`,
         },
       });
+
+      // Server-side ZenRows fallback: if the extension doesn't complete the job within the
+      // grace period, publish it via ZenRows. No-op unless ZENROWS_API_KEY is set.
+      scheduleMercariZenRowsFallback(job.id);
 
       return updated;
     }

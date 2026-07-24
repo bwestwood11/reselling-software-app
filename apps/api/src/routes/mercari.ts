@@ -29,6 +29,7 @@ import {
   CaptchaChallengeError,
   MercariLoginFailedError,
 } from "../services/playwright/mercari-browserless.service";
+import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
 
 export async function mercariRoutes(fastify: FastifyInstance) {
   // GET /api/mercari/categories — browse categories (served from in-memory JSON, no DB)
@@ -87,6 +88,9 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         payload: body.payload,
       },
     });
+
+    // Server-side ZenRows fallback if the extension doesn't complete it (no-op unless configured).
+    scheduleMercariZenRowsFallback(job.id);
 
     return reply.status(201).send({ success: true, data: job });
   });

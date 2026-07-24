@@ -7,6 +7,8 @@ import {
   loginWithEmail,
 } from "../services/marketplace/mercari-auth.service";
 import { ImportService } from "../services/marketplace/import.service";
+import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
+import { MercariZenRowsService } from "../services/marketplace/mercari-zenrows.service";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -739,6 +741,27 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         return reply.send({ success: true, data: addresses });
       }
 
+      // If ZenRows is configured, fetch addresses immediately server-side (no extension, no
+      // queue wait) and return them. This is a plain HTTPS call, so it needs only ZENROWS_API_KEY
+      // (not Redis). On failure, fall through to the extension-job path below.
+      if (MercariZenRowsService.isConfigured()) {
+        try {
+          const svc = new MercariZenRowsService(fastify.prisma);
+          const fetched = await svc.fetchDeliveryAddresses(request.user!.id);
+          const existingMeta = parseMeta(connection.metadata);
+          await fastify.prisma.marketplaceConnection.update({
+            where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
+            data: { metadata: { ...existingMeta, addresses: fetched } as any },
+          });
+          return reply.send({ success: true, data: fetched });
+        } catch (err) {
+          fastify.log.error(
+            { err },
+            "ZenRows address fetch failed — falling back to extension job"
+          );
+        }
+      }
+
       // Web: create a job the extension will pick up and execute in a real browser tab.
       const job = await fastify.prisma.mercariJob.create({
         data: {
@@ -747,6 +770,9 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           payload: { type: "fetch-addresses" },
         },
       });
+
+      // Server-side ZenRows fallback if the extension doesn't complete it (no-op unless configured).
+      scheduleMercariZenRowsFallback(job.id);
 
       return reply.status(202).send({ success: true, data: { jobId: job.id } });
     }
