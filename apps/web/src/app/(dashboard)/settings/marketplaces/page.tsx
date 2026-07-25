@@ -61,8 +61,48 @@ function MercariPreferences() {
     onError: () => toast.error("Failed to save preferred shipping method"),
   });
 
+  const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
+    queryKey: ["mercari-settings"],
+    queryFn: marketplacesApi.getMercariSettings,
+  });
+  const alwaysUseZenRows: boolean = settingsData?.data?.alwaysUseZenRows ?? false;
+  const zenRowsAvailable: boolean = settingsData?.data?.zenRowsAvailable ?? false;
+
+  const setAlwaysUseZenRowsMutation = useMutation({
+    mutationFn: (value: boolean) => marketplacesApi.setMercariAlwaysUseZenRows(value),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mercari-settings"] });
+      toast.success("Mercari publishing preference saved");
+    },
+    onError: () => toast.error("Failed to save publishing preference"),
+  });
+
   return (
     <div className="flex flex-col gap-4 border-t border-gray-100 px-5 py-4">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium text-gray-500">
+          Publishing method for new Mercari listings
+        </Label>
+        <Select
+          value={alwaysUseZenRows ? "zenrows" : "extension"}
+          onValueChange={(val) => setAlwaysUseZenRowsMutation.mutate(val === "zenrows")}
+          disabled={isSettingsLoading || !zenRowsAvailable || setAlwaysUseZenRowsMutation.isPending}
+        >
+          <SelectTrigger className="max-w-md">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="extension">Browser extension when available, else server</SelectItem>
+            <SelectItem value="zenrows">Always publish server-side (ZenRows)</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-gray-400">
+          {zenRowsAvailable
+            ? "“Always server-side” skips the browser extension and publishes directly from our servers."
+            : "Server-side publishing isn’t configured — listings publish via the browser extension."}
+        </p>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs font-medium text-gray-500">
           Default shipping method for new Mercari listings

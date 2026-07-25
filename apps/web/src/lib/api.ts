@@ -143,6 +143,17 @@ export const marketplacesApi = {
       method: "PATCH",
       body: JSON.stringify({ method }),
     }),
+  // Mercari publishing preferences (always-use-ZenRows toggle, ZenRows availability)
+  getMercariSettings: () =>
+    request<{
+      success: boolean;
+      data: { alwaysUseZenRows: boolean; zenRowsAvailable: boolean };
+    }>("/api/mercari/settings"),
+  setMercariAlwaysUseZenRows: (alwaysUseZenRows: boolean) =>
+    request<any>("/api/mercari/settings", {
+      method: "PATCH",
+      body: JSON.stringify({ alwaysUseZenRows }),
+    }),
 };
 
 // ─── eBay Import ──────────────────────────────────────────────────────────────

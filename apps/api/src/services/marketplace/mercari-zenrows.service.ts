@@ -6,8 +6,12 @@
 //     Node fetch / curl-impersonate) AND is US-region-gated (ListingNotAllowedIpException).
 //   • ZenRows (js_render + US premium proxy) runs a real browser server-side, solves the
 //     Cloudflare challenge, and presents a US IP — so createListing succeeds.
-// The photo upload (uploadTempListingPhotos) is NOT Cloudflare-protected and has no region
-// gate, so it is sent DIRECTLY (ZenRows cannot forward multipart bodies anyway).
+// The photo upload (uploadTempListingPhotos) is NOT Cloudflare-protected, so it does not need
+// js_render — but it IS US-region-gated (a datacenter IP now returns HTTP 403). We therefore
+// route the multipart upload through ZenRows PROXY MODE (proxy.zenrows.com:8001, premium_proxy
+// + proxy_country=us): undici's ProxyAgent opens a CONNECT tunnel to Mercari over a US
+// residential IP, so TLS stays end-to-end and the multipart body is forwarded natively —
+// something the scraper-API endpoint (used for createListing) cannot do.
 //
 // Auth is the Mercari Bearer access token (+ x-csrf-token) stored on the MarketplaceConnection.
 // No session cookies are required.
@@ -16,9 +20,13 @@
 // scripts/mercari-publish/ for the standalone equivalent.
 
 import type { PrismaClient } from "@repo/db";
+import { ProxyAgent } from "undici";
 
 const MERCARI_API = "https://www.mercari.com/v1/api";
 const ZENROWS_API = "https://api.zenrows.com/v1/";
+// ZenRows proxy-mode endpoint (used for the region-gated photo upload). The API key is the
+// proxy username; params (premium_proxy, proxy_country) go in the password field, joined by "&".
+const ZENROWS_PROXY_URI = "http://api.zenrows.com:8001";
 
 // Apollo persisted-query hashes (confirmed live).
 const UPLOAD_PHOTOS_HASH = "9aa889ac01e549a01c66c7baabc968b0e4a7fa4cd0b6bd32b7599ce10ca09a10";
@@ -75,6 +83,8 @@ function parseMeta(raw: unknown): Record<string, unknown> {
 }
 
 export class MercariZenRowsService {
+  private proxyAgent: ProxyAgent | null = null;
+
   constructor(private readonly db: PrismaClient) {}
 
   /** Whether server-side ZenRows publishing is configured (ZENROWS_API_KEY present). */
@@ -86,6 +96,25 @@ export class MercariZenRowsService {
     const key = process.env.ZENROWS_API_KEY;
     if (!key) throw new Error("ZENROWS_API_KEY is not set — cannot publish via ZenRows");
     return key;
+  }
+
+  /**
+   * A ProxyAgent pointing at ZenRows proxy mode (US residential IP). Reuses ZENROWS_API_KEY.
+   * The API key is the proxy username; `premium_proxy=true&proxy_country=<cc>` is the password.
+   * We set Proxy-Authorization directly (via `token`) so the "&"/"=" in the password are not
+   * mangled by URL parsing. ZenRows terminates and re-signs TLS (MITM), so we disable cert
+   * verification for the upstream leg — scoped to THIS agent only, TLS elsewhere is untouched.
+   */
+  private getProxyAgent(): ProxyAgent {
+    if (this.proxyAgent) return this.proxyAgent;
+    const country = (process.env.ZENROWS_PROXY_COUNTRY ?? "us").toLowerCase();
+    const creds = `${this.apiKey}:premium_proxy=true&proxy_country=${country}`;
+    this.proxyAgent = new ProxyAgent({
+      uri: ZENROWS_PROXY_URI,
+      token: `Basic ${Buffer.from(creds).toString("base64")}`,
+      requestTls: { rejectUnauthorized: false },
+    });
+    return this.proxyAgent;
   }
 
   private async getSession(userId: string): Promise<MercariSession> {
@@ -118,11 +147,12 @@ export class MercariZenRowsService {
     return h;
   }
 
-  // ── Photo upload (DIRECT — not Cloudflare-protected, no region gate) ─────────────────
+  // ── Photo upload (via ZenRows proxy mode — US-region-gated, but not Cloudflare-protected) ─
 
   private async uploadPhotos(imageUrls: string[], session: MercariSession): Promise<string[]> {
     const uploadIds: string[] = [];
     for (const url of imageUrls) {
+      // The image lives in our own storage (S3/CDN) — download it directly, no proxy needed.
       const imgRes = await fetch(url);
       if (!imgRes.ok) throw new Error(`Failed to download image (${imgRes.status}): ${url}`);
       const type = imgRes.headers.get("content-type") ?? "image/jpeg";
@@ -140,11 +170,14 @@ export class MercariZenRowsService {
       form.append("map", JSON.stringify({ "1": ["variables.input.photos.0"] }));
       form.append("1", blob, "blob");
 
+      // POST to Mercari through ZenRows proxy mode so it originates from a US residential IP.
+      // `dispatcher` is an undici extension not present in the DOM `RequestInit` type.
       const res = await fetch(MERCARI_API, {
         method: "POST",
         headers: this.mercariHeaders(session, false),
         body: form,
-      });
+        dispatcher: this.getProxyAgent(),
+      } as RequestInit & { dispatcher: ProxyAgent });
       const data = (await res.json().catch(() => ({}))) as any;
       if (!res.ok) throw new Error(`Photo upload HTTP ${res.status}`);
       if (data?.errors?.length) throw new Error(`Photo upload error: ${data.errors[0].message}`);

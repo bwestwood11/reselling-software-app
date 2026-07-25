@@ -1051,10 +1051,25 @@ async function getMercariStatus() {
 
 // ── Polling ───────────────────────────────────────────────────────────────────
 
+// Presence ping — tells the server this extension is online so it lets the extension publish
+// instead of falling straight to ZenRows. Fires on every tick, independent of job processing
+// (processNextJob short-circuits while a job is active and would otherwise skip the heartbeat).
+async function sendHeartbeat() {
+  try {
+    await apiFetch("/api/mercari/extension/heartbeat", { method: "POST" });
+  } catch {
+    // Best-effort — a missed heartbeat just means the server may use ZenRows sooner.
+  }
+}
+
 function startPolling() {
   if (pollTimer) return;
+  sendHeartbeat();
   processNextJob();
-  pollTimer = setInterval(processNextJob, POLL_INTERVAL_MS);
+  pollTimer = setInterval(() => {
+    sendHeartbeat();
+    processNextJob();
+  }, POLL_INTERVAL_MS);
 }
 
 function stopPolling() {
