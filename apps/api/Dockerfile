@@ -1,4 +1,6 @@
-FROM node:20-slim AS base
+# Node 22+ is required: undici@8 (ProxyAgent, used for ZenRows proxy mode) needs
+# worker_threads.markAsUncloneable, which does not exist on Node 20.
+FROM node:22-slim AS base
 RUN corepack enable pnpm
 
 # ── Dependencies stage ────────────────────────────────────────────────────────
@@ -44,7 +46,7 @@ RUN pnpm --filter @repo/api build
 # ── Production stage ──────────────────────────────────────────────────────────
 # Workspace packages export TypeScript source directly, so we ship source and
 # run with tsx rather than shipping the tsc output.
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
