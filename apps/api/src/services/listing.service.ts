@@ -8,6 +8,7 @@ import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
+import { markInventoryItemListed } from "./listing-state";
 
 interface ListOptions {
   page: number;
@@ -33,6 +34,23 @@ interface UpdateInput {
   title?: string;
   description?: string;
   marketplaceData?: Record<string, unknown>;
+}
+
+/**
+ * A listing may be published once and retried at most twice after a failure.
+ * Editing the listing resets the counter, giving a fresh budget.
+ */
+export const MAX_PUBLISH_ATTEMPTS = 3;
+export const MAX_PUBLISH_RETRIES = MAX_PUBLISH_ATTEMPTS - 1;
+
+export class PublishRetryLimitError extends Error {
+  readonly code = "PUBLISH_RETRY_LIMIT";
+  constructor() {
+    super(
+      `This listing failed ${MAX_PUBLISH_ATTEMPTS} times and has no retries left. Edit the listing to try again.`
+    );
+    this.name = "PublishRetryLimitError";
+  }
 }
 
 export class ListingService {
@@ -129,6 +147,13 @@ export class ListingService {
       }),
     };
 
+    // Editing a listing is the fix for whatever made it fail, so hand back a fresh
+    // retry budget and clear the stale error.
+    if (existing.status === "FAILED") {
+      data.publishAttempts = 0;
+      data.syncError = null;
+    }
+
     return this.db.listing.update({
       where: { id },
       data,
@@ -154,7 +179,17 @@ export class ListingService {
 
     if (!listing) throw new Error("Listing not found");
 
+    if (listing.publishAttempts >= MAX_PUBLISH_ATTEMPTS) {
+      throw new PublishRetryLimitError();
+    }
+
     // Cross-listing is unlimited on every plan — no per-listing credit is charged.
+
+    // Count the attempt up front so a crash mid-publish still burns the try.
+    await this.db.listing.update({
+      where: { id },
+      data: { publishAttempts: { increment: 1 } },
+    });
 
     // Create a sync event
     await this.db.syncEvent.create({
@@ -245,8 +280,11 @@ export class ListingService {
           listedAt: new Date(),
           lastSyncAt: new Date(),
           syncError: null,
+          publishAttempts: 0,
         },
       });
+
+      await this.markItemListed(listing.inventoryItemId);
 
       await this.db.syncEvent.updateMany({
         where: { listingId: id, type: "PUBLISH", status: "pending" },
@@ -266,6 +304,10 @@ export class ListingService {
       });
       throw err;
     }
+  }
+
+  private async markItemListed(inventoryItemId: string) {
+    await markInventoryItemListed(this.db, inventoryItemId);
   }
 
   async delist(id: string, userId: string) {
@@ -388,8 +430,11 @@ export class ListingService {
         listedAt: new Date(),
         lastSyncAt: new Date(),
         syncError: null,
+        publishAttempts: 0,
       },
     });
+
+    await this.markItemListed(listing.inventoryItemId);
 
     await this.db.syncEvent.create({
       data: {

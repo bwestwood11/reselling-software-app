@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
+import { markInventoryItemListed } from "../services/listing-state";
 
 function parseMeta(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
@@ -267,7 +268,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
 
     if (existing.listingId && isTerminal) {
       if (body.status === "COMPLETED") {
-        await fastify.prisma.listing.update({
+        const published = await fastify.prisma.listing.update({
           where: { id: existing.listingId },
           data: {
             status: "ACTIVE",
@@ -275,8 +276,10 @@ export async function mercariRoutes(fastify: FastifyInstance) {
             listedAt: now,
             lastSyncAt: now,
             syncError: null,
+            publishAttempts: 0,
           },
         });
+        await markInventoryItemListed(fastify.prisma, published.inventoryItemId);
         await fastify.prisma.syncEvent.create({
           data: {
             listingId: existing.listingId,

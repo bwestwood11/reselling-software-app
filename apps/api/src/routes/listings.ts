@@ -1,7 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
-import { ListingService } from "../services/listing.service";
+import {
+  ListingService,
+  PublishRetryLimitError,
+  MAX_PUBLISH_ATTEMPTS,
+} from "../services/listing.service";
 
 const createListingSchema = z.object({
   inventoryItemId: z.string(),
@@ -134,14 +138,29 @@ export async function listingsRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // POST /api/listings/:id/publish
+  // POST /api/listings/:id/publish — also used to retry a FAILED listing
   fastify.post(
     "/:id/publish",
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const result = await svc.publish(id, request.user!.id);
-      return reply.send({ success: true, data: result });
+
+      try {
+        const result = await svc.publish(id, request.user!.id);
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        // Surface the marketplace's own message — the default 500 body only says
+        // "Internal Server Error", which tells the seller nothing about the failure.
+        const error = err instanceof Error ? err.message : "Failed to publish listing";
+        const status = err instanceof PublishRetryLimitError ? 409 : 400;
+
+        const listing = await svc.findById(id, request.user!.id);
+        return reply.status(status).send({
+          success: false,
+          error,
+          retriesLeft: listing ? Math.max(0, MAX_PUBLISH_ATTEMPTS - listing.publishAttempts) : 0,
+        });
+      }
     }
   );
 

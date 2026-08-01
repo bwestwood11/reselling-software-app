@@ -69,6 +69,8 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         sourceId?: string;
         unassigned?: string;
         withListings?: string;
+        marketplace?: string;
+        includeListed?: string;
       };
 
       const result = await svc.list(request.user!.id, {
@@ -79,6 +81,8 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
         sourceId: query.sourceId,
         unassigned: query.unassigned === "true",
         withListings: query.withListings === "true",
+        marketplace: query.marketplace as any,
+        includeListed: query.includeListed === "true",
       });
 
       return reply.send({ success: true, ...result });

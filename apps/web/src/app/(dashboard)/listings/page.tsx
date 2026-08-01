@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -47,6 +49,38 @@ const LISTING_STATUS_STYLE: Record<string, string> = {
   SOLD: "bg-sky-50 text-sky-700",
   ENDED: "bg-zinc-100 text-zinc-400",
 };
+
+/**
+ * A listing may be published once and retried at most twice — mirrors
+ * MAX_PUBLISH_ATTEMPTS in the API's listing service.
+ */
+const MAX_PUBLISH_ATTEMPTS = 3;
+
+/**
+ * An item can accumulate several listings per marketplace over time (a failed
+ * attempt, an ended one, the live one). Show the most meaningful one rather than
+ * whichever happens to come back first.
+ */
+const LISTING_PRIORITY: Record<string, number> = {
+  ACTIVE: 0,
+  PENDING: 1,
+  FAILED: 2,
+  DRAFT: 3,
+  SOLD: 4,
+  ENDED: 5,
+};
+
+function pickListing(listings: any[] | undefined, marketplace: string): any | undefined {
+  const matches = (listings ?? []).filter((l: any) => l.marketplace === marketplace);
+  if (matches.length <= 1) return matches[0];
+
+  return [...matches].sort((a: any, b: any) => {
+    const rank = (LISTING_PRIORITY[a.status] ?? 9) - (LISTING_PRIORITY[b.status] ?? 9);
+    if (rank !== 0) return rank;
+    // Same status → newest first.
+    return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
+  })[0];
+}
 
 type InventoryStatusFilter = "ACTIVE" | "SOLD" | "DRAFT" | "ARCHIVED" | "";
 
@@ -97,11 +131,16 @@ export default function ListingsPage(): import("react").JSX.Element {
 
   const params: Record<string, string> = {
     withListings: "true",
+    // Count an item as listed when it has a live listing, even if its own status
+    // was never flipped off DRAFT.
+    includeListed: "true",
     page: String(page),
     limit: "20",
   };
   if (statusTab) params.status = statusTab;
   if (debouncedSearch) params.search = debouncedSearch;
+  // Filtered server-side so pagination stays correct.
+  if (marketplaceFilter) params.marketplace = marketplaceFilter;
 
   const { data, isLoading } = useQuery({
     queryKey: ["inventory-crosslist", params],
@@ -120,8 +159,15 @@ export default function ListingsPage(): import("react").JSX.Element {
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
       toast.success("Published!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      // Refetch so the cell picks up the new error and the decremented retry count.
+      qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
+      toast.error(err.message);
+    },
   });
+
+  const isPublishing = (listingId: string) =>
+    publishMutation.isPending && publishMutation.variables === listingId;
 
   const delistMutation = useMutation({
     mutationFn: listingsApi.delist,
@@ -153,14 +199,7 @@ export default function ListingsPage(): import("react").JSX.Element {
     connections.filter((c: any) => c.isActive).map((c: any) => c.marketplace as string)
   );
 
-  const visibleItems =
-    marketplaceFilter
-      ? items.filter((item: any) =>
-          item.listings?.some(
-            (l: any) => l.marketplace === marketplaceFilter && l.status === "ACTIVE"
-          )
-        )
-      : items;
+  const visibleItems = items;
 
   const mpCounts = Object.fromEntries(
     MARKETPLACES.map((mp) => [
@@ -279,7 +318,10 @@ export default function ListingsPage(): import("react").JSX.Element {
           <div className="flex items-center gap-2">
             <select
               value={marketplaceFilter}
-              onChange={(e) => setMarketplaceFilter(e.target.value as MarketplaceKey | "")}
+              onChange={(e) => {
+                setMarketplaceFilter(e.target.value as MarketplaceKey | "");
+                setPage(1);
+              }}
               className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
             >
               <option value="">Any marketplace</option>
@@ -427,7 +469,7 @@ export default function ListingsPage(): import("react").JSX.Element {
                       </td>
 
                       {MARKETPLACES.map((mp) => {
-                        const listing = item.listings?.find((l: any) => l.marketplace === mp.key);
+                        const listing = pickListing(item.listings, mp.key);
                         const isConnected = connectedSet.has(mp.key);
 
                         if (!isConnected) {
@@ -466,10 +508,19 @@ export default function ListingsPage(): import("react").JSX.Element {
                         const statusStyle = LISTING_STATUS_STYLE[listing.status] ?? "bg-zinc-100 text-zinc-500";
                         const statusLabel =
                           listing.status.charAt(0) + listing.status.slice(1).toLowerCase().replace("_", " ");
+                        const hasFailed = listing.status === "FAILED";
+                        const retriesLeft = Math.max(
+                          0,
+                          MAX_PUBLISH_ATTEMPTS - (listing.publishAttempts ?? 0)
+                        );
 
                         return (
                           <td key={mp.key} className="p-2 align-top">
-                            <div className="flex h-[136px] flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                            <div
+                              className={`flex h-[136px] flex-col overflow-hidden rounded-lg border bg-white ${
+                                hasFailed ? "border-red-200" : "border-zinc-200"
+                              }`}
+                            >
                               <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-2 py-1.5">
                                 <span className="text-xs font-semibold text-zinc-800">
                                   {formatCurrency(Number(listing.price ?? 0))}
@@ -480,20 +531,63 @@ export default function ListingsPage(): import("react").JSX.Element {
                                   </a>
                                 )}
                               </div>
-                              <div className="flex-1 overflow-hidden bg-zinc-100">
-                                {primaryImage ? (
-                                  <img src={primaryImage.url} alt={item.title} className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center text-2xl text-zinc-200">📦</div>
-                                )}
-                              </div>
+                              {hasFailed ? (
+                                <div className="flex flex-1 flex-col gap-1 overflow-hidden bg-red-50/60 px-2 py-1.5">
+                                  <div className="flex items-start gap-1 text-[11px] leading-tight text-red-700">
+                                    <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+                                    <span
+                                      className="line-clamp-3"
+                                      title={listing.syncError ?? "Publishing failed"}
+                                    >
+                                      {listing.syncError ?? "Publishing failed"}
+                                    </span>
+                                  </div>
+                                  <div className="mt-auto">
+                                    {retriesLeft > 0 ? (
+                                      <button
+                                        onClick={() => publishMutation.mutate(listing.id)}
+                                        disabled={isPublishing(listing.id)}
+                                        className="flex w-full items-center justify-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                      >
+                                        <RotateCcw
+                                          className={`h-3 w-3 ${isPublishing(listing.id) ? "animate-spin" : ""}`}
+                                        />
+                                        {isPublishing(listing.id)
+                                          ? "Retrying…"
+                                          : `Retry (${retriesLeft} left)`}
+                                      </button>
+                                    ) : (
+                                      <Link
+                                        href={`/inventory/${item.id}`}
+                                        className="block rounded-md border border-red-200 bg-white px-2 py-1 text-center text-[11px] font-medium text-red-700 hover:bg-red-100"
+                                        title="No retries left — edit the listing to try again"
+                                      >
+                                        No retries left · Edit
+                                      </Link>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex-1 overflow-hidden bg-zinc-100">
+                                  {primaryImage ? (
+                                    <img src={primaryImage.url} alt={item.title} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-2xl text-zinc-200">📦</div>
+                                  )}
+                                </div>
+                              )}
                               <div className={`flex shrink-0 items-center justify-between px-2 py-1 text-xs font-medium ${statusStyle}`}>
                                 <span>● {statusLabel}</span>
                                 <div className="flex items-center gap-1.5">
                                   {listing.status === "DRAFT" && (
-                                    <button onClick={() => publishMutation.mutate(listing.id)} disabled={publishMutation.isPending} className="font-semibold underline underline-offset-2 disabled:opacity-50">
-                                      Publish
+                                    <button onClick={() => publishMutation.mutate(listing.id)} disabled={isPublishing(listing.id)} className="font-semibold underline underline-offset-2 disabled:opacity-50">
+                                      {isPublishing(listing.id) ? "Publishing…" : "Publish"}
                                     </button>
+                                  )}
+                                  {hasFailed && (
+                                    <span className="text-[11px] font-normal opacity-70">
+                                      {listing.publishAttempts ?? 0}/{MAX_PUBLISH_ATTEMPTS} tries
+                                    </span>
                                   )}
                                   {listing.status === "ACTIVE" && (
                                     <>

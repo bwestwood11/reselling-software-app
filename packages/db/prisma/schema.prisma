@@ -215,6 +215,7 @@ model Listing {
   lastSyncAt              DateTime?
   syncError               String?
   syncFailCount           Int                   @default(0)
+  publishAttempts         Int                   @default(0) // publish tries so far; capped at MAX_PUBLISH_ATTEMPTS
   marketplaceData         Json? // marketplace-specific data
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt

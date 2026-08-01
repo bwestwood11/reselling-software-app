@@ -1,5 +1,8 @@
-import type { PrismaClient, InventoryStatus, Condition } from "@repo/db";
+import type { Prisma, PrismaClient, InventoryStatus, Condition, MarketplaceType } from "@repo/db";
 import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
+
+/** Listing states that mean "this item is currently live on a marketplace". */
+const LIVE_LISTING_STATUSES = ["ACTIVE", "PENDING"] as const;
 
 interface ListOptions {
   page: number;
@@ -9,6 +12,8 @@ interface ListOptions {
   sourceId?: string;
   unassigned?: boolean; // true → items with sourceId IS NULL
   withListings?: boolean; // include listing status per marketplace
+  marketplace?: MarketplaceType; // only items that have a listing on this marketplace
+  includeListed?: boolean; // treat "has a live listing" as ACTIVE (listings board view)
 }
 
 interface ImageInput {
@@ -43,17 +48,33 @@ export class InventoryService {
   async list(userId: string, opts: ListOptions) {
     const { skip, take, page, limit } = getPaginationParams(opts.page, opts.limit);
 
-    const where = {
-      userId,
-      ...(opts.status && { status: opts.status }),
-      ...(opts.unassigned ? { sourceId: null } : opts.sourceId ? { sourceId: opts.sourceId } : {}),
-      ...(opts.search && {
+    // Conditions are ANDed through an explicit array so that several of them can
+    // each carry their own OR without clobbering one another.
+    const and: Prisma.InventoryItemWhereInput[] = [];
+
+    const statusFilter = this.buildStatusFilter(opts);
+    if (statusFilter) and.push(statusFilter);
+
+    if (opts.search) {
+      and.push({
         OR: [
-          { title: { contains: opts.search, mode: "insensitive" as const } },
-          { brand: { contains: opts.search, mode: "insensitive" as const } },
-          { sku: { contains: opts.search, mode: "insensitive" as const } },
+          { title: { contains: opts.search, mode: "insensitive" } },
+          { brand: { contains: opts.search, mode: "insensitive" } },
+          { sku: { contains: opts.search, mode: "insensitive" } },
         ],
-      }),
+      });
+    }
+
+    // Filter by marketplace server-side — doing it on the client only filtered the
+    // current page, so matching items on later pages silently disappeared.
+    if (opts.marketplace) {
+      and.push({ listings: { some: { marketplace: opts.marketplace } } });
+    }
+
+    const where: Prisma.InventoryItemWhereInput = {
+      userId,
+      ...(opts.unassigned ? { sourceId: null } : opts.sourceId ? { sourceId: opts.sourceId } : {}),
+      ...(and.length ? { AND: and } : {}),
     };
 
     const baseInclude = {
@@ -72,6 +93,7 @@ export class InventoryService {
           ? {
               ...baseInclude,
               listings: {
+                orderBy: { createdAt: "desc" as const },
                 select: {
                   id: true,
                   marketplace: true,
@@ -81,6 +103,9 @@ export class InventoryService {
                   title: true,
                   description: true,
                   marketplaceData: true,
+                  syncError: true,
+                  publishAttempts: true,
+                  createdAt: true,
                 },
               },
             }
@@ -90,6 +115,37 @@ export class InventoryService {
     ]);
 
     return buildPaginatedResponse(data, total, page, limit);
+  }
+
+  /**
+   * An item's own `status` lags behind reality — publishing a listing doesn't always
+   * flip the item to ACTIVE, so items that are live on a marketplace used to fall out
+   * of the "Listed" tab entirely. When `includeListed` is set, live listings count.
+   */
+  private buildStatusFilter(opts: ListOptions): Prisma.InventoryItemWhereInput | null {
+    if (!opts.status) return null;
+    if (!opts.includeListed) return { status: opts.status };
+
+    if (opts.status === "ACTIVE") {
+      return {
+        status: { notIn: ["SOLD", "ARCHIVED"] },
+        OR: [
+          { status: "ACTIVE" },
+          { listings: { some: { status: { in: [...LIVE_LISTING_STATUSES] } } } },
+        ],
+      };
+    }
+
+    if (opts.status === "DRAFT") {
+      // Keep the tabs mutually exclusive: a draft item that is already live counts
+      // as listed, not as a draft.
+      return {
+        status: "DRAFT",
+        listings: { none: { status: { in: [...LIVE_LISTING_STATUSES] } } },
+      };
+    }
+
+    return { status: opts.status };
   }
 
   async findById(id: string, userId: string) {

@@ -15,6 +15,7 @@
 import { Queue, Worker, type Job } from "bullmq";
 import { prisma } from "@repo/db";
 import { getRedisConnection } from "../queues/redis";
+import { markInventoryItemListed } from "../services/listing-state";
 import {
   MercariZenRowsService,
   type MercariZenRowsJobPayload,
@@ -137,7 +138,7 @@ async function processFallback(job: Job<FallbackJobData>): Promise<void> {
     });
 
     if (row.listingId) {
-      await prisma.listing.update({
+      const published = await prisma.listing.update({
         where: { id: row.listingId },
         data: {
           status: "ACTIVE",
@@ -145,8 +146,10 @@ async function processFallback(job: Job<FallbackJobData>): Promise<void> {
           listedAt: now,
           lastSyncAt: now,
           syncError: null,
+          publishAttempts: 0,
         },
       });
+      await markInventoryItemListed(prisma, published.inventoryItemId);
       await prisma.syncEvent.create({
         data: {
           listingId: row.listingId,

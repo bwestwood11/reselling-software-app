@@ -28,7 +28,14 @@ async function request<T>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new ApiError(res.status, data.error ?? "Request failed", data);
+    // Our routes reply with `{ error }`; Fastify's default failure body puts the
+    // useful text in `message` and only a generic label in `error`.
+    const message =
+      (typeof data.error === "string" && data.error !== "Internal Server Error" && data.error) ||
+      (typeof data.message === "string" && data.message) ||
+      (typeof data.error === "string" && data.error) ||
+      "Request failed";
+    throw new ApiError(res.status, message, data);
   }
 
   return data as T;

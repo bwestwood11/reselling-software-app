@@ -2,7 +2,10 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PhotoProvider, PhotoView } from "react-photo-view";
+import { listingsApi } from "@/lib/api";
 import { useInventoryItem, useMarkInventorySold } from "@/hooks/use-inventory";
 import { MarkSoldDialog } from "@/components/inventory/MarkSoldDialog";
 import { MoveToSourceDialog } from "@/components/inventory/MoveToSourceDialog";
@@ -14,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui";
-import { ArrowLeft, Package, Tag, ExternalLink, Pencil, ZoomIn, ZoomOut, RotateCcw, CheckCircle2, FolderInput } from "lucide-react";
+import { ArrowLeft, Package, Tag, ExternalLink, Pencil, ZoomIn, ZoomOut, RotateCcw, CheckCircle2, FolderInput, AlertTriangle } from "lucide-react";
 import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 const STATUS_COLORS = {
@@ -23,6 +26,9 @@ const STATUS_COLORS = {
   SOLD: "default",
   ARCHIVED: "outline",
 } as const;
+
+/** Mirrors MAX_PUBLISH_ATTEMPTS in the API's listing service. */
+const MAX_PUBLISH_ATTEMPTS = 3;
 
 export default function InventoryItemPage({
   params,
@@ -35,6 +41,20 @@ export default function InventoryItemPage({
   const [soldOpen, setSoldOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const markSold = useMarkInventorySold();
+  const qc = useQueryClient();
+
+  const publishMutation = useMutation({
+    mutationFn: listingsApi.publish,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success("Published!");
+    },
+    onError: (err: Error) => {
+      // Refetch so the row shows the new error and the decremented retry count.
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      toast.error(err.message);
+    },
+  });
 
   if (isLoading) {
     return (
@@ -315,31 +335,77 @@ export default function InventoryItemPage({
                 <p className="text-sm text-zinc-500">No listings yet</p>
               ) : (
                 <div className="space-y-2">
-                  {item.listings?.map((listing: any) => (
-                    <div
-                      key={listing.id}
-                      className="flex items-center justify-between rounded-xl border border-zinc-100 bg-white p-3 shadow-[0_8px_22px_-18px_rgba(24,24,27,0.45)]"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-zinc-900">
-                          {getMarketplaceLabel(listing.marketplace)}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {formatCurrency(Number(listing.price))} · {listing.status}
-                        </p>
+                  {item.listings?.map((listing: any) => {
+                    const hasFailed = listing.status === "FAILED";
+                    const retriesLeft = Math.max(
+                      0,
+                      MAX_PUBLISH_ATTEMPTS - (listing.publishAttempts ?? 0)
+                    );
+                    const isRetrying =
+                      publishMutation.isPending && publishMutation.variables === listing.id;
+
+                    return (
+                      <div
+                        key={listing.id}
+                        className={`rounded-xl border bg-white p-3 shadow-[0_8px_22px_-18px_rgba(24,24,27,0.45)] ${
+                          hasFailed ? "border-red-200" : "border-zinc-100"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-zinc-900">
+                              {getMarketplaceLabel(listing.marketplace)}
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {formatCurrency(Number(listing.price))} · {listing.status}
+                            </p>
+                          </div>
+                          {listing.externalUrl && (
+                            <a
+                              href={listing.externalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-zinc-400 hover:text-zinc-600"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+
+                        {hasFailed && (
+                          <div className="mt-3 rounded-lg bg-red-50 p-2.5">
+                            <div className="flex items-start gap-1.5 text-xs leading-snug text-red-700">
+                              <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                              <span>{listing.syncError ?? "Publishing failed"}</span>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <span className="text-[11px] text-red-500">
+                                {listing.publishAttempts ?? 0} of {MAX_PUBLISH_ATTEMPTS} attempts used
+                              </span>
+                              {retriesLeft > 0 ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isRetrying}
+                                  onClick={() => publishMutation.mutate(listing.id)}
+                                  className="h-7 border-red-200 text-xs text-red-700 hover:bg-red-100"
+                                >
+                                  <RotateCcw
+                                    className={`mr-1 h-3 w-3 ${isRetrying ? "animate-spin" : ""}`}
+                                  />
+                                  {isRetrying ? "Retrying…" : `Retry (${retriesLeft} left)`}
+                                </Button>
+                              ) : (
+                                <span className="text-[11px] font-medium text-red-600">
+                                  No retries left — edit the listing to try again
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {listing.externalUrl && (
-                        <a
-                          href={listing.externalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-zinc-400 hover:text-zinc-600"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -5,6 +5,7 @@ import {
   type MercariJobPayload,
 } from "../services/playwright/mercari.playwright";
 import { browserManager } from "../services/playwright/browser-manager";
+import { markInventoryItemListed } from "../services/listing-state";
 
 // Number of jobs to dequeue per tick — keep low to avoid opening too many
 // parallel browser pages (each page has real memory overhead).
@@ -45,7 +46,7 @@ export function startPlaywrightWorker() {
         });
 
         if (job.listingId) {
-          await prisma.listing.update({
+          const published = await prisma.listing.update({
             where: { id: job.listingId },
             data: {
               status: "ACTIVE",
@@ -53,8 +54,10 @@ export function startPlaywrightWorker() {
               listedAt: now,
               lastSyncAt: now,
               syncError: null,
+              publishAttempts: 0,
             },
           });
+          await markInventoryItemListed(prisma, published.inventoryItemId);
           await prisma.syncEvent.create({
             data: {
               listingId: job.listingId,
