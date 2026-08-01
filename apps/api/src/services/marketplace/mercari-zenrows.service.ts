@@ -19,8 +19,23 @@
 // All request shapes confirmed against a live createListing capture (2026-07). See
 // scripts/mercari-publish/ for the standalone equivalent.
 
+// IMPORTANT — everything here uses undici's OWN fetch/FormData/ProxyAgent rather than the Node
+// globals. A `dispatcher` may only be driven by the undici instance that created it, and Node's
+// global fetch is backed by its *bundled* copy of undici (6.28.0 on node:22-slim, which this API
+// deploys on), not the `undici` dependency that exports ProxyAgent (8.9.0). Mixing them throws
+// `UND_ERR_INVALID_ARG: invalid onRequestStart method` — the bundled v6 fetch builds a v6-style
+// handler (onConnect/onHeaders/onData) and v8's dispatch validator requires onRequestStart. It
+// happens to work on Node 26 (bundled undici 8.x), so it only fails once deployed.
+// FormData must come from undici too: undici's fetch does not recognise a global FormData as a
+// multipart body and silently serialises it as a string, producing a 17-byte upload.
 import type { PrismaClient } from "@repo/db";
-import { ProxyAgent } from "undici";
+import {
+  ProxyAgent,
+  fetch as undiciFetch,
+  FormData as UndiciFormData,
+  type RequestInit as UndiciRequestInit,
+  type Response as UndiciResponse,
+} from "undici";
 
 const MERCARI_API = "https://www.mercari.com/v1/api";
 const ZENROWS_API = "https://api.zenrows.com/v1/";
@@ -83,12 +98,17 @@ function describeFetchError(label: string, err: unknown): string {
   return `${label} — ${parts.join(" ← ") || "unknown network error"}`;
 }
 
-type FetchInit = RequestInit & { dispatcher?: ProxyAgent };
-
-/** `fetch` that turns a transport-level failure into a labelled, cause-carrying Error. */
-async function fetchLabeled(label: string, url: string, init?: FetchInit): Promise<Response> {
+/**
+ * undici's `fetch` (never the global — see the note at the top of this file), with transport-level
+ * failures rewritten into a labelled, cause-carrying Error.
+ */
+async function fetchLabeled(
+  label: string,
+  url: string,
+  init?: UndiciRequestInit
+): Promise<UndiciResponse> {
   try {
-    return await fetch(url, init as RequestInit);
+    return await undiciFetch(url, init);
   } catch (err) {
     throw new Error(describeFetchError(label, err), { cause: err });
   }
@@ -183,7 +203,7 @@ export class MercariZenRowsService {
       const type = imgRes.headers.get("content-type") ?? "image/jpeg";
       const blob = new Blob([await imgRes.arrayBuffer()], { type });
 
-      const form = new FormData();
+      const form = new UndiciFormData();
       form.append(
         "operations",
         JSON.stringify({
@@ -196,7 +216,6 @@ export class MercariZenRowsService {
       form.append("1", blob, "blob");
 
       // POST to Mercari through ZenRows proxy mode so it originates from a US residential IP.
-      // `dispatcher` is an undici extension not present in the DOM `RequestInit` type.
       const res = await fetchLabeled(
         "Mercari photo upload via ZenRows proxy mode failed",
         MERCARI_API,
