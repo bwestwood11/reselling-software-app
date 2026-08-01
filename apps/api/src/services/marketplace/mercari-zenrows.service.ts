@@ -69,6 +69,31 @@ interface MercariSession {
   csrfToken: string | null;
 }
 
+// undici's `fetch` rejects with a bare `TypeError: fetch failed` — the real reason (ENOTFOUND,
+// ECONNRESET, UND_ERR_CONNECT_TIMEOUT, a TLS error…) is only reachable through `.cause`. Flatten
+// the cause chain and prefix which request failed, so a worker log line is actually diagnosable.
+function describeFetchError(label: string, err: unknown): string {
+  const parts: string[] = [];
+  let cur: unknown = err;
+  while (cur instanceof Error && parts.length < 4) {
+    const code = (cur as { code?: unknown }).code;
+    parts.push(typeof code === "string" ? `${cur.message} [${code}]` : cur.message);
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return `${label} — ${parts.join(" ← ") || "unknown network error"}`;
+}
+
+type FetchInit = RequestInit & { dispatcher?: ProxyAgent };
+
+/** `fetch` that turns a transport-level failure into a labelled, cause-carrying Error. */
+async function fetchLabeled(label: string, url: string, init?: FetchInit): Promise<Response> {
+  try {
+    return await fetch(url, init as RequestInit);
+  } catch (err) {
+    throw new Error(describeFetchError(label, err), { cause: err });
+  }
+}
+
 function parseMeta(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
   if (typeof raw === "string") {
@@ -153,7 +178,7 @@ export class MercariZenRowsService {
     const uploadIds: string[] = [];
     for (const url of imageUrls) {
       // The image lives in our own storage (S3/CDN) — download it directly, no proxy needed.
-      const imgRes = await fetch(url);
+      const imgRes = await fetchLabeled(`Image download failed (${url})`, url);
       if (!imgRes.ok) throw new Error(`Failed to download image (${imgRes.status}): ${url}`);
       const type = imgRes.headers.get("content-type") ?? "image/jpeg";
       const blob = new Blob([await imgRes.arrayBuffer()], { type });
@@ -172,12 +197,16 @@ export class MercariZenRowsService {
 
       // POST to Mercari through ZenRows proxy mode so it originates from a US residential IP.
       // `dispatcher` is an undici extension not present in the DOM `RequestInit` type.
-      const res = await fetch(MERCARI_API, {
-        method: "POST",
-        headers: this.mercariHeaders(session, false),
-        body: form,
-        dispatcher: this.getProxyAgent(),
-      } as RequestInit & { dispatcher: ProxyAgent });
+      const res = await fetchLabeled(
+        "Mercari photo upload via ZenRows proxy mode failed",
+        MERCARI_API,
+        {
+          method: "POST",
+          headers: this.mercariHeaders(session, false),
+          body: form,
+          dispatcher: this.getProxyAgent(),
+        }
+      );
       const data = (await res.json().catch(() => ({}))) as any;
       if (!res.ok) throw new Error(`Photo upload HTTP ${res.status}`);
       if (data?.errors?.length) throw new Error(`Photo upload error: ${data.errors[0].message}`);
@@ -251,7 +280,8 @@ export class MercariZenRowsService {
       custom_headers: "true",
       original_status: "true",
     });
-    const res = await fetch(`${ZENROWS_API}?${params}`, {
+    const op = (body as { operationName?: string })?.operationName ?? "request";
+    const res = await fetchLabeled(`ZenRows POST (${op}) failed`, `${ZENROWS_API}?${params}`, {
       method: "POST",
       headers: this.mercariHeaders(session, true),
       body: JSON.stringify(body),
@@ -281,7 +311,7 @@ export class MercariZenRowsService {
       custom_headers: "true",
       original_status: "true",
     });
-    const res = await fetch(`${ZENROWS_API}?${params}`, {
+    const res = await fetchLabeled("ZenRows GET failed", `${ZENROWS_API}?${params}`, {
       method: "GET",
       headers: this.mercariHeaders(session, true),
     });
