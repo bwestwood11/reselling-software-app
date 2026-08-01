@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { marketplacesApi, mercariApi } from "@/lib/api";
+import { marketplacesApi } from "@/lib/api";
 import {
   CheckCircle2,
   Zap,
@@ -630,8 +630,6 @@ declare global {
 const MERCARI_GOOGLE_CLIENT_ID =
   "900288721633-70umose0g8lcfh663hhjpj8q3rk9tud4.apps.googleusercontent.com";
 
-type MercariTab = "google" | "email";
-
 const EXTENSION_STEPS = [
   "Install the ReList Chrome Extension from the Chrome Web Store.",
   "Click the ReList icon in your browser toolbar to open the popup.",
@@ -650,19 +648,14 @@ function MercariConnectModal({
   const [checking, setChecking] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
-  // Fallback direct-login state (experimental)
-  const [tab, setTab] = useState<MercariTab>("google");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Fallback direct-login state (experimental). Google Sign-In only — Mercari email/password
+  // login has been removed: it drove an automated server-side browser session that Mercari's
+  // reCAPTCHA Enterprise blocked, and it required users to hand us their marketplace password.
+  // The API routes still exist but are unused (see apps/api/src/routes/mercari.ts).
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [gsiReady, setGsiReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
-
-  // Email/password login is two-phase server-side (see mercariApi.loginStart/loginVerify) —
-  // Mercari's device verification requires a code from the user's email/SMS in between.
-  const [otpRequired, setOtpRequired] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
 
   // GSI script (only loaded when the fallback section is open)
   useEffect(() => {
@@ -680,8 +673,7 @@ function MercariConnectModal({
 
   // Render Google Sign-In button inside the fallback section
   useEffect(() => {
-    if (!showFallback || !gsiReady || tab !== "google" || !googleBtnRef.current || !window.google)
-      return;
+    if (!showFallback || !gsiReady || !googleBtnRef.current || !window.google) return;
     window.google.accounts.id.initialize({
       client_id: MERCARI_GOOGLE_CLIENT_ID,
       callback: async (response) => {
@@ -717,45 +709,7 @@ function MercariConnectModal({
       width: googleBtnRef.current.offsetWidth || 280,
       text: "signin_with",
     });
-  }, [showFallback, gsiReady, tab, onConnected, qc]);
-
-  async function handleEmailLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await mercariApi.loginStart(email.trim(), password);
-      if (res.data.status === "otp_required") {
-        setOtpRequired(true);
-      } else {
-        qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
-        onConnected();
-      }
-    } catch (err: any) {
-      setError(err?.message ?? "Login failed. Use the extension instead if this keeps happening.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleOtpVerify(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      // Strip everything but digits — many SMS/email OTP messages render the code with a space
-      // or dash (e.g. "901 702"), which a copy-paste would carry through otherwise.
-      await mercariApi.loginVerify(otpCode.replace(/\D/g, ""));
-      qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
-      onConnected();
-    } catch (err: any) {
-      // Wrong/expired code — let the user retry without restarting the whole login
-      // (the server holds the in-progress session for a few minutes).
-      setError(err?.message ?? "Verification failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [showFallback, gsiReady, onConnected, qc]);
 
   async function verifyConnection() {
     setChecking(true);
@@ -851,111 +805,25 @@ function MercariConnectModal({
                 <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
                   <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
                   <p className="text-[11px] text-amber-800">
-                    {tab === "google"
-                      ? "This calls Mercari's API from your browser. May fail due to CORS restrictions. Use the extension for reliable connection."
-                      : "This signs in through an automated browser session on our server. May occasionally be blocked by Mercari's bot detection — use the extension for a guaranteed-reliable connection."}
+                    This calls Mercari&apos;s API from your browser. May fail due to CORS
+                    restrictions. Use the extension for reliable connection.
                   </p>
                 </div>
 
-                <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100/80 p-1">
-                  {(["google", "email"] as MercariTab[]).map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setTab(key);
-                        setError("");
-                        setOtpRequired(false);
-                        setOtpCode("");
-                      }}
-                      className={[
-                        "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                        tab === key ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700",
-                      ].join(" ")}
-                    >
-                      {key === "google" ? "Google" : "Email & Password"}
-                    </button>
-                  ))}
-                </div>
-
-                {tab === "google" ? (
-                  <div className="space-y-2">
-                    <div
-                      ref={googleBtnRef}
-                      className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-zinc-50"
-                    >
-                      {!gsiReady && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
-                    </div>
-                    {loading && (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" />
-                        <span className="text-xs text-zinc-500">Connecting…</span>
-                      </div>
-                    )}
+                <div className="space-y-2">
+                  <div
+                    ref={googleBtnRef}
+                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-zinc-50"
+                  >
+                    {!gsiReady && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
                   </div>
-                ) : otpRequired ? (
-                  <form onSubmit={handleOtpVerify} className="space-y-2">
-                    <p className="text-[11px] text-zinc-500">
-                      Mercari sent a verification code to your email or phone — enter it below.
-                      Submit it quickly, the code expires fast.
-                    </p>
-                    <input
-                      type="text"
-                      required
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      autoFocus
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="Verification code"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                    >
-                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {loading ? "Verifying…" : "Verify"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setOtpRequired(false); setOtpCode(""); setError(""); }}
-                      className="w-full text-center text-[11px] text-zinc-400 hover:text-zinc-600 hover:underline"
-                    >
-                      Start over
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleEmailLogin} className="space-y-2">
-                    <input
-                      type="email"
-                      required
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
-                    />
-                    <input
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                    >
-                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {loading ? "Signing in…" : "Sign in"}
-                    </button>
-                  </form>
-                )}
+                  {loading && (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" />
+                      <span className="text-xs text-zinc-500">Connecting…</span>
+                    </div>
+                  )}
+                </div>
 
                 {error && (
                   <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>

@@ -7,7 +7,6 @@ import type {
 import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
-import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
 import { markInventoryItemListed } from "./listing-state";
 
 interface ListOptions {
@@ -257,10 +256,8 @@ export class ListingService {
         },
       });
 
-      // Server-side ZenRows fallback: if the extension doesn't complete the job within the
-      // grace period, publish it via ZenRows. No-op unless ZENROWS_API_KEY is set.
-      scheduleMercariZenRowsFallback(job.id);
-
+      // No server-side fallback: Mercari publishing is extension-only (see the scope note in
+      // jobs/mercari-zenrows.worker.ts). The job stays PENDING until the extension picks it up.
       return updated;
     }
 

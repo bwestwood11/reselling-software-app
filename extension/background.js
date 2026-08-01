@@ -1,10 +1,39 @@
-// Service worker — polls the ReList API for pending Mercari jobs and publishes via direct API
+// Service worker — waits on the ReList API for pending Mercari jobs and publishes via direct API.
+//
+// LATENCY BUDGET — a publish must complete within ~5s of the user hitting Publish. What that
+// requires, and how it is achieved here:
+//   • Job pickup: LONG POLL (`/jobs/pending?wait=`) instead of a fixed interval. The old 30s
+//     setInterval alone cost 0–30s before any work started; the server now holds the request open
+//     and answers within ~750ms of the job being created.
+//   • One Mercari tab per job, kept warm. Photo upload and createListing previously each called
+//     withMercariTab(), so a cold job paid for TWO full mercari.com page loads and threw the tab
+//     away in between. The tab is now reused and closed only after TAB_IDLE_CLOSE_MS idle, so a
+//     burst of publishes pays the page load once.
+//   • Tab readiness is detected by retrying injection, not by waiting for status "complete" —
+//     fetch from page context works as soon as the document has an origin.
+//   • Images are downloaded in parallel and uploaded in parallel (they were sequential).
+//   • Mercari's access + CSRF tokens come from ONE cached /session call (they were two uncached
+//     calls per job, plus a redundant /connections pre-check).
 
-const POLL_INTERVAL_MS = 30_000;
 const API_BASE = "https://api.omventa.com";
 
-let pollTimer = null;
+// How long the server may hold a /jobs/pending request open. Keep below typical proxy idle
+// timeouts (~30s) so the connection is not cut mid-wait.
+const POLL_WAIT_SECONDS = 25;
+// Gap between long polls. Small because the server already did the waiting.
+const POLL_GAP_MS = 250;
+// Pause before retrying after a network/server error, so a flapping API is not hammered.
+const POLL_ERROR_BACKOFF_MS = 3_000;
+// Keep the Mercari tab open this long after a job, so consecutive publishes skip the page load.
+const TAB_IDLE_CLOSE_MS = 60_000;
+// Mercari session tokens are stable; re-fetching them per job added a round trip for nothing.
+const SESSION_CACHE_TTL_MS = 5 * 60_000;
+
 let activeJobId = null;
+let polling = false;
+let stopRequested = false;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -94,70 +123,38 @@ async function patchJob(id, update) {
   });
 }
 
-async function processNextJob() {
+/**
+ * Run one job handed over by the long poll.
+ *
+ * The PROCESSING claim is sent WITHOUT blocking: awaiting it before starting work added a full
+ * API round trip to every publish. The terminal patch waits on it so the two cannot land out of
+ * order (which would leave the job stuck at PROCESSING).
+ */
+async function runJob(job) {
   if (activeJobId) return;
-
-  let pendingData;
-  try {
-    pendingData = await apiFetch("/api/mercari/jobs/pending");
-  } catch (err) {
-    if (err.message === "Not authenticated") {
-      stopPolling();
-      chrome.action.setBadgeText({ text: "!" });
-      chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
-    }
-    return;
-  }
-
-  const jobs = pendingData.data ?? [];
-  if (jobs.length === 0) {
-    chrome.action.setBadgeText({ text: "" });
-    return;
-  }
-
-  chrome.action.setBadgeText({ text: String(jobs.length) });
-  chrome.action.setBadgeBackgroundColor({ color: "#f97316" });
-
-  const job = jobs[0];
   activeJobId = job.id;
 
-  try {
-    await patchJob(job.id, { status: "PROCESSING" });
-  } catch {
-    activeJobId = null;
-    return;
-  }
+  const claim = patchJob(job.id, { status: "PROCESSING" }).catch(() => {});
+  const started = Date.now();
 
-  // ── fetch-addresses job — no listing, no form ───────────────────────────
-  if (job.payload?.type === "fetch-addresses") {
-    try {
+  try {
+    if (job.payload?.type === "fetch-addresses") {
+      // ── fetch-addresses job — no listing, no form ─────────────────────────
       const bearerToken = await getMercariBearerToken();
-      const addresses = await withMercariTab((tabId) =>
-        fetchDeliveryAddresses(tabId, bearerToken)
-      );
+      const addresses = await withMercariTab((tabId) => fetchDeliveryAddresses(tabId, bearerToken));
+      await claim;
       await patchJob(job.id, { status: "COMPLETED", addresses });
-    } catch (err) {
-      console.error("[relist] fetch-addresses job failed:", err.message);
-      await patchJob(job.id, {
-        status: "FAILED",
-        errorMessage: err.message ?? "Failed to fetch addresses",
-      }).catch(() => {});
+      console.log(`[relist] job ${job.id} (fetch-addresses) done in ${Date.now() - started}ms`);
+      return;
     }
-    activeJobId = null;
-    chrome.action.setBadgeText({ text: "" });
-    return;
-  }
 
-  // ── Direct Mercari API call (no tab, no form) ────────────────────────────
-  try {
+    // ── Publish: direct Mercari API calls from a real mercari.com tab ───────
     const externalId = await postToMercariApi(job);
+    await claim;
     await patchJob(job.id, { status: "COMPLETED", externalId: externalId ?? undefined });
-    activeJobId = null;
-    chrome.action.setBadgeText({ text: "" });
-    return;
+    console.log(`[relist] job ${job.id} published in ${Date.now() - started}ms`);
   } catch (err) {
-    console.error("[relist] Mercari API failed:", err.message);
-    activeJobId = null;
+    console.error("[relist] job failed:", err.message);
 
     if (err.message === "Not authenticated") {
       // apiFetch already cleared the token; stop polling and show the ! badge
@@ -167,11 +164,13 @@ async function processNextJob() {
       return;
     }
 
+    await claim;
     await patchJob(job.id, {
       status: "FAILED",
-      errorMessage: err.message ?? "Mercari API error",
+      errorMessage: err.message ?? "Mercari publish error",
     }).catch(() => {});
-    chrome.action.setBadgeText({ text: "" });
+  } finally {
+    activeJobId = null;
   }
 }
 
@@ -181,13 +180,8 @@ async function processNextJob() {
 // during the Connect Mercari flow are sent automatically via credentials:"include".
 
 async function postToMercariApi(job) {
-  // Verify Mercari is connected (we don't use the stored token as a Bearer header —
-  // Mercari authenticates via httpOnly session cookies set when the user logged in).
-  const connectionsData = await apiFetch("/api/marketplaces/connections");
-  const connections = connectionsData.data ?? [];
-  const mercariConn = connections.find((c) => c.marketplace === "MERCARI");
-  if (!mercariConn) throw new Error("Mercari account not connected");
-
+  // No /connections pre-check: /session below is the same authorization signal and one fewer
+  // round trip. It 404s when Mercari isn't connected, which surfaces as a clear job error.
   const {
     title,
     description,
@@ -215,74 +209,143 @@ async function postToMercariApi(job) {
     throw new Error("categoryId is required for Mercari listings — select a category before publishing");
   }
 
-  // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
-  const photoIds = await uploadImagesToMercari(images);
-  console.log("[relist] Uploaded images, got photoIds:", photoIds);
-  // Step 2 — create the listing via Mercari's GraphQL API
-  return createMercariListing({
-    title,
-    description,
-    price,
-    condition,
-    photoIds,
-    categoryId,
-    brandId,
-    sizeId,
-    shippingPayerId,
-    shippingCost,
-    shippingClassId,
-    shippingPackageWeight,
-    shippingWeightUnit,
-    shippingPackageWidth,
-    shippingPackageHeight,
-    shippingPackageLength,
-    shippingDimensionUnit,
-    isShippingSoyo,
-    offerConfig,
-    zipCode,
-  });
+  // Warm the tab, the Mercari session and the image bytes CONCURRENTLY. The tab load is the
+  // slowest of the three on a cold start, so overlapping them removes it from the critical path.
+  const t0 = Date.now();
+  const [, , imageData] = await Promise.all([
+    acquireMercariTab(),
+    getMercariSession(),
+    downloadImages(images),
+  ]);
+  console.log(`[relist] warmup (tab+session+images) ${Date.now() - t0}ms`);
+
+  try {
+    // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
+    const tUpload = Date.now();
+    const photoIds = await uploadImagesToMercari(imageData);
+    console.log(`[relist] uploaded ${photoIds.length} photo(s) in ${Date.now() - tUpload}ms`);
+
+    // Step 2 — create the listing via Mercari's GraphQL API (same warm tab)
+    const tCreate = Date.now();
+    const id = await createMercariListing({
+      title,
+      description,
+      price,
+      condition,
+      photoIds,
+      categoryId,
+      brandId,
+      sizeId,
+      shippingPayerId,
+      shippingCost,
+      shippingClassId,
+      shippingPackageWeight,
+      shippingWeightUnit,
+      shippingPackageWidth,
+      shippingPackageHeight,
+      shippingPackageLength,
+      shippingDimensionUnit,
+      isShippingSoyo,
+      offerConfig,
+      zipCode,
+    });
+    console.log(`[relist] createListing ${Date.now() - tCreate}ms — total ${Date.now() - t0}ms`);
+    return id;
+  } finally {
+    // Hand the tab back; it stays warm for TAB_IDLE_CLOSE_MS so the next publish skips the load.
+    releaseMercariTab();
+  }
 }
 
 // The extension service worker runs in an isolated cookie partition — credentials:"include"
 // does NOT send the user's mercari.com browser cookies. We work around this by injecting
 // fetch calls into a real mercari.com tab where the session cookies are naturally present.
 
-async function withMercariTab(fn) {
-  // Reuse an already-open mercari.com tab to avoid flashing a new one.
-  const [existing] = await chrome.tabs.query({
-    url: "https://www.mercari.com/*",
-    status: "complete",
-  });
+// Warm-tab state. The tab is closed on an idle timer rather than at the end of each call, so the
+// upload step and the createListing step of one job — and consecutive jobs — share a single loaded
+// mercari.com page instead of loading it once per step.
+let warmTabId = null;
+let warmTabIsOurs = false;
+let warmTabCloseTimer = null;
 
-  let tab = existing;
-  let opened = false;
-
-  if (!tab) {
-    tab = await chrome.tabs.create({ url: "https://www.mercari.com/", active: false });
-    opened = true;
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        reject(new Error("Mercari tab load timed out"));
-      }, 30_000);
-      const onUpdated = (tabId, changeInfo) => {
-        if (tabId !== tab.id || changeInfo.status !== "complete") return;
-        clearTimeout(timeout);
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        resolve();
-      };
-      chrome.tabs.onUpdated.addListener(onUpdated);
-    });
+/**
+ * Resolve a mercari.com tab we can inject into, reusing the warm one when possible.
+ * Waits only until the document has a mercari.com origin (page-context fetch works from then on),
+ * which is much sooner than status === "complete" on a heavy Next.js page.
+ */
+async function acquireMercariTab() {
+  if (warmTabCloseTimer) {
+    clearTimeout(warmTabCloseTimer);
+    warmTabCloseTimer = null;
   }
 
-  // Pre-populate the browser's cookie jar from the stored session so the tab
-  // is authenticated even if the user hasn't visited mercari.com recently.
-  await restoreMercariCookies();
+  if (warmTabId != null) {
+    try {
+      await chrome.tabs.get(warmTabId);
+      return warmTabId; // already loaded and cookie-primed
+    } catch {
+      warmTabId = null; // user closed it
+    }
+  }
 
+  const [existing] = await chrome.tabs.query({ url: "https://www.mercari.com/*" });
+  if (existing) {
+    warmTabId = existing.id;
+    warmTabIsOurs = false;
+  } else {
+    const tab = await chrome.tabs.create({ url: `${MERCARI_BASE}/`, active: false });
+    warmTabId = tab.id;
+    warmTabIsOurs = true;
+  }
+
+  // Pre-populate the browser's cookie jar from the stored session so the tab is authenticated
+  // even if the user hasn't visited mercari.com recently. Only needed on a cold acquire.
+  await restoreMercariCookies();
+  await waitForInjectable(warmTabId);
+  return warmTabId;
+}
+
+/** Schedule the warm tab's close. Tabs the user already had open are never closed. */
+function releaseMercariTab() {
+  if (warmTabId == null || !warmTabIsOurs) return;
+  if (warmTabCloseTimer) clearTimeout(warmTabCloseTimer);
+  warmTabCloseTimer = setTimeout(() => {
+    const id = warmTabId;
+    warmTabId = null;
+    warmTabCloseTimer = null;
+    if (id != null) chrome.tabs.remove(id).catch(() => {});
+  }, TAB_IDLE_CLOSE_MS);
+}
+
+/**
+ * Wait until chrome.scripting can run in the tab AND the document is on mercari.com. Injection
+ * throws while the tab is still on about:blank or mid-navigation, so we retry rather than waiting
+ * for a load event — this typically returns hundreds of ms before "complete".
+ */
+async function waitForInjectable(tabId, timeoutMs = 25_000) {
+  const started = Date.now();
+  let lastError = null;
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const [res] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => location.origin,
+      });
+      if (res?.result === MERCARI_BASE) return;
+    } catch (err) {
+      lastError = err;
+    }
+    await sleep(100);
+  }
+  throw new Error(`Mercari tab not ready: ${lastError?.message ?? "timed out"}`);
+}
+
+async function withMercariTab(fn) {
+  const tabId = await acquireMercariTab();
   try {
-    return await fn(tab.id);
+    return await fn(tabId);
   } finally {
-    if (opened) chrome.tabs.remove(tab.id).catch(() => {});
+    releaseMercariTab();
   }
 }
 
@@ -291,53 +354,100 @@ async function withMercariTab(fn) {
 //   sha256Hash: "9aa889ac01e549a01c66c7baabc968b0e4a7fa4cd0b6bd32b7599ce10ca09a10"
 //   Uses Apollo multipart upload spec (operations + map + file fields).
 //   Returns photo UUIDs used as photoIds in createListing.
-async function uploadImagesToMercari(imageUrls) {
-  if (imageUrls.length === 0) return [];
-
-  // ── Step 1: fetch images in the service worker ───────────────────────────
-  // The injected script runs under mercari.com's CORS policy and cannot fetch
-  // cross-origin S3/CDN URLs. The service worker has no such restriction.
-  const imageDataList = [];
-  for (const url of imageUrls) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) { console.warn("[relist] Image fetch failed:", url, res.status); continue; }
-      const buffer = await res.arrayBuffer();
-      const type = res.headers.get("content-type") ?? "image/jpeg";
-      // Convert ArrayBuffer → base64 in chunks to avoid stack overflow on large files
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const CHUNK = 8192;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+/**
+ * Fetch the listing images in the service worker, IN PARALLEL, as base64.
+ * The injected script runs under mercari.com's CORS policy and cannot fetch cross-origin S3/CDN
+ * URLs; the service worker has no such restriction. Failed images are skipped, order is preserved.
+ */
+async function downloadImages(imageUrls) {
+  if (!imageUrls?.length) return [];
+  const results = await Promise.all(
+    imageUrls.map(async (url) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.warn("[relist] Image fetch failed:", url, res.status);
+          return null;
+        }
+        const buffer = await res.arrayBuffer();
+        const type = res.headers.get("content-type") ?? "image/jpeg";
+        // Convert ArrayBuffer → base64 in chunks to avoid stack overflow on large files
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        const CHUNK = 8192;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        return { base64: btoa(binary), type };
+      } catch (err) {
+        console.warn("[relist] Image fetch error:", err.message);
+        return null;
       }
-      imageDataList.push({ base64: btoa(binary), type });
-    } catch (err) {
-      console.warn("[relist] Image fetch error:", err.message);
-    }
-  }
+    })
+  );
+  return results.filter(Boolean);
+}
 
+async function uploadImagesToMercari(imageDataList) {
   if (imageDataList.length === 0) {
     console.warn("[relist] No images could be fetched — aborting upload");
     return [];
   }
 
-  // ── Step 2: extract Bearer token from stored Mercari session ─────────────
-  // multipart/form-data is a "simple" CORS request type, so Mercari enforces
-  // Bearer auth on the upload endpoint (unlike JSON createListing calls).
-  // The service worker can read httpOnly cookies; the injected script cannot.
+  // multipart/form-data is a "simple" CORS request type, so Mercari enforces Bearer auth on the
+  // upload endpoint (unlike JSON createListing calls). The service worker can read httpOnly
+  // cookies; the injected script cannot.
   const bearerToken = await getMercariBearerToken();
 
-  // ── Step 3: upload each image from within the mercari.com tab ────────────
+  // Upload from within the mercari.com tab (already warm — see postToMercariApi).
   return withMercariTab((tabId) =>
     chrome.scripting
       .executeScript({
         target: { tabId },
         func: async (images, token) => {
           const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          const photoIds = [];
 
-          for (const { base64, type } of images) {
+          // Resolve the Bearer token ONCE for all photos, not per photo.
+          if (!token) {
+            token = await (async () => {
+              // Strategy 1: /v1/initialize — stable endpoint, returns { accessToken } at top level
+              try {
+                const r = await fetch("https://www.mercari.com/v1/initialize", { credentials: "include" });
+                if (r.ok) { const d = await r.json().catch(() => null); if (d?.accessToken) return d.accessToken; }
+              } catch {}
+              // Strategy 2: __NEXT_DATA__ (already in page — no network needed)
+              const JWT_RE = /^[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$/;
+              const scanObj = (obj, depth = 0) => {
+                if (!obj || typeof obj !== "object" || depth > 10) return null;
+                for (const [k, v] of Object.entries(obj)) {
+                  if (typeof v === "string" && (k === "accessToken" || k === "access_token") && v.length > 20) return v;
+                  if (typeof v === "string" && v.length > 100 && JWT_RE.test(v)) return v;
+                  const found = scanObj(v, depth + 1);
+                  if (found) return found;
+                }
+                return null;
+              };
+              try { const t = scanObj(window.__NEXT_DATA__?.props); if (t) return t; } catch {}
+              // Strategy 3: _mwus cookie (may be non-httpOnly)
+              try {
+                const m = document.cookie.match(/(?:^|;\s*)_mwus=([^;]+)/);
+                if (m) { const p = JSON.parse(atob(decodeURIComponent(m[1]))); if (p?.accessToken) return p.accessToken; }
+              } catch {}
+              return null;
+            })();
+          }
+
+          const headers = {
+            "apollo-require-preflight": "true",
+            "x-platform": "web",
+            "x-app-version": "1",
+            "x-double-web": "1",
+          };
+          if (token) headers["authorization"] = `Bearer ${token}`;
+
+          // Upload all photos CONCURRENTLY. Promise.all preserves order, so photoIds keep the
+          // user's chosen photo order; failures become null and are dropped afterwards.
+          const uploadOne = async ({ base64, type }) => {
             try {
               // Reconstruct Blob from base64 (passed from service worker)
               const binary = atob(base64);
@@ -363,44 +473,6 @@ async function uploadImagesToMercari(imageUrls) {
               form.append("map", JSON.stringify({ "1": ["variables.input.photos.0"] }));
               form.append("1", blob, "blob");
 
-              // Resolve Bearer token inside the tab context if SW couldn't provide one
-              if (!token) {
-                token = await (async () => {
-                  // Strategy 1: /v1/initialize — stable endpoint, returns { accessToken } at top level
-                  try {
-                    const r = await fetch("https://www.mercari.com/v1/initialize", { credentials: "include" });
-                    if (r.ok) { const d = await r.json().catch(() => null); if (d?.accessToken) return d.accessToken; }
-                  } catch {}
-                  // Strategy 2: __NEXT_DATA__ (already in page — no network needed)
-                  const JWT_RE = /^[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$/;
-                  const scanObj = (obj, depth = 0) => {
-                    if (!obj || typeof obj !== "object" || depth > 10) return null;
-                    for (const [k, v] of Object.entries(obj)) {
-                      if (typeof v === "string" && (k === "accessToken" || k === "access_token") && v.length > 20) return v;
-                      if (typeof v === "string" && v.length > 100 && JWT_RE.test(v)) return v;
-                      const found = scanObj(v, depth + 1);
-                      if (found) return found;
-                    }
-                    return null;
-                  };
-                  try { const t = scanObj(window.__NEXT_DATA__?.props); if (t) return t; } catch {}
-                  // Strategy 3: _mwus cookie (may be non-httpOnly)
-                  try {
-                    const m = document.cookie.match(/(?:^|;\s*)_mwus=([^;]+)/);
-                    if (m) { const p = JSON.parse(atob(decodeURIComponent(m[1]))); if (p?.accessToken) return p.accessToken; }
-                  } catch {}
-                  return null;
-                })();
-              }
-
-              const headers = {
-                "apollo-require-preflight": "true",
-                "x-platform": "web",
-                "x-app-version": "1",
-                "x-double-web": "1",
-              };
-              if (token) headers["authorization"] = `Bearer ${token}`;
-
               const res = await fetch("https://www.mercari.com/v1/api", {
                 method: "POST",
                 credentials: "include",
@@ -409,16 +481,15 @@ async function uploadImagesToMercari(imageUrls) {
               });
 
               const data = await res.json().catch(() => ({}));
-              console.log("[relist] uploadTempListingPhotos →", res.status, JSON.stringify(data).slice(0, 300));
 
               if (!res.ok) {
                 console.warn("[relist] Upload rejected:", res.status, data);
-                continue;
+                return null;
               }
 
               if (data?.errors?.length) {
                 console.warn("[relist] GraphQL errors:", data.errors);
-                continue;
+                return null;
               }
 
               // Extract photo ID from uploadTempListingPhotos GraphQL response
@@ -451,14 +522,17 @@ async function uploadImagesToMercari(imageUrls) {
                 photoId = scan(data);
               }
 
-              if (photoId) photoIds.push(String(photoId));
-              else console.warn("[relist] Could not extract photoId from:", JSON.stringify(data));
+              if (photoId) return String(photoId);
+              console.warn("[relist] Could not extract photoId from:", JSON.stringify(data));
+              return null;
             } catch (err) {
               console.warn("[relist] Upload error:", err.message);
+              return null;
             }
-          }
+          };
 
-          return photoIds;
+          const settled = await Promise.all(images.map(uploadOne));
+          return settled.filter(Boolean);
         },
         args: [imageDataList, bearerToken],
       })
@@ -466,36 +540,35 @@ async function uploadImagesToMercari(imageUrls) {
   );
 }
 
-// Returns the Mercari access token stored in the ReList database.
-// Called from the service worker (which has no Mercari session cookies) so it fetches
-// the token via the ReList API and passes it to injected scripts as the first-priority Bearer.
-async function getMercariBearerToken() {
-  try {
-    const relistToken = await getToken();
-    const res = await fetch(`${API_BASE}/api/marketplaces/mercari/token`, {
-      headers: { Authorization: `Bearer ${relistToken}` },
-    });
-    const data = await res.json().catch(() => ({}));
-    return data.data?.accessToken ?? null;
-  } catch (err) {
-    console.warn("[relist] getMercariBearerToken failed:", err.message);
-  }
-  return null;
-}
+// Mercari's access token + CSRF token, both from ONE /session call and cached.
+// The service worker has no Mercari session cookies, so it reads these from the ReList API and
+// hands them to injected scripts. Previously each was a separate uncached request per job.
+let sessionCache = null; // { accessToken, csrfToken, fetchedAt }
 
-// Returns the CSRF token stored in the connection metadata (captured at connect time from /v1/initialize).
-async function getMercariCsrfToken() {
+async function getMercariSession(force = false) {
+  if (!force && sessionCache && Date.now() - sessionCache.fetchedAt < SESSION_CACHE_TTL_MS) {
+    return sessionCache;
+  }
   try {
     const relistToken = await getToken();
     const res = await fetch(`${API_BASE}/api/marketplaces/mercari/session`, {
       headers: { Authorization: `Bearer ${relistToken}` },
     });
     const data = await res.json().catch(() => ({}));
-    return data.data?.csrfToken ?? null;
+    sessionCache = {
+      accessToken: data.data?.accessToken ?? null,
+      csrfToken: data.data?.csrfToken ?? null,
+      fetchedAt: Date.now(),
+    };
   } catch (err) {
-    console.warn("[relist] getMercariCsrfToken failed:", err.message);
+    console.warn("[relist] getMercariSession failed:", err.message);
+    sessionCache = { accessToken: null, csrfToken: null, fetchedAt: Date.now() };
   }
-  return null;
+  return sessionCache;
+}
+
+async function getMercariBearerToken() {
+  return (await getMercariSession()).accessToken;
 }
 
 // Confirmed via live DevTools capture (2025-05):
@@ -565,8 +638,8 @@ async function createMercariListing(params) {
     : Math.floor(priceInCents * 0.10);
   const minPriceForAutoPriceDrop = Math.ceil(priceInCents * 0.85);
 
-  const bearerToken = await getMercariBearerToken();
-  const storedCsrf = await getMercariCsrfToken();
+  // One cached call for both tokens (was two uncached calls).
+  const { accessToken: bearerToken, csrfToken: storedCsrf } = await getMercariSession();
 
   const requestBody = {
     operationName: "createListing",
@@ -1049,37 +1122,91 @@ async function getMercariStatus() {
   }
 }
 
-// ── Polling ───────────────────────────────────────────────────────────────────
+// ── Long polling ──────────────────────────────────────────────────────────────
+//
+// The extension holds a request open on /jobs/pending?wait=N; the server answers the moment a job
+// exists. That both removes poll-interval latency and doubles as the presence heartbeat (the
+// server records it on every /jobs/pending call), so there is no separate heartbeat tick.
+//
+// Service-worker lifetime: an in-flight fetch keeps the worker alive, so the loop survives as long
+// as a poll is outstanding. If Chrome evicts the worker anyway, the chrome.alarms watchdog below
+// restarts the loop within a minute.
 
-// Presence ping — tells the server this extension is online so it lets the extension publish
-// instead of falling straight to ZenRows. Fires on every tick, independent of job processing
-// (processNextJob short-circuits while a job is active and would otherwise skip the heartbeat).
-async function sendHeartbeat() {
+// NOTE: the separate /extension/heartbeat ping was removed — every /jobs/pending call records
+// presence server-side, and the long poll issues one continuously. The API route still exists.
+
+/** One long poll. Returns an array of jobs, or null if we should stop (auth lost). */
+async function awaitPendingJobs() {
   try {
-    await apiFetch("/api/mercari/extension/heartbeat", { method: "POST" });
-  } catch {
-    // Best-effort — a missed heartbeat just means the server may use ZenRows sooner.
+    const data = await apiFetch(`/api/mercari/jobs/pending?wait=${POLL_WAIT_SECONDS}`);
+    return data.data ?? [];
+  } catch (err) {
+    if (err.message === "Not authenticated") {
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
+      return null;
+    }
+    console.warn("[relist] poll failed:", err.message);
+    await sleep(POLL_ERROR_BACKOFF_MS);
+    return [];
+  }
+}
+
+async function pollLoop() {
+  if (polling) return; // already running in this worker
+  polling = true;
+  stopRequested = false;
+  try {
+    while (!stopRequested) {
+      if (!(await getToken())) break;
+
+      const jobs = await awaitPendingJobs();
+      if (jobs === null) break; // auth lost — apiFetch already cleared the token
+
+      if (jobs.length > 0) {
+        chrome.action.setBadgeText({ text: String(jobs.length) });
+        chrome.action.setBadgeBackgroundColor({ color: "#f97316" });
+        // Process the whole batch back-to-back; the Mercari tab stays warm across them.
+        for (const job of jobs) {
+          if (stopRequested) break;
+          await runJob(job);
+        }
+        chrome.action.setBadgeText({ text: "" });
+        continue; // re-poll immediately — more work may be queued
+      }
+
+      await sleep(POLL_GAP_MS);
+    }
+  } finally {
+    polling = false;
   }
 }
 
 function startPolling() {
-  if (pollTimer) return;
-  sendHeartbeat();
-  processNextJob();
-  pollTimer = setInterval(() => {
-    sendHeartbeat();
-    processNextJob();
-  }, POLL_INTERVAL_MS);
+  stopRequested = false;
+  // Watchdog: restarts the loop if the service worker was evicted mid-wait. 1 minute is the
+  // minimum period Chrome allows for MV3 alarms.
+  chrome.alarms.create("relist-poll", { periodInMinutes: 1 });
+  pollLoop();
 }
 
 function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
+  stopRequested = true;
+  chrome.alarms.clear("relist-poll");
 }
 
-// Auto-start polling if already authenticated when service worker wakes
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== "relist-poll") return;
+  getToken().then((token) => {
+    if (token) pollLoop();
+  });
+});
+
+// Restart on browser start / extension update as well as on worker wake.
+chrome.runtime.onStartup.addListener(() => startPolling());
+chrome.runtime.onInstalled.addListener(() => startPolling());
+
+// Auto-start if already authenticated when the service worker wakes
 getToken().then((token) => {
   if (token) startPolling();
 });

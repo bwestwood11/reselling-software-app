@@ -213,18 +213,10 @@ export const mercariApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
-  // Server-side (Browserless + CapSolver) credential login — see
-  // apps/api/src/services/playwright/mercari-browserless.service.ts.
-  loginStart: (email: string, password: string) =>
-    request<{ success: true; data: { status: "success" | "otp_required" } }>(
-      "/api/mercari/login/start",
-      { method: "POST", body: JSON.stringify({ email, password }) }
-    ),
-  loginVerify: (code: string) =>
-    request<{ success: true; data: { connected: boolean } }>("/api/mercari/login/verify", {
-      method: "POST",
-      body: JSON.stringify({ code }),
-    }),
+  // NOTE: Mercari email/password login has been removed from the client. The API routes
+  // (/api/mercari/login/start + /verify, backed by Browserless + CapSolver) still exist but are
+  // dead code — Mercari's reCAPTCHA Enterprise blocked the automated session, and the flow
+  // required users to hand over their marketplace password. Connect via the extension instead.
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

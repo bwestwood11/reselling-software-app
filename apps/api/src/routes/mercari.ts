@@ -30,15 +30,10 @@ import {
   CaptchaChallengeError,
   MercariLoginFailedError,
 } from "../services/playwright/mercari-browserless.service";
-import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
-import { MercariZenRowsService } from "../services/marketplace/mercari-zenrows.service";
-import { isExtensionOnline, recordExtensionHeartbeat } from "../services/mercari-presence";
+import { recordExtensionHeartbeat } from "../services/mercari-presence";
 
-/** Read the per-user Mercari `alwaysUseZenRows` preference from the connection metadata. */
-function readAlwaysUseZenRows(metadata: unknown): boolean {
-  const meta = parseMeta(metadata);
-  return meta.alwaysUseZenRows === true;
-}
+/** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
+const POLL_TICK_MS = 750;
 
 export async function mercariRoutes(fastify: FastifyInstance) {
   // GET /api/mercari/categories — browse categories (served from in-memory JSON, no DB)
@@ -92,54 +87,50 @@ export async function mercariRoutes(fastify: FastifyInstance) {
 
     const userId = request.user!.id;
 
-    // Decide who publishes this job. Only meaningful when ZenRows is configured — otherwise the
-    // extension is the only path, so we always leave it to the extension (grace default).
-    let skipExtension = false;
-    let delayMs: number | undefined; // undefined => normal grace delay (extension tries first)
-
-    if (MercariZenRowsService.isConfigured()) {
-      const connection = await fastify.prisma.marketplaceConnection.findUnique({
-        where: { userId_marketplace: { userId, marketplace: "MERCARI" } },
-        select: { metadata: true },
-      });
-
-      if (readAlwaysUseZenRows(connection?.metadata)) {
-        // Setting on: publish server-side immediately and hide the job from the extension.
-        skipExtension = true;
-        delayMs = 0;
-      } else if (!(await isExtensionOnline(userId))) {
-        // Extension not pinged recently: don't wait out the grace period — use ZenRows now.
-        delayMs = 0;
-      }
-      // else: extension is online → keep the grace delay so it can try first.
-    }
-
+    // Publishing is extension-only — ZenRows server-side publishing is disabled (see the scope
+    // note in jobs/mercari-zenrows.worker.ts). Every job is left for the extension, which
+    // long-polls /jobs/pending and picks it up within ~1s.
     const job = await fastify.prisma.mercariJob.create({
       data: {
         userId,
         listingId: body.listingId ?? null,
         payload: body.payload,
-        skipExtension,
+        skipExtension: false,
       },
     });
-
-    // Server-side ZenRows fallback if the extension doesn't complete it (no-op unless configured).
-    scheduleMercariZenRowsFallback(job.id, delayMs);
 
     return reply.status(201).send({ success: true, data: job });
   });
 
-  // GET /api/mercari/jobs/pending — extension polls this to get the next job.
-  // The poll doubles as a presence heartbeat: it proves the extension is online. Jobs flagged
-  // skipExtension (alwaysUseZenRows) are handled server-side and never handed to the extension.
+  // GET /api/mercari/jobs/pending?wait=<seconds> — extension polls this to get the next job.
+  // The poll doubles as a presence heartbeat: it proves the extension is online.
+  //
+  // LONG POLL: with `wait` set, the request is held open until a job appears (or the window
+  // elapses) instead of returning an empty list immediately. That drops publish pickup latency
+  // from "up to the client's poll interval" to ~POLL_TICK_MS, which is what keeps an
+  // extension publish inside its end-to-end budget. `wait` is clamped so a client cannot pin a
+  // connection open indefinitely, and the loop aborts as soon as the client disconnects.
   fastify.get("/jobs/pending", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as { wait?: string };
+    const waitSeconds = Math.min(Math.max(Number.parseInt(query.wait ?? "0", 10) || 0, 0), 30);
+    const deadline = Date.now() + waitSeconds * 1000;
+
     await recordExtensionHeartbeat(request.user!.id);
 
-    const jobs = await fastify.prisma.mercariJob.findMany({
-      where: { userId: request.user!.id, status: "PENDING", skipExtension: false },
-      orderBy: { createdAt: "asc" },
-      take: 10,
-    });
+    const findJobs = () =>
+      fastify.prisma.mercariJob.findMany({
+        where: { userId: request.user!.id, status: "PENDING", skipExtension: false },
+        orderBy: { createdAt: "asc" },
+        take: 10,
+      });
+
+    let jobs = await findJobs();
+    while (jobs.length === 0 && Date.now() < deadline) {
+      // Stop early if the extension went away (tab closed, service worker evicted).
+      if (request.socket.destroyed) return;
+      await new Promise((r) => setTimeout(r, POLL_TICK_MS));
+      jobs = await findJobs();
+    }
 
     return reply.send({ success: true, data: jobs });
   });
@@ -152,42 +143,22 @@ export async function mercariRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/mercari/settings — per-user Mercari publishing preferences.
-  fastify.get("/settings", { preHandler: [requireAuth] }, async (request, reply) => {
-    const connection = await fastify.prisma.marketplaceConnection.findUnique({
-      where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-      select: { metadata: true },
-    });
+  // ZenRows publishing is disabled, so the transport is always the extension. Kept (rather than
+  // removed) so older extension/web builds calling it keep working; `zenRowsAvailable` is
+  // hard-false, which makes the web UI render the extension-only state.
+  fastify.get("/settings", { preHandler: [requireAuth] }, async (_request, reply) => {
     return reply.send({
       success: true,
-      data: {
-        alwaysUseZenRows: readAlwaysUseZenRows(connection?.metadata),
-        zenRowsAvailable: MercariZenRowsService.isConfigured(),
-      },
+      data: { alwaysUseZenRows: false, zenRowsAvailable: false },
     });
   });
 
-  // PATCH /api/mercari/settings — update Mercari publishing preferences.
-  fastify.patch("/settings", { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = request.body as { alwaysUseZenRows?: boolean };
-    if (typeof body?.alwaysUseZenRows !== "boolean") {
-      return reply.status(400).send({ success: false, error: "alwaysUseZenRows (boolean) is required" });
-    }
-
-    const connection = await fastify.prisma.marketplaceConnection.findUnique({
-      where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-      select: { metadata: true },
+  // PATCH /api/mercari/settings — no longer configurable: there is only one publish transport.
+  fastify.patch("/settings", { preHandler: [requireAuth] }, async (_request, reply) => {
+    return reply.status(409).send({
+      success: false,
+      error: "Mercari publishing is extension-only — server-side (ZenRows) publishing is disabled",
     });
-    if (!connection) {
-      return reply.status(404).send({ success: false, error: "Mercari account not connected" });
-    }
-
-    const meta = parseMeta(connection.metadata);
-    await fastify.prisma.marketplaceConnection.update({
-      where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
-      data: { metadata: { ...meta, alwaysUseZenRows: body.alwaysUseZenRows } as any },
-    });
-
-    return reply.send({ success: true, data: { alwaysUseZenRows: body.alwaysUseZenRows } });
   });
 
   // GET /api/mercari/jobs/:jobId — fetch a single job by ID (used for polling)

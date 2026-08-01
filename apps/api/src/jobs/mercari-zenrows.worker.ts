@@ -1,13 +1,20 @@
-// Fallback publisher: publishes pending MercariJobs server-side via ZenRows when the Chrome
-// extension (extension/background.js) hasn't picked them up.
+// Server-side fallback for MercariJobs the Chrome extension hasn't picked up.
+//
+// SCOPE — address jobs ONLY. ZenRows PUBLISHING IS DISABLED: Mercari listings are created solely
+// by the extension (extension/background.js), which runs in the user's own browser and therefore
+// has a real US residential IP plus Cloudflare clearance. Server-side publishing could not be made
+// to work: createListing is behind Cloudflare's managed challenge and the photo upload is
+// US-region-gated, and ZenRows proxy mode refuses to forward the multipart upload at all
+// (HTTP 422 / RESP001 "Could not get content"). `fetch-addresses` jobs are unaffected — that is a
+// plain GET the ZenRows scraper API handles fine.
 //
 // Uses BullMQ + Redis:
 //   • scheduleMercariZenRowsFallback() enqueues a DELAYED BullMQ job (delay = grace period) when
-//     a MercariJob is created. The delayed job lives in Redis, so it survives API restarts and is
-//     shared across instances — and there is NO Postgres polling, so an idle database can scale
-//     to zero.
+//     an address MercariJob is created. The delayed job lives in Redis, so it survives API
+//     restarts and is shared across instances — and there is NO Postgres polling, so an idle
+//     database can scale to zero.
 //   • When the delayed job fires, the Worker re-checks the MercariJob: if the extension already
-//     completed it, nothing happens; otherwise it publishes via ZenRows.
+//     completed it, nothing happens; otherwise it fetches the addresses via ZenRows.
 //   • BullMQ handles retries (transient Cloudflare/ZenRows failures) with exponential backoff.
 //
 // Enabled only when BOTH ZENROWS_API_KEY and REDIS_URL are set.
@@ -15,11 +22,7 @@
 import { Queue, Worker, type Job } from "bullmq";
 import { prisma } from "@repo/db";
 import { getRedisConnection } from "../queues/redis";
-import { markInventoryItemListed } from "../services/listing-state";
-import {
-  MercariZenRowsService,
-  type MercariZenRowsJobPayload,
-} from "../services/marketplace/mercari-zenrows.service";
+import { MercariZenRowsService } from "../services/marketplace/mercari-zenrows.service";
 
 const QUEUE_NAME = "mercari-zenrows-publish";
 // How long to let the extension claim a job before the server takes over.
@@ -51,10 +54,13 @@ function getQueue(): Queue<FallbackJobData> | null {
 }
 
 /**
- * Enqueue a delayed ZenRows fallback for a newly-created MercariJob. No-op unless both
+ * Enqueue a delayed ZenRows fallback for a newly-created ADDRESS MercariJob. No-op unless both
  * ZENROWS_API_KEY and REDIS_URL are configured. The BullMQ jobId is derived from the MercariJob
  * id so the same job is never enqueued twice. Fire-and-forget: enqueue failures are logged but
  * never block the request (the extension can still handle the job).
+ *
+ * Do NOT call this for publish jobs — the worker refuses them (see processFallback). Mercari
+ * publishing is extension-only.
  */
 export function scheduleMercariZenRowsFallback(
   jobId: string,
@@ -70,8 +76,9 @@ export function scheduleMercariZenRowsFallback(
   );
 }
 
-// Core processing: publish (or fetch addresses) via ZenRows. Throws on failure so BullMQ retries;
-// marks the MercariJob/Listing FAILED only once attempts are exhausted.
+// Core processing: fetch addresses via ZenRows. Throws on failure so BullMQ retries; marks the
+// MercariJob FAILED only once attempts are exhausted. Publish jobs are rejected outright — see the
+// scope note at the top of this file.
 async function processFallback(job: Job<FallbackJobData>): Promise<void> {
   const { mercariJobId } = job.data;
   const row = await prisma.mercariJob.findUnique({
@@ -81,6 +88,18 @@ async function processFallback(job: Job<FallbackJobData>): Promise<void> {
 
   // Extension already handled it (or it's gone) — nothing to do.
   if (!row || row.status === "COMPLETED") return;
+
+  // ZenRows publishing is disabled: leave publish jobs PENDING for the extension. Returning
+  // (rather than failing) is deliberate — the extension is the only publisher, and marking the
+  // Listing FAILED here would clobber a job the user's browser can still complete.
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  if (payload.type !== "fetch-addresses") {
+    console.log(
+      `[mercari-zenrows] Job ${row.id} is a publish job — ZenRows publishing is disabled, ` +
+        `leaving it for the extension`
+    );
+    return;
+  }
 
   // On the first attempt, only take over if the job is still PENDING — if the extension has
   // claimed it (PROCESSING) we leave it alone. On retries we already own it, so proceed.
@@ -98,71 +117,28 @@ async function processFallback(job: Job<FallbackJobData>): Promise<void> {
   }
 
   const svc = new MercariZenRowsService(prisma);
-  const payloadObj = (row.payload ?? {}) as Record<string, unknown>;
   const isLastAttempt = job.attemptsMade + 1 >= MAX_ATTEMPTS;
 
   try {
-    // ── fetch-addresses job ──────────────────────────────────────────────────
-    if (payloadObj.type === "fetch-addresses") {
-      const addresses = await svc.fetchDeliveryAddresses(row.userId);
-      const connection = await prisma.marketplaceConnection.findUnique({
-        where: { userId_marketplace: { userId: row.userId, marketplace: "MERCARI" } },
-        select: { metadata: true },
-      });
-      const meta =
-        connection?.metadata && typeof connection.metadata === "object"
-          ? (connection.metadata as Record<string, unknown>)
-          : {};
-      await prisma.marketplaceConnection.update({
-        where: { userId_marketplace: { userId: row.userId, marketplace: "MERCARI" } },
-        data: { metadata: { ...meta, addresses } as any },
-      });
-      await prisma.mercariJob.update({
-        where: { id: row.id },
-        data: { status: "COMPLETED", completedAt: new Date() },
-      });
-      console.log(`[mercari-zenrows] Job ${row.id} (fetch-addresses) completed`);
-      return;
-    }
-
-    // ── publish job ────────────────────────────────────────────────────────────
-    const externalId = await svc.publish(
-      row.payload as unknown as MercariZenRowsJobPayload,
-      row.userId
-    );
-
-    const now = new Date();
+    // ── fetch-addresses job (the only kind this worker handles) ───────────────
+    const addresses = await svc.fetchDeliveryAddresses(row.userId);
+    const connection = await prisma.marketplaceConnection.findUnique({
+      where: { userId_marketplace: { userId: row.userId, marketplace: "MERCARI" } },
+      select: { metadata: true },
+    });
+    const meta =
+      connection?.metadata && typeof connection.metadata === "object"
+        ? (connection.metadata as Record<string, unknown>)
+        : {};
+    await prisma.marketplaceConnection.update({
+      where: { userId_marketplace: { userId: row.userId, marketplace: "MERCARI" } },
+      data: { metadata: { ...meta, addresses } as any },
+    });
     await prisma.mercariJob.update({
       where: { id: row.id },
-      data: { status: "COMPLETED", externalId: externalId ?? null, completedAt: now },
+      data: { status: "COMPLETED", completedAt: new Date() },
     });
-
-    if (row.listingId) {
-      const published = await prisma.listing.update({
-        where: { id: row.listingId },
-        data: {
-          status: "ACTIVE",
-          externalId: externalId ?? null,
-          listedAt: now,
-          lastSyncAt: now,
-          syncError: null,
-          publishAttempts: 0,
-        },
-      });
-      await markInventoryItemListed(prisma, published.inventoryItemId);
-      await prisma.syncEvent.create({
-        data: {
-          listingId: row.listingId,
-          type: "PUBLISH",
-          status: "success",
-          message: externalId
-            ? `Published via ZenRows — Mercari ID: ${externalId}`
-            : "Published via ZenRows",
-        },
-      });
-    }
-
-    console.log(`[mercari-zenrows] Job ${row.id} completed — externalId: ${externalId ?? "none"}`);
+    console.log(`[mercari-zenrows] Job ${row.id} (fetch-addresses) completed`);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error(
@@ -170,26 +146,12 @@ async function processFallback(job: Job<FallbackJobData>): Promise<void> {
       errorMessage
     );
 
+    // Address jobs have no Listing attached, so there is nothing else to mark.
     if (isLastAttempt) {
-      const now = new Date();
       await prisma.mercariJob.update({
         where: { id: row.id },
-        data: { status: "FAILED", errorMessage, completedAt: now },
+        data: { status: "FAILED", errorMessage, completedAt: new Date() },
       });
-      if (row.listingId) {
-        await prisma.listing.update({
-          where: { id: row.listingId },
-          data: { status: "FAILED", syncError: errorMessage, lastSyncAt: now },
-        });
-        await prisma.syncEvent.create({
-          data: {
-            listingId: row.listingId,
-            type: "ERROR",
-            status: "failed",
-            message: errorMessage,
-          },
-        });
-      }
     }
 
     // Re-throw so BullMQ records the failure and schedules a retry (until attempts run out).

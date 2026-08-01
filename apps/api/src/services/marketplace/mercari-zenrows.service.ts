@@ -39,6 +39,12 @@ import {
 
 const MERCARI_API = "https://www.mercari.com/v1/api";
 const ZENROWS_API = "https://api.zenrows.com/v1/";
+
+// Server-side publishing is OFF — Mercari listings are created only by the browser extension.
+// The publish path below is retained as reference/dead code (see publish()); address fetching is
+// unaffected and stays live. Do not flip this on without re-solving the multipart upload: ZenRows
+// proxy mode returns HTTP 422 / RESP001 for it, and the endpoint is US-region-gated.
+const ZENROWS_PUBLISH_ENABLED = false;
 // ZenRows proxy-mode endpoint (used for the region-gated photo upload). The API key is the
 // proxy username; params (premium_proxy, proxy_country) go in the password field, joined by "&".
 const ZENROWS_PROXY_URI = "http://api.zenrows.com:8001";
@@ -384,8 +390,21 @@ export class MercariZenRowsService {
 
   // ── Public API ───────────────────────────────────────────────────────────────────────
 
-  /** Publish a listing from a MercariJob payload. Returns the Mercari item id. */
+  /**
+   * DISABLED — kept as dead code for reference only. Mercari publishing is extension-only.
+   *
+   * Server-side publishing could not be made to work: the photo upload is US-region-gated and
+   * ZenRows proxy mode refuses to forward the multipart POST (HTTP 422 / RESP001), while
+   * createListing additionally needs Cloudflare clearance. The extension publishes from the user's
+   * own browser, which has both a residential IP and a real Cloudflare session.
+   * No caller reaches this — jobs/mercari-zenrows.worker.ts rejects publish jobs.
+   */
   async publish(payload: MercariZenRowsJobPayload, userId: string): Promise<string | null> {
+    if (!ZENROWS_PUBLISH_ENABLED) {
+      throw new Error(
+        "ZenRows Mercari publishing is disabled — listings are published by the browser extension"
+      );
+    }
     if (!payload.categoryId) throw new Error("categoryId is required for Mercari listings");
     const session = await this.getSession(userId);
 
