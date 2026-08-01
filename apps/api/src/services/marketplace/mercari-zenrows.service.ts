@@ -114,6 +114,36 @@ async function fetchLabeled(
   }
 }
 
+/**
+ * Summarise a failed HTTP response for a log line: who answered (ZenRows or Mercari), plus a body
+ * snippet. Inside the proxy tunnel ZenRows re-signs TLS, so an error may come from *either* side —
+ * a bare status code can't distinguish them, and that is usually the only thing worth knowing.
+ */
+function httpErrorDetail(res: UndiciResponse, raw: string): string {
+  const bits: string[] = [];
+  const ct = res.headers.get("content-type");
+  if (ct) bits.push(`content-type=${ct}`);
+  // ZenRows tags its own responses (zr-*/x-zenrows-*); their presence means the proxy answered.
+  for (const [k, v] of res.headers.entries()) {
+    if (k.startsWith("zr-") || k.includes("zenrows") || k === "x-request-id") {
+      bits.push(`${k}=${v}`);
+    }
+  }
+  let parsed: unknown;
+  try {
+    parsed = raw ? JSON.parse(raw) : undefined;
+  } catch {
+    /* not JSON — the snippet below is all we have */
+  }
+  const asObj = parsed as { code?: unknown; title?: unknown; detail?: unknown } | undefined;
+  if (asObj?.code && !("data" in (asObj as object)) && !("errors" in (asObj as object))) {
+    bits.push(`ZenRows ${String(asObj.code)}: ${String(asObj.title ?? asObj.detail ?? "")}`);
+  }
+  const snippet = raw.replace(/\s+/g, " ").trim().slice(0, 300);
+  if (snippet) bits.push(`body=${snippet}`);
+  return bits.join(" | ") || "empty response body";
+}
+
 function parseMeta(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
   if (typeof raw === "string") {
@@ -226,8 +256,18 @@ export class MercariZenRowsService {
           dispatcher: this.getProxyAgent(),
         }
       );
-      const data = (await res.json().catch(() => ({}))) as any;
-      if (!res.ok) throw new Error(`Photo upload HTTP ${res.status}`);
+      // Read as text first: a proxy-level failure is often HTML or plain text, and `res.json()`
+      // would discard exactly the detail that identifies it.
+      const raw = await res.text();
+      let data: any = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        /* handled below — non-JSON bodies are surfaced by httpErrorDetail */
+      }
+      if (!res.ok) {
+        throw new Error(`Photo upload HTTP ${res.status} — ${httpErrorDetail(res, raw)}`);
+      }
       if (data?.errors?.length) throw new Error(`Photo upload error: ${data.errors[0].message}`);
 
       const id =
