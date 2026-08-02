@@ -3,6 +3,7 @@
 import { Loader2, Tag } from "lucide-react";
 import { getMarketplaceLabel } from "@repo/utils";
 import type { useMercariShipping } from "../../hooks/use-mercari-shipping";
+import { PublishProgress } from "../../ui/PublishProgress";
 
 type MercariShipState = ReturnType<typeof useMercariShipping>;
 
@@ -14,6 +15,8 @@ interface Props {
   mercariShip: MercariShipState;
   busy: boolean;
   isPublishing: boolean;
+  /** A Mercari job was queued and the extension is still posting it — the request already returned. */
+  backgroundPublishing: boolean;
   onSaveDraft: () => void;
   onSaveAndPublish: () => void;
   onClose: () => void;
@@ -27,6 +30,7 @@ export function CrosslistPreviewPanel({
   mercariShip,
   busy,
   isPublishing,
+  backgroundPublishing,
   onSaveDraft,
   onSaveAndPublish,
   onClose,
@@ -143,8 +147,20 @@ export function CrosslistPreviewPanel({
         );
       })()}
 
+      {/* Publish progress. While the request is in flight it replaces the (all-disabled) action
+          buttons; once Mercari's job is queued it stays up alongside them until the extension
+          has had time to post. */}
+      <PublishProgress
+        active={isPublishing || backgroundPublishing}
+        marketplaces={selectedConnections.map((c) => c.marketplace)}
+      />
+
       {/* Actions */}
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
+      <section
+        className={`rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)] ${
+          isPublishing ? "hidden" : ""
+        }`}
+      >
         <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">Actions</p>
         <div className="space-y-2">
           <button

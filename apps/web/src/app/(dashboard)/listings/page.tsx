@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { inventoryApi, marketplacesApi, syncApi, listingsApi } from "@/lib/api";
 import { Button } from "@repo/ui";
@@ -26,6 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { CreateListingForm } from "./_components/CreateListingForm";
+import { PublishProgress } from "./_components/ui/PublishProgress";
 import { MarkSoldDialog } from "@/components/inventory/MarkSoldDialog";
 
 // ─── Marketplace config ───────────────────────────────────────────────────────
@@ -142,10 +143,17 @@ export default function ListingsPage(): import("react").JSX.Element {
   // Filtered server-side so pagination stays correct.
   if (marketplaceFilter) params.marketplace = marketplaceFilter;
 
+  // Mercari's publish endpoint returns as soon as the job is queued — the extension then takes
+  // ~25s to actually post it. Remember when each publish started so the cell keeps showing
+  // progress while the listing sits in PENDING, instead of flashing a spinner for one second.
+  const [publishStartedAt, setPublishStartedAt] = useState<Record<string, number>>({});
+  const awaitingPublish = Object.keys(publishStartedAt).length > 0;
+
   const { data, isLoading } = useQuery({
     queryKey: ["inventory-crosslist", params],
     queryFn: () => inventoryApi.list(params),
-    refetchInterval: 15_000,
+    // Tighter cadence while a publish is in flight so the cell settles as soon as it lands.
+    refetchInterval: awaitingPublish ? 5_000 : 15_000,
   });
 
   const { data: connectionsData } = useQuery({
@@ -155,11 +163,19 @@ export default function ListingsPage(): import("react").JSX.Element {
 
   const publishMutation = useMutation({
     mutationFn: listingsApi.publish,
-    onSuccess: () => {
+    onMutate: (listingId: string) =>
+      setPublishStartedAt((prev) => ({ ...prev, [listingId]: Date.now() })),
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
-      toast.success("Published!");
+      // A PENDING result means the job was only queued — the extension posts it next.
+      if (res?.data?.status === "PENDING") {
+        toast.success("Publishing — the extension is posting it now");
+      } else {
+        toast.success("Published!");
+      }
     },
-    onError: (err: Error) => {
+    onError: (err: Error, listingId: string) => {
+      setPublishStartedAt(({ [listingId]: _dropped, ...rest }) => rest);
       // Refetch so the cell picks up the new error and the decremented retry count.
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
       toast.error(err.message);
@@ -193,6 +209,28 @@ export default function ListingsPage(): import("react").JSX.Element {
   const items: any[] = data?.data ?? [];
   const total: number = data?.total ?? 0;
   const totalPages: number = data?.totalPages ?? 1;
+
+  // Stop showing progress once a refetch says the listing left PENDING (published, or failed).
+  // The 5s floor covers the gap before the first refetch lands; the 2min ceiling makes sure a
+  // job the extension never picks up can't pin the overlay open forever.
+  useEffect(() => {
+    if (!awaitingPublish) return;
+    const pending = new Set<string>(
+      items.flatMap((item: any) =>
+        (item.listings ?? [])
+          .filter((l: any) => l.status === "PENDING")
+          .map((l: any) => l.id as string)
+      )
+    );
+    setPublishStartedAt((prev) => {
+      const next: Record<string, number> = {};
+      for (const [id, at] of Object.entries(prev)) {
+        const age = Date.now() - at;
+        if (age < 5_000 || (pending.has(id) && age < 120_000)) next[id] = at;
+      }
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+    });
+  }, [items, awaitingPublish]);
 
   const connections: any[] = connectionsData?.data ?? [];
   const connectedSet = new Set<string>(
@@ -514,13 +552,21 @@ export default function ListingsPage(): import("react").JSX.Element {
                           MAX_PUBLISH_ATTEMPTS - (listing.publishAttempts ?? 0)
                         );
 
+                        const showPublishProgress =
+                          isPublishing(listing.id) || publishStartedAt[listing.id] != null;
+
                         return (
                           <td key={mp.key} className="p-2 align-top">
                             <div
-                              className={`flex h-[136px] flex-col overflow-hidden rounded-lg border bg-white ${
+                              className={`relative flex h-[136px] flex-col overflow-hidden rounded-lg border bg-white ${
                                 hasFailed ? "border-red-200" : "border-zinc-200"
                               }`}
                             >
+                              <PublishProgress
+                                active={showPublishProgress}
+                                marketplaces={[mp.key]}
+                                variant="compact"
+                              />
                               <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-2 py-1.5">
                                 <span className="text-xs font-semibold text-zinc-800">
                                   {formatCurrency(Number(listing.price ?? 0))}

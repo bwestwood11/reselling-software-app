@@ -37,10 +37,26 @@ interface ImageSlot {
 
 const ELIGIBLE_MARKETPLACES = new Set(["EBAY", "MERCARI"]);
 
+/**
+ * How long the Mercari extension typically needs after the API has queued the job. The crosslist
+ * request itself returns in ~1s with NEEDS_WEBVIEW, so without this window the progress card would
+ * vanish while the listing is still being posted.
+ */
+const MERCARI_PUBLISH_ESTIMATE_MS = 26_000;
+
 export function useCrosslistForm({ onClose }: CrosslistFormProps) {
   const createItemMutation = useCreateInventoryItem();
   const crosslistMutation = useCrosslistListings();
   const [isPublishing, setIsPublishing] = useState(false);
+  // True while a queued Mercari job is still being posted by the extension (see the estimate above).
+  const [backgroundPublishing, setBackgroundPublishing] = useState(false);
+  const backgroundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
+    },
+    []
+  );
   const [results, setResults] = useState<CrosslistResult[] | null>(null);
 
   const [itemMode, setItemMode] = useState<"existing" | "new">("existing");
@@ -726,6 +742,19 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
       const resultList: CrosslistResult[] = res?.data ?? [];
       setResults(resultList);
 
+      // Mercari comes back as NEEDS_WEBVIEW: queued, not posted. Hold the progress card open for
+      // the extension's round trip so the user can see it is still working.
+      const mercariQueued =
+        publish && resultList.some((r) => r.marketplace === "MERCARI" && r.status !== "error");
+      if (mercariQueued) {
+        setBackgroundPublishing(true);
+        if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
+        backgroundTimerRef.current = setTimeout(
+          () => setBackgroundPublishing(false),
+          MERCARI_PUBLISH_ESTIMATE_MS
+        );
+      }
+
       const failed = resultList.filter((r) => r.status === "error").length;
       const ok = resultList.length - failed;
       if (failed === 0) {
@@ -805,6 +834,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     // Submit
     busy,
     isPublishing,
+    backgroundPublishing,
     results,
     setResults,
     onSubmit,

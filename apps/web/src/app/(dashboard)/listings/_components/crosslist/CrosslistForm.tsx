@@ -112,6 +112,7 @@ export function CrosslistForm(props: CrosslistFormProps) {
         mercariShip={cf.mercariShip}
         busy={cf.busy}
         isPublishing={cf.isPublishing}
+        backgroundPublishing={cf.backgroundPublishing}
         onSaveDraft={handleSubmit((values) => cf.onSubmit(values, { publish: false }))}
         onSaveAndPublish={handleSubmit((values) => cf.onSubmit(values, { publish: true }))}
         onClose={cf.onClose}
