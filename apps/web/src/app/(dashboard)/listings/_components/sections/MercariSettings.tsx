@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { ChevronRight, Loader2, RefreshCw, Search, X } from "lucide-react";
@@ -35,6 +36,17 @@ export function MercariSettings({
   onRefreshAddresses,
 }: Props) {
   const { watch, setValue } = form;
+
+  // Keep the zip in sync with the selected address. The Select's onValueChange below only
+  // fires when the user actively picks an address — a prefilled addressId renders as selected
+  // without ever setting the zip, and Mercari rejects a createListing that has no zipCode.
+  const selectedAddressId = watch("mercariAddressId");
+  const currentZip = watch("mercariZipCode");
+  useEffect(() => {
+    if (selectedAddressId == null || currentZip?.trim()) return;
+    const addr = mercariAddresses.find((a) => a.id === selectedAddressId);
+    if (addr?.zipCode1) setValue("mercariZipCode", addr.zipCode1);
+  }, [selectedAddressId, currentZip, mercariAddresses, setValue]);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">

@@ -212,12 +212,36 @@ async function postToMercariApi(job) {
   // Warm the tab, the Mercari session and the image bytes CONCURRENTLY. The tab load is the
   // slowest of the three on a cold start, so overlapping them removes it from the critical path.
   const t0 = Date.now();
-  const [, , imageData] = await Promise.all([
+  const [tabId, session, imageData] = await Promise.all([
     acquireMercariTab(),
     getMercariSession(),
     downloadImages(images),
   ]);
   console.log(`[relist] warmup (tab+session+images) ${Date.now() - t0}ms`);
+
+  // zipCode is a required field on Mercari's createListing input — without it the mutation is
+  // rejected outright ('Field "zipCode" of required type "String!" was not provided'). It
+  // normally rides along on the job payload from the address picked in the web form; when it
+  // doesn't, fall back to the account's default delivery address instead of firing a doomed call.
+  let resolvedZip = zipCode ? String(zipCode) : null;
+  if (!resolvedZip) {
+    try {
+      const addresses = await fetchDeliveryAddresses(tabId, session.accessToken);
+      const addr = addresses.find((a) => a?.isDefault) ?? addresses[0];
+      if (addr?.zipCode1) {
+        resolvedZip = String(addr.zipCode1);
+        console.log("[relist] zipCode absent from job payload — using default address zip");
+      }
+    } catch (err) {
+      console.warn("[relist] zip fallback failed:", err.message);
+    }
+  }
+  if (!resolvedZip) {
+    releaseMercariTab();
+    throw new Error(
+      "Zip code missing — select a shipping address for this listing, or reconnect Mercari to sync your addresses"
+    );
+  }
 
   try {
     // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
@@ -247,7 +271,7 @@ async function postToMercariApi(job) {
       shippingDimensionUnit,
       isShippingSoyo,
       offerConfig,
-      zipCode,
+      zipCode: resolvedZip,
     });
     console.log(`[relist] createListing ${Date.now() - tCreate}ms — total ${Date.now() - t0}ms`);
     return id;
@@ -664,7 +688,7 @@ async function createMercariListing(params) {
         ...(shippingPackageHeight == null ? {} : { shippingPackageHeight }),
         ...(shippingPackageWidth == null ? {} : { shippingPackageWidth }),
         ...(offerConfig ? { offerConfig } : {}),
-        ...(zipCode ? { zipCode } : {}),
+        ...(zipCode ? { zipCode: String(zipCode) } : {}),
         ...(brandId ? { brandId: Number.parseInt(String(brandId), 10) } : {}),
         ...(sizeId ? { sizeId: Number.parseInt(String(sizeId), 10) } : {}),
       },

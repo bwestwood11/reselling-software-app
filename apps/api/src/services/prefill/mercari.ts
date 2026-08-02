@@ -69,8 +69,10 @@ export class MercariPrefillProvider extends BasePrefillProvider {
       (refMd?.["sizeId"] != null ? String(refMd["sizeId"]) : undefined) ??
       (mercariMd?.["sizeId"] != null ? String(mercariMd["sizeId"]) : undefined);
 
-    // zipCode: refMd → mercariMd
-    const zipCode =
+    // zipCode: refMd → mercariMd → the resolved shipping address (see the connection
+    // fallback below). Mercari's createListing rejects the mutation outright when zipCode
+    // is missing, so it must be filled whenever an address is known.
+    let zipCode =
       (refMd?.["zipCode"] as string | undefined) ??
       (mercariMd?.["zipCode"] as string | undefined);
 
@@ -173,17 +175,17 @@ export class MercariPrefillProvider extends BasePrefillProvider {
       }
     }
 
-    // addressId / shippingMethod fallback: read the connection's saved preferences once,
-    // only if either is still unresolved from listing history
-    if (addressId === undefined || shippingMethod === undefined) {
+    // addressId / zipCode / shippingMethod fallback: read the connection's saved preferences
+    // once, only if any of them is still unresolved from listing history
+    if (addressId === undefined || zipCode === undefined || shippingMethod === undefined) {
       const connection = await this.db.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: item.userId, marketplace: "MERCARI" } },
         select: { metadata: true },
       });
       const meta = (connection?.metadata as Record<string, unknown> | null) ?? {};
+      const addresses = Array.isArray(meta["addresses"]) ? (meta["addresses"] as Record<string, unknown>[]) : [];
 
       if (addressId === undefined) {
-        const addresses = Array.isArray(meta["addresses"]) ? (meta["addresses"] as Record<string, unknown>[]) : [];
         const preferredAddressId =
           meta["preferredAddressId"] != null ? Number(meta["preferredAddressId"]) : undefined;
 
@@ -193,6 +195,15 @@ export class MercariPrefillProvider extends BasePrefillProvider {
           const defaultAddress = addresses.find((a) => a["isDefault"]);
           if (defaultAddress) addressId = Number(defaultAddress["id"]);
         }
+      }
+
+      // Derive the zip from whichever address we ended up with. Without this a prefilled
+      // address renders as selected in the form, the user never opens the dropdown (the only
+      // place that sets the zip), and the listing is published with no zipCode at all.
+      if (zipCode === undefined && addressId !== undefined) {
+        const addr = addresses.find((a) => Number(a["id"]) === addressId);
+        const zip = addr?.["zipCode1"];
+        if (typeof zip === "string" && zip.trim()) zipCode = zip.trim();
       }
 
       if (shippingMethod === undefined) {
