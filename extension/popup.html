@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ReList – Mercari Crosslister</title>
+  <title>ReList – Crosslister</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
@@ -17,7 +17,7 @@
     </div>
     <div class="header-text">
       <p class="brand">ReList</p>
-      <p class="subtitle">Mercari Crosslister</p>
+      <p class="subtitle">Crosslister</p>
     </div>
   </div>
 
@@ -83,8 +83,24 @@
 
     <div class="section-divider"></div>
 
+    <!-- Poshmark account connection -->
+    <p class="section-label">Poshmark Account</p>
+    <div class="status-card">
+      <div class="status-icon" id="poshmark-icon" style="background:#fff1f2;color:#e11d48;">
+        <span style="font-size:12px;font-weight:800;">P</span>
+      </div>
+      <div>
+        <p class="status-title">Poshmark</p>
+        <p class="status-value" id="poshmark-account">Checking…</p>
+      </div>
+    </div>
+    <button id="poshmark-connect-btn" class="btn-primary hidden">Connect Poshmark Account</button>
+    <p id="poshmark-error" class="error hidden" style="margin-top:6px;"></p>
+
+    <div class="section-divider"></div>
+
     <p class="hint">
-      The extension polls for new crosslisting jobs every 30 seconds and opens Mercari automatically.
+      The extension polls for new crosslisting jobs every 30 seconds and publishes automatically.
     </p>
 
     <button id="logout-btn" class="btn-secondary">Sign out</button>

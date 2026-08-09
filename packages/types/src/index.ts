@@ -225,12 +225,28 @@ export interface InventoryPrefillEbay {
   categorySearchTerm?: string;
 }
 
+export interface InventoryPrefillPoshmark {
+  condition?: string;              // nwt | like_new | good | fair
+  brand?: string;
+  departmentId?: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  /** Size *label* (e.g. "M", "10"), not an ID — the client resolves it against the size list
+   *  for the selected category, since Poshmark size IDs are category-scoped. */
+  sizeLabel?: string;
+  colors?: string[];               // up to 2 color names
+  styleTags?: string[];            // up to 3
+  originalPriceCents?: number;
+  shippingDiscount?: string;
+}
+
 export interface InventoryPrefillData {
   title?: string;
   price?: number;
   description?: string;
   mercari?: InventoryPrefillMercari;
   ebay?: InventoryPrefillEbay;
+  poshmark?: InventoryPrefillPoshmark;
   source?: string;        // "EBAY", "MERCARI", "INVENTORY" etc.
   filledFields: string[];
 }

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pnpm db:generate)",
-      "Bash(pnpm --filter api typecheck)"
+      "Bash(pnpm --filter api typecheck)",
+      "Bash(curl -s http://localhost:3001/api/marketplaces/poshmark/connect-token -X POST -H \"Content-Type: application/json\" -d '{}')"
     ]
   }
 }

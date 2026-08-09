@@ -20,6 +20,7 @@ import {
 import { useEbayCategories } from "../../hooks/use-ebay-categories";
 import { useMercariCategories, type MercariCat } from "../../hooks/use-mercari-categories";
 import { useMercariShipping } from "../../hooks/use-mercari-shipping";
+import { usePoshmarkFields } from "../../hooks/use-poshmark-fields";
 import type { MercariAddress } from "../../hooks/use-listing-form";
 
 export type CrossFill = { source: string; fields: string[] };
@@ -35,14 +36,17 @@ interface ImageSlot {
   error?: string;
 }
 
-const ELIGIBLE_MARKETPLACES = new Set(["EBAY", "MERCARI"]);
+const ELIGIBLE_MARKETPLACES = new Set(["EBAY", "MERCARI", "POSHMARK"]);
 
 /**
- * How long the Mercari extension typically needs after the API has queued the job. The crosslist
- * request itself returns in ~1s with NEEDS_WEBVIEW, so without this window the progress card would
- * vanish while the listing is still being posted.
+ * How long the extension typically needs after the API has queued the job. The crosslist request
+ * itself returns in ~1s with NEEDS_WEBVIEW, so without this window the progress card would vanish
+ * while the listing is still being posted. Mercari and Poshmark both publish this way.
  */
-const MERCARI_PUBLISH_ESTIMATE_MS = 26_000;
+const EXTENSION_PUBLISH_ESTIMATE_MS = 26_000;
+
+/** Marketplaces whose publish is queued for the extension rather than done server-side. */
+const EXTENSION_PUBLISHED = new Set(["MERCARI", "POSHMARK"]);
 
 export function useCrosslistForm({ onClose }: CrosslistFormProps) {
   const createItemMutation = useCreateInventoryItem();
@@ -66,6 +70,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
   const ebay = useEbayCategories();
   const mercariCat = useMercariCategories();
+  const poshmark = usePoshmarkFields();
 
   // ── Data queries ─────────────────────────────────────────────────────────
 
@@ -90,6 +95,10 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
   );
   const isMercari = selectedConnectionIds.some(
     (id) => connections.find((c: any) => c.id === id)?.marketplace === "MERCARI"
+  );
+
+  const isPoshmark = selectedConnectionIds.some(
+    (id) => connections.find((c: any) => c.id === id)?.marketplace === "POSHMARK"
   );
 
   const mercariShip = useMercariShipping(isMercari, mercariCat.selectedMercariCat?.id);
@@ -413,7 +422,81 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     mercariCat.selectedMercariCat,
   ]);
 
-  const crossFillBanners = [ebayCrossFill, mercariCrossFill].filter((c): c is CrossFill => !!c);
+  // ── Poshmark prefill ──────────────────────────────────────────────────────
+  // Poshmark's taxonomy is category-scoped and has no cross-marketplace mapping, so the category
+  // only ever comes from a prior Poshmark listing on the same item. Everything else (condition,
+  // brand, colors, tags) fills from the item or that prior listing.
+
+  const { data: poshmarkPrefillResult } = useQuery({
+    queryKey: ["prefill", detailId, "POSHMARK"],
+    queryFn: () => inventoryApi.getPrefill(detailId, "POSHMARK"),
+    enabled: itemMode === "existing" && isPoshmark && !!detailId,
+    staleTime: 30_000,
+  });
+  const poshmarkPrefillData = poshmarkPrefillResult?.data;
+  const lastAppliedPoshmarkPrefillRef = useRef<string | null>(null);
+  const [poshmarkCrossFill, setPoshmarkCrossFill] = useState<CrossFill | null>(null);
+
+  useEffect(() => {
+    if (!poshmarkPrefillData || !detailId) return;
+    if (lastAppliedPoshmarkPrefillRef.current === detailId) return;
+    lastAppliedPoshmarkPrefillRef.current = detailId;
+
+    applySharedFieldsOnce(poshmarkPrefillData);
+
+    const p = poshmarkPrefillData.poshmark;
+    if (p) {
+      if (p.condition) setValue("poshmarkCondition", p.condition);
+      if (p.brand) setValue("poshmarkBrand", p.brand);
+      if (p.originalPriceCents != null)
+        setValue("poshmarkOriginalPrice", p.originalPriceCents / 100);
+      if (p.shippingDiscount) setValue("poshmarkShippingDiscount", p.shippingDiscount);
+
+      // Category must be applied through the hook so its derived department/category/subcategory
+      // lists stay in sync with the form values.
+      if (p.departmentId) {
+        poshmark.applyPrefilledCategory({
+          departmentId: p.departmentId,
+          categoryId: p.categoryId,
+          subcategoryId: p.subcategoryId,
+        });
+        setValue("poshmarkDepartmentId", p.departmentId);
+        if (p.categoryId) setValue("poshmarkCategoryId", p.categoryId);
+        if (p.subcategoryId) setValue("poshmarkSubcategoryId", p.subcategoryId);
+      }
+
+      if (p.colors?.length) poshmark.setPoshmarkColors(p.colors.slice(0, 2));
+      if (p.styleTags?.length) poshmark.setPoshmarkStyleTags(p.styleTags.slice(0, 3));
+      // Size is a label, not an ID — resolved against the selected category's size list below.
+      if (p.sizeLabel) poshmark.setPoshmarkPrefilledSize(p.sizeLabel);
+    }
+
+    if (poshmarkPrefillData.filledFields.length > 0) {
+      const label =
+        poshmarkPrefillData.source && poshmarkPrefillData.source !== "INVENTORY"
+          ? getMarketplaceLabel(poshmarkPrefillData.source as any)
+          : "item details";
+      setPoshmarkCrossFill({ source: label, fields: poshmarkPrefillData.filledFields });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poshmarkPrefillData, detailId]);
+
+  // Resolve the prefilled size label once the category's size list is known. The list only
+  // exists after a category is picked, which may happen after the prefill lands.
+  const prefilledSizeLabel = poshmark.prefilledSizeLabel;
+  useEffect(() => {
+    if (!prefilledSizeLabel || poshmark.poshmarkSizes.length === 0) return;
+    const match = poshmark.poshmarkSizes.find(
+      (s) => s.display.toLowerCase() === prefilledSizeLabel.toLowerCase() || s.id === prefilledSizeLabel
+    );
+    if (match) setValue("poshmarkSizeId", match.id);
+    poshmark.setPoshmarkPrefilledSize(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledSizeLabel, poshmark.poshmarkSizes]);
+
+  const crossFillBanners = [ebayCrossFill, mercariCrossFill, poshmarkCrossFill].filter(
+    (c): c is CrossFill => !!c
+  );
 
   // ── New-item photo management (ported from /inventory/new) ─────────────────
 
@@ -649,6 +732,34 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     };
   }
 
+  function buildPoshmarkMarketplaceData(values: CrosslistFormValues) {
+    return {
+      ...(poshmark.poshmarkDeptId ? { departmentId: poshmark.poshmarkDeptId } : {}),
+      ...(poshmark.poshmarkCatId ? { categoryId: poshmark.poshmarkCatId } : {}),
+      ...(poshmark.poshmarkSubcatId ? { subcategoryId: poshmark.poshmarkSubcatId } : {}),
+      ...(values.poshmarkCondition ? { condition: values.poshmarkCondition } : {}),
+      ...(values.poshmarkBrand?.trim() ? { brand: values.poshmarkBrand.trim() } : {}),
+      ...(poshmark.poshmarkColors.length > 0 ? { colors: poshmark.poshmarkColors } : {}),
+      ...(poshmark.poshmarkStyleTags.length > 0 ? { styleTags: poshmark.poshmarkStyleTags } : {}),
+      ...(values.poshmarkSizeId ? { sizeId: values.poshmarkSizeId } : {}),
+      ...(values.poshmarkOriginalPrice
+        ? { originalPriceCents: Math.round(values.poshmarkOriginalPrice * 100) }
+        : {}),
+      ...(values.poshmarkShippingDiscount && values.poshmarkShippingDiscount !== "no_discount"
+        ? { shippingDiscount: values.poshmarkShippingDiscount }
+        : {}),
+    };
+  }
+
+  function validatePoshmarkFields(): boolean {
+    // Poshmark rejects a post without a department + category; the subcategory is optional.
+    if (!poshmark.poshmarkDeptId || !poshmark.poshmarkCatId) {
+      toast.error("Select a Poshmark department and category");
+      return false;
+    }
+    return true;
+  }
+
   function validateEbayFields(values: CrosslistFormValues): boolean {
     if (!values.ebayCategoryId?.trim()) {
       toast.error("Category ID is required for eBay listings");
@@ -684,6 +795,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
       return;
     }
     if (isEbay && !validateEbayFields(values)) return;
+    if (isPoshmark && !validatePoshmarkFields()) return;
     if (itemMode === "existing" && !values.inventoryItemId) {
       toast.error("Select an inventory item");
       return;
@@ -726,7 +838,9 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
             ? buildEbayMarketplaceData(values)
             : conn?.marketplace === "MERCARI"
               ? buildMercariMarketplaceData(values)
-              : undefined;
+              : conn?.marketplace === "POSHMARK"
+                ? buildPoshmarkMarketplaceData(values)
+                : undefined;
         return { connectionId, marketplaceData };
       });
 
@@ -742,16 +856,17 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
       const resultList: CrosslistResult[] = res?.data ?? [];
       setResults(resultList);
 
-      // Mercari comes back as NEEDS_WEBVIEW: queued, not posted. Hold the progress card open for
-      // the extension's round trip so the user can see it is still working.
-      const mercariQueued =
-        publish && resultList.some((r) => r.marketplace === "MERCARI" && r.status !== "error");
-      if (mercariQueued) {
+      // Mercari and Poshmark come back as NEEDS_WEBVIEW: queued, not posted. Hold the progress
+      // card open for the extension's round trip so the user can see it is still working.
+      const extensionQueued =
+        publish &&
+        resultList.some((r) => EXTENSION_PUBLISHED.has(r.marketplace) && r.status !== "error");
+      if (extensionQueued) {
         setBackgroundPublishing(true);
         if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
         backgroundTimerRef.current = setTimeout(
           () => setBackgroundPublishing(false),
-          MERCARI_PUBLISH_ESTIMATE_MS
+          EXTENSION_PUBLISH_ESTIMATE_MS
         );
       }
 
@@ -788,6 +903,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     selectedItem,
     isEbay,
     isMercari,
+    isPoshmark,
     crossFillBanners,
     existingListingsByMarketplace,
 
@@ -795,6 +911,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     ebay,
     mercariCat,
     mercariShip,
+    poshmark,
 
     // Mercari addresses
     mercariAddresses,

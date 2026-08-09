@@ -13,6 +13,7 @@ import { uploadRoutes } from "./routes/upload";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { webhookRoutes } from "./routes/webhooks";
 import { mercariRoutes } from "./routes/mercari";
+import { poshmarkRoutes } from "./routes/poshmark";
 import { aiRoutes } from "./routes/ai";
 import { sourcesRoutes } from "./routes/sources";
 import { prismaPlugin } from "./plugins/prisma";
@@ -112,6 +113,7 @@ export async function buildApp() {
   await app.register(uploadRoutes, { prefix: "/api/upload" });
   await app.register(subscriptionRoutes, { prefix: "/api/subscriptions" });
   await app.register(mercariRoutes, { prefix: "/api/mercari" });
+  await app.register(poshmarkRoutes, { prefix: "/api/poshmark" });
   await app.register(aiRoutes, { prefix: "/api/ai" });
   await app.register(sourcesRoutes, { prefix: "/api/sources" });
   // Webhook must be registered AFTER other routes so its content-type parser

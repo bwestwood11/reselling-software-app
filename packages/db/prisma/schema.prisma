@@ -26,6 +26,7 @@ model User {
   subscription           Subscription?
   creditTransactions     CreditTransaction[]
   mercariJobs            MercariJob[]
+  poshmarkJobs           PoshmarkJob[]
   sources                Source[]
 }
 
@@ -312,6 +313,29 @@ model MercariJob {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   completedAt   DateTime?
+}
+
+// ─── Poshmark Extension Jobs ──────────────────────────────────────────────────
+
+enum PoshmarkJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model PoshmarkJob {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId    String?
+  status       PoshmarkJobStatus @default(PENDING)
+  payload      Json // listing data for Poshmark
+  errorMessage String?
+  externalId   String? // Poshmark listing ID once created
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  completedAt  DateTime?
 }
 
 // ─── Mercari Categories ───────────────────────────────────────────────────────

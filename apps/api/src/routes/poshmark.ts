@@ -1,0 +1,166 @@
+import type { FastifyInstance } from "fastify";
+import type { Prisma } from "@repo/db";
+import { requireAuth } from "../middleware/auth";
+import { markInventoryItemListed } from "../services/listing-state";
+import { recordExtensionHeartbeat } from "../services/mercari-presence";
+
+/** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
+const POLL_TICK_MS = 750;
+
+export async function poshmarkRoutes(fastify: FastifyInstance) {
+  // POST /api/poshmark/jobs — enqueue a new Poshmark crosslisting job
+  fastify.post("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = request.body as {
+      listingId?: string;
+      payload: Prisma.InputJsonValue;
+    };
+
+    if (!body?.payload) {
+      return reply.status(400).send({ success: false, error: "payload is required" });
+    }
+
+    const job = await fastify.prisma.poshmarkJob.create({
+      data: {
+        userId: request.user!.id,
+        listingId: body.listingId ?? null,
+        payload: body.payload,
+      },
+    });
+
+    return reply.status(201).send({ success: true, data: job });
+  });
+
+  // GET /api/poshmark/jobs/pending?wait=<seconds> — extension polls this to get the next job.
+  // The poll doubles as a presence heartbeat: it proves the extension is online.
+  //
+  // LONG POLL: mirrors /api/mercari/jobs/pending. With `wait` set the request is held open until
+  // a job appears (or the window elapses) instead of returning an empty list immediately, which
+  // drops publish pickup latency to ~POLL_TICK_MS. `wait` is clamped so a client cannot pin a
+  // connection open indefinitely, and the loop aborts as soon as the client disconnects.
+  fastify.get("/jobs/pending", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as { wait?: string };
+    const waitSeconds = Math.min(Math.max(Number.parseInt(query.wait ?? "0", 10) || 0, 0), 30);
+    const deadline = Date.now() + waitSeconds * 1000;
+
+    await recordExtensionHeartbeat(request.user!.id);
+
+    const findJobs = () =>
+      fastify.prisma.poshmarkJob.findMany({
+        where: { userId: request.user!.id, status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        take: 10,
+      });
+
+    let jobs = await findJobs();
+    while (jobs.length === 0 && Date.now() < deadline) {
+      // Stop early if the extension went away (tab closed, service worker evicted).
+      if (request.socket.destroyed) return;
+      await new Promise((r) => setTimeout(r, POLL_TICK_MS));
+      jobs = await findJobs();
+    }
+
+    return reply.send({ success: true, data: jobs });
+  });
+
+  // GET /api/poshmark/jobs/:jobId — fetch a single job (used for status polling)
+  fastify.get("/jobs/:jobId", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { jobId } = request.params as { jobId: string };
+    const job = await fastify.prisma.poshmarkJob.findFirst({
+      where: { id: jobId, userId: request.user!.id },
+    });
+    if (!job) return reply.status(404).send({ success: false, error: "Job not found" });
+    return reply.send({ success: true, data: job });
+  });
+
+  // GET /api/poshmark/jobs — list all jobs with optional status filter
+  fastify.get("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as { status?: string; limit?: string };
+    const limit = Math.min(parseInt(query.limit ?? "50", 10), 100);
+
+    const jobs = await fastify.prisma.poshmarkJob.findMany({
+      where: {
+        userId: request.user!.id,
+        ...(query.status ? { status: query.status as any } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+
+    return reply.send({ success: true, data: jobs });
+  });
+
+  // PATCH /api/poshmark/jobs/:id — extension reports job outcome
+  // On COMPLETED: marks the linked Listing ACTIVE and the inventory item as listed.
+  // On FAILED: marks the Listing FAILED. No credit refund — cross-listing is never charged.
+  fastify.patch("/jobs/:id", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = request.body as {
+      status: "PROCESSING" | "COMPLETED" | "FAILED";
+      externalId?: string;
+      errorMessage?: string;
+    };
+
+    const existing = await fastify.prisma.poshmarkJob.findFirst({
+      where: { id, userId: request.user!.id },
+    });
+    if (!existing) {
+      return reply.status(404).send({ success: false, error: "Job not found" });
+    }
+
+    const now = new Date();
+    const isTerminal = body.status === "COMPLETED" || body.status === "FAILED";
+
+    const job = await fastify.prisma.poshmarkJob.update({
+      where: { id },
+      data: {
+        status: body.status,
+        externalId: body.externalId ?? existing.externalId,
+        errorMessage: body.errorMessage ?? null,
+        completedAt: isTerminal ? now : existing.completedAt,
+      },
+    });
+
+    if (existing.listingId && isTerminal) {
+      if (body.status === "COMPLETED") {
+        const published = await fastify.prisma.listing.update({
+          where: { id: existing.listingId },
+          data: {
+            status: "ACTIVE",
+            externalId: body.externalId ?? null,
+            listedAt: now,
+            lastSyncAt: now,
+            syncError: null,
+            publishAttempts: 0,
+          },
+        });
+        await markInventoryItemListed(fastify.prisma, published.inventoryItemId);
+        await fastify.prisma.syncEvent.create({
+          data: {
+            listingId: existing.listingId,
+            type: "PUBLISH",
+            status: "success",
+            message: body.externalId
+              ? `Published to Poshmark — listing ID: ${body.externalId}`
+              : "Published to Poshmark",
+          },
+        });
+      } else {
+        const errorMsg = body.errorMessage ?? "Extension job failed";
+        await fastify.prisma.listing.update({
+          where: { id: existing.listingId },
+          data: { status: "FAILED", syncError: errorMsg, lastSyncAt: now },
+        });
+        await fastify.prisma.syncEvent.create({
+          data: {
+            listingId: existing.listingId,
+            type: "ERROR",
+            status: "failed",
+            message: errorMsg,
+          },
+        });
+      }
+    }
+
+    return reply.send({ success: true, data: job });
+  });
+}

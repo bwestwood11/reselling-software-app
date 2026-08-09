@@ -32,6 +32,17 @@ const MERCARI_FLOW: Flow = {
   ],
 };
 
+const POSHMARK_FLOW: Flow = {
+  durationMs: 25_000,
+  steps: [
+    "Queued for the ReList extension",
+    "Extension picked up the job",
+    "Uploading photos to Poshmark",
+    "Creating the listing",
+    "Waiting for Poshmark to confirm",
+  ],
+};
+
 const EBAY_FLOW: Flow = {
   durationMs: 12_000,
   steps: ["Validating your listing", "Sending it to eBay", "Waiting for eBay to confirm"],
@@ -42,9 +53,10 @@ const DEFAULT_FLOW: Flow = {
   steps: ["Preparing your listing", "Sending it to the marketplace", "Waiting for confirmation"],
 };
 
-/** Mercari's extension round trip dominates whenever it's one of the targets. */
+/** An extension round trip (Mercari or Poshmark) dominates whenever it's one of the targets. */
 function resolveFlow(marketplaces: string[]): Flow {
   if (marketplaces.includes("MERCARI")) return MERCARI_FLOW;
+  if (marketplaces.includes("POSHMARK")) return POSHMARK_FLOW;
   if (marketplaces.includes("EBAY")) return EBAY_FLOW;
   return DEFAULT_FLOW;
 }

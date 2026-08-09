@@ -12,6 +12,7 @@ import { CrosslistPreviewPanel } from "./sections/CrosslistPreviewPanel";
 import { ListingDetails } from "../sections/ListingDetails";
 import { EbaySettings } from "../sections/EbaySettings";
 import { MercariSettings } from "../sections/MercariSettings";
+import { PoshmarkSettings } from "../sections/PoshmarkSettings";
 
 export type { CrosslistFormProps };
 
@@ -89,7 +90,13 @@ export function CrosslistForm(props: CrosslistFormProps) {
           />
         )}
 
-        {cf.isMercari && cf.isEbay && <Separator />}
+        {cf.isMercari && (cf.isPoshmark || cf.isEbay) && <Separator />}
+
+        {cf.isPoshmark && (
+          <PoshmarkSettings form={form} poshmark={cf.poshmark} selectedItem={cf.selectedItem} />
+        )}
+
+        {cf.isPoshmark && cf.isEbay && <Separator />}
 
         {cf.isEbay && (
           <EbaySettings

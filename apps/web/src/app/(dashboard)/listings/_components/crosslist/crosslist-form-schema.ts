@@ -41,6 +41,16 @@ export const crosslistFormSchema = z.object({
   mercariSizeId: z.coerce.number().int().positive().optional(),
   mercariAddressId: z.coerce.number().int().optional(),
   mercariZipCode: z.string().optional(),
+
+  // Poshmark settings
+  poshmarkDepartmentId: z.string().optional(),
+  poshmarkCategoryId: z.string().optional(),
+  poshmarkSubcategoryId: z.string().optional(),
+  poshmarkCondition: z.string().optional(),
+  poshmarkBrand: z.string().optional(),
+  poshmarkSizeId: z.string().optional(),
+  poshmarkOriginalPrice: z.coerce.number().min(0).optional(),
+  poshmarkShippingDiscount: z.string().optional(),
 });
 
 export type CrosslistFormValues = z.infer<typeof crosslistFormSchema>;

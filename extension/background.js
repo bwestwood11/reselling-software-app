@@ -30,6 +30,7 @@ const TAB_IDLE_CLOSE_MS = 60_000;
 const SESSION_CACHE_TTL_MS = 5 * 60_000;
 
 let activeJobId = null;
+let activePoshmarkJobId = null;
 let polling = false;
 let stopRequested = false;
 
@@ -342,11 +343,11 @@ function releaseMercariTab() {
 }
 
 /**
- * Wait until chrome.scripting can run in the tab AND the document is on mercari.com. Injection
+ * Wait until chrome.scripting can run in the tab AND the document is on `origin`. Injection
  * throws while the tab is still on about:blank or mid-navigation, so we retry rather than waiting
  * for a load event — this typically returns hundreds of ms before "complete".
  */
-async function waitForInjectable(tabId, timeoutMs = 25_000) {
+async function waitForInjectable(tabId, origin = MERCARI_BASE, timeoutMs = 25_000) {
   const started = Date.now();
   let lastError = null;
   while (Date.now() - started < timeoutMs) {
@@ -355,13 +356,13 @@ async function waitForInjectable(tabId, timeoutMs = 25_000) {
         target: { tabId },
         func: () => location.origin,
       });
-      if (res?.result === MERCARI_BASE) return;
+      if (res?.result === origin) return;
     } catch (err) {
       lastError = err;
     }
     await sleep(100);
   }
-  throw new Error(`Mercari tab not ready: ${lastError?.message ?? "timed out"}`);
+  throw new Error(`${origin} tab not ready: ${lastError?.message ?? "timed out"}`);
 }
 
 async function withMercariTab(fn) {
@@ -853,9 +854,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  if (msg.type === "CONNECT_POSHMARK") {
+    connectPoshmark()
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
+  if (msg.type === "GET_POSHMARK_STATUS") {
+    getPoshmarkStatus().then((status) => sendResponse(status));
+    return true;
+  }
+
   if (msg.type === "GET_PENDING_COUNT") {
-    apiFetch("/api/mercari/jobs/pending")
-      .then((data) => sendResponse({ count: (data.data ?? []).length }))
+    Promise.all([
+      apiFetch("/api/mercari/jobs/pending").then((d) => (d.data ?? []).length).catch(() => 0),
+      apiFetch("/api/poshmark/jobs/pending").then((d) => (d.data ?? []).length).catch(() => 0),
+    ])
+      .then(([m, p]) => sendResponse({ count: m + p }))
       .catch(() => sendResponse({ count: null }));
     return true;
   }
@@ -1049,20 +1065,23 @@ async function restoreMercariCookies() {
   for (const cookie of cookies) {
     try {
       const domain = cookie.domain ?? ".mercari.com";
-      const host = domain.startsWith(".") ? domain.slice(1) : domain;
+      const isHostOnly = !domain.startsWith(".");
+      const host = isHostOnly ? domain : domain.slice(1);
       const url = `${cookie.secure ? "https" : "http"}://${host}${cookie.path ?? "/"}`;
 
-      await chrome.cookies.set({
+      const setDetails = {
         url,
         name: cookie.name,
         value: cookie.value,
-        domain: cookie.domain,
         path: cookie.path ?? "/",
         secure: cookie.secure ?? false,
         httpOnly: cookie.httpOnly ?? false,
-        sameSite: cookie.sameSite ?? "unspecified",
-        ...(cookie.expirationDate ? { expirationDate: cookie.expirationDate } : {}),
-      });
+        sameSite: normalizeSameSite(cookie.sameSite),
+      };
+      if (!isHostOnly) setDetails.domain = domain;
+      if (cookie.expirationDate != null) setDetails.expirationDate = cookie.expirationDate;
+
+      await chrome.cookies.set(setDetails);
     } catch {
       // Some cookies may fail (partitioned cookies, scheme mismatch) — skip silently
     }
@@ -1146,6 +1165,564 @@ async function getMercariStatus() {
   }
 }
 
+// ── Poshmark account connection ───────────────────────────────────────────────
+// IMPORTANT: Poshmark has no public API. The endpoints below are reverse-engineered
+// from their web app and are subject to change. Verify against live DevTools traffic.
+//
+// Auth: cookie-based. After login, the extension captures the full cookie jar and
+// the _csrf_token, then saves them to the ReList API via /api/marketplaces/poshmark/connect-token.
+//
+// Create listing (unverified — confirm via DevTools Network tab on poshmark.com):
+//   POST https://poshmark.com/api/v2/post
+//   Headers: X-CSRF-Token: <csrfToken>, Content-Type: application/json
+//   Cookies: auto-sent by browser (credentials:"include")
+//   Body: { listing: { title, description, price_amount, catalog, condition, ... } }
+//
+// Image upload (unverified — confirm via DevTools):
+//   POST https://poshmark.com/api/v2/post.picture
+//   Multipart form-data
+
+const POSHMARK_BASE = "https://poshmark.com";
+
+// Maps our internal Condition to Poshmark condition strings
+const POSHMARK_CONDITION_MAP = {
+  NEW_WITH_TAGS: "nwt",
+  NEW_WITHOUT_TAGS: "like_new",
+  VERY_GOOD: "good",
+  GOOD: "good",
+  SATISFACTORY: "fair",
+};
+
+async function patchPoshmarkJob(id, update) {
+  return apiFetch(`/api/poshmark/jobs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(update),
+  });
+}
+
+/**
+ * Run one Poshmark job handed over by the long poll. Mirrors runJob() on the Mercari side: the
+ * PROCESSING claim is sent WITHOUT blocking, since awaiting it before starting work adds a full
+ * API round trip to every publish. The terminal patch waits on it so the two cannot land out of
+ * order (which would leave the job stuck at PROCESSING).
+ */
+async function runPoshmarkJob(job) {
+  if (activePoshmarkJobId) return;
+  activePoshmarkJobId = job.id;
+
+  const claim = patchPoshmarkJob(job.id, { status: "PROCESSING" }).catch(() => {});
+  const started = Date.now();
+
+  try {
+    const externalId = await postToPoshmarkApi(job);
+    await claim;
+    await patchPoshmarkJob(job.id, { status: "COMPLETED", externalId: externalId ?? undefined });
+    console.log(`[relist] poshmark job ${job.id} published in ${Date.now() - started}ms`);
+  } catch (err) {
+    console.error("[relist] poshmark job failed:", err.message);
+
+    if (err.message === "Not authenticated") {
+      // apiFetch already cleared the token; stop polling and show the ! badge
+      stopPolling();
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
+      return;
+    }
+
+    await claim;
+    await patchPoshmarkJob(job.id, {
+      status: "FAILED",
+      errorMessage: err.message ?? "Poshmark publish error",
+    }).catch(() => {});
+  } finally {
+    activePoshmarkJobId = null;
+  }
+}
+
+// Posts a listing to Poshmark by injecting into a real poshmark.com tab.
+// The injected script runs in the poshmark.com origin context so session cookies
+// are sent automatically — no manual cookie header injection needed.
+//
+// IMPORTANT: Verify the API endpoint and payload shape against live network
+// traffic in Chrome DevTools before shipping to production.
+async function postToPoshmarkApi(job) {
+  const connectionsData = await apiFetch("/api/marketplaces/connections");
+  const connections = connectionsData.data ?? [];
+  const poshConn = connections.find((c) => c.marketplace === "POSHMARK");
+  if (!poshConn) throw new Error("Poshmark account not connected");
+
+  const {
+    title,
+    description,
+    price,
+    condition,
+    images = [],
+    departmentId,
+    categoryId,
+    subcategoryId,
+    brand,
+    colors = [],
+    styleTags = [],
+    sizeId,
+    originalPriceCents,
+    shippingDiscount,
+  } = job.payload;
+
+  // Step 1 — get the stored CSRF token. Cookies are restored by acquirePoshmarkTab() on a cold
+  // acquire, so there is no separate restore call here.
+  const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
+  const csrfToken = sessionRes.data?.csrfToken ?? null;
+
+  // Step 2 — open (or reuse) a poshmark.com tab and post the listing
+  return withPoshmarkTab(async (tabId) => {
+    // Step 2a — upload images and get Poshmark picture IDs
+    const pictureIds = await uploadImagesToPoshmark(tabId, images, csrfToken);
+
+    // Step 2b — build the listing payload
+    // IMPORTANT: verify these field names against live DevTools network traffic
+    const poshmarkCondition = POSHMARK_CONDITION_MAP[condition] ?? "good";
+    const priceStr = (price / 100).toFixed(2);
+
+    const listingBody = {
+      listing: {
+        title,
+        description: description ?? "",
+        price_amount: { val: priceStr, currency_code: "USD" },
+        ...(originalPriceCents != null
+          ? { original_price: { val: (originalPriceCents / 100).toFixed(2), currency_code: "USD" } }
+          : {}),
+        catalog: {
+          ...(departmentId ? { department_id: departmentId } : {}),
+          ...(categoryId ? { category_id: categoryId } : {}),
+          ...(subcategoryId ? { subcategory_id: subcategoryId } : {}),
+        },
+        condition: poshmarkCondition,
+        ...(brand?.trim() ? { brand: brand.trim() } : {}),
+        colors: colors.map((name) => ({ name })),
+        ...(styleTags.length > 0 ? { style_tags: styleTags.map((t) => ({ name: t })) } : {}),
+        ...(sizeId ? { size_obj: { id: sizeId, size_system: "us" } } : {}),
+        pictures: pictureIds.map((id) => ({ id })),
+        ...(shippingDiscount && shippingDiscount !== "no_discount"
+          ? { seller_shipping_discount_id: shippingDiscount }
+          : {}),
+      },
+    };
+
+    // Step 2c — create the listing via Poshmark's internal API
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (url, body, csrf) => {
+        const headers = {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        };
+        const res = await fetch(url, {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, data };
+      },
+      args: [`${POSHMARK_BASE}/api/v2/post`, listingBody, csrfToken],
+    });
+
+    const response = result?.result;
+    if (!response?.ok) {
+      throw new Error(
+        response?.data?.error?.message ??
+        response?.data?.message ??
+        `Poshmark API error (${response?.status})`
+      );
+    }
+
+    // Extract listing ID from response — verify field name via DevTools
+    const listingId =
+      response.data?.data?.id ??
+      response.data?.listing?.id ??
+      response.data?.id ??
+      null;
+
+    return listingId;
+  });
+}
+
+// Upload images to Poshmark's CDN and return picture IDs.
+// IMPORTANT: endpoint and response shape must be verified against live DevTools traffic.
+async function uploadImagesToPoshmark(tabId, imageUrls, csrfToken) {
+  if (imageUrls.length === 0) return [];
+
+  const pictureIds = [];
+  for (const url of imageUrls.slice(0, 8)) {
+    try {
+      // Fetch image in the service worker (no CORS restrictions)
+      const res = await fetch(url);
+      if (!res.ok) { console.warn("[relist] Poshmark image fetch failed:", url); continue; }
+      const buffer = await res.arrayBuffer();
+      const type = res.headers.get("content-type") ?? "image/jpeg";
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const CHUNK = 8192;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
+      const base64 = btoa(binary);
+
+      // Upload from inside the poshmark.com tab so session cookies are sent
+      const [injection] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: async (base64Data, mimeType, csrf) => {
+          const blob = await fetch(`data:${mimeType};base64,${base64Data}`).then((r) => r.blob());
+          const form = new FormData();
+          form.append("photo", blob, "photo.jpg");
+
+          const headers = {};
+          if (csrf) headers["X-CSRF-Token"] = csrf;
+
+          // IMPORTANT: verify this upload endpoint via DevTools (Network tab) on poshmark.com
+          const res = await fetch("https://poshmark.com/api/v2/post.picture", {
+            method: "POST",
+            headers,
+            credentials: "include",
+            body: form,
+          });
+          const data = await res.json().catch(() => ({}));
+          return { ok: res.ok, data };
+        },
+        args: [base64, type, csrfToken],
+      });
+
+      const uploadResult = injection?.result;
+      if (uploadResult?.ok) {
+        const picId = uploadResult.data?.data?.id ?? uploadResult.data?.id ?? null;
+        if (picId) pictureIds.push(picId);
+      } else {
+        console.warn("[relist] Poshmark image upload failed for:", url, uploadResult?.data);
+      }
+    } catch (err) {
+      console.warn("[relist] Poshmark image error:", err.message);
+    }
+  }
+  return pictureIds;
+}
+
+// Warm-tab reuse, mirroring the Mercari side: a burst of publishes pays the page load once, and
+// the tab is closed only after TAB_IDLE_CLOSE_MS idle. Tabs the user already had open are reused
+// but never closed. Readiness is detected by retrying injection, not by waiting for status
+// "complete" — fetch from page context works as soon as the document has an origin.
+let poshWarmTabId = null;
+let poshWarmTabIsOurs = false;
+let poshWarmTabCloseTimer = null;
+
+async function acquirePoshmarkTab() {
+  if (poshWarmTabCloseTimer) {
+    clearTimeout(poshWarmTabCloseTimer);
+    poshWarmTabCloseTimer = null;
+  }
+
+  if (poshWarmTabId != null) {
+    try {
+      await chrome.tabs.get(poshWarmTabId);
+      return poshWarmTabId; // already loaded and cookie-primed
+    } catch {
+      poshWarmTabId = null; // user closed it
+    }
+  }
+
+  const [existing] = await chrome.tabs.query({ url: "https://poshmark.com/*" });
+  if (existing) {
+    poshWarmTabId = existing.id;
+    poshWarmTabIsOurs = false;
+  } else {
+    const tab = await chrome.tabs.create({ url: `${POSHMARK_BASE}/`, active: false });
+    poshWarmTabId = tab.id;
+    poshWarmTabIsOurs = true;
+  }
+
+  // Prime the cookie jar from the stored session so the tab is authenticated even if the user
+  // hasn't visited poshmark.com recently. Only needed on a cold acquire.
+  await restorePoshmarkCookies();
+  await waitForInjectable(poshWarmTabId, POSHMARK_BASE);
+  return poshWarmTabId;
+}
+
+/** Schedule the warm tab's close. Tabs the user already had open are never closed. */
+function releasePoshmarkTab() {
+  if (poshWarmTabId == null || !poshWarmTabIsOurs) return;
+  if (poshWarmTabCloseTimer) clearTimeout(poshWarmTabCloseTimer);
+  poshWarmTabCloseTimer = setTimeout(() => {
+    const id = poshWarmTabId;
+    poshWarmTabId = null;
+    poshWarmTabCloseTimer = null;
+    if (id != null) chrome.tabs.remove(id).catch(() => {});
+  }, TAB_IDLE_CLOSE_MS);
+}
+
+async function withPoshmarkTab(fn) {
+  const tabId = await acquirePoshmarkTab();
+  try {
+    return await fn(tabId);
+  } finally {
+    releasePoshmarkTab();
+  }
+}
+
+// Valid values for chrome.cookies.set() sameSite: "no_restriction" | "lax" | "strict" | "unspecified"
+// Poshmark uses null for several cookies — map null → "unspecified" to avoid API errors.
+function normalizeSameSite(raw) {
+  if (raw === "no_restriction" || raw === "lax" || raw === "strict") return raw;
+  return "unspecified";
+}
+
+async function restorePoshmarkCookies() {
+  const token = await getToken();
+  if (!token) return;
+
+  let cookies = [];
+  try {
+    const res = await fetch(`${API_BASE}/api/marketplaces/poshmark/session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    cookies = data.data?.cookies ?? [];
+    console.log("[relist:poshmark] restorePoshmarkCookies: fetched", cookies.length, "cookies from API");
+  } catch (err) {
+    console.error("[relist:poshmark] restorePoshmarkCookies: session fetch failed:", err.message);
+    return;
+  }
+
+  let ok = 0;
+  let fail = 0;
+  for (const cookie of cookies) {
+    try {
+      const domain = cookie.domain ?? "poshmark.com";
+      const isHostOnly = !domain.startsWith(".");
+      const host = isHostOnly ? domain : domain.slice(1);
+      const url = `${cookie.secure ? "https" : "http"}://${host}${cookie.path ?? "/"}`;
+
+      const setDetails = {
+        url,
+        name: cookie.name,
+        value: cookie.value,
+        path: cookie.path ?? "/",
+        secure: cookie.secure ?? false,
+        httpOnly: cookie.httpOnly ?? false,
+        sameSite: normalizeSameSite(cookie.sameSite),
+      };
+      if (!isHostOnly) setDetails.domain = domain;
+      if (cookie.expirationDate != null) setDetails.expirationDate = cookie.expirationDate;
+
+      await chrome.cookies.set(setDetails);
+      ok++;
+    } catch (err) {
+      fail++;
+      console.warn("[relist:poshmark] Failed to restore cookie:", cookie.name,
+        `(domain=${cookie.domain}, httpOnly=${cookie.httpOnly}, sameSite=${cookie.sameSite})`,
+        "→", err.message);
+    }
+  }
+  console.log(`[relist:poshmark] restorePoshmarkCookies done: ${ok} set, ${fail} failed`);
+}
+
+// Opens poshmark.com/login, waits for the user to authenticate, then captures
+// cookies and account info and saves them to the ReList API.
+async function connectPoshmark() {
+  const relistToken = await getToken();
+  if (!relistToken) throw new Error("Not authenticated to ReList");
+
+  console.log("[relist:poshmark] Opening login tab…");
+  const tab = await chrome.tabs.create({
+    url: "https://poshmark.com/login",
+    active: true,
+  });
+  console.log("[relist:poshmark] Login tab opened, id:", tab.id);
+
+  return new Promise((resolve, reject) => {
+    const TIMEOUT_MS = 5 * 60 * 1000;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      console.warn("[relist:poshmark] Login timed out after 5 min");
+      // Tab left open intentionally for debugging
+      reject(new Error("Login timed out — please try again"));
+    }, TIMEOUT_MS);
+
+    const onRemoved = (tabId) => {
+      if (tabId !== tab.id) return;
+      cleanup();
+      console.warn("[relist:poshmark] Login tab closed before capture completed");
+      reject(new Error("Login tab was closed before completing"));
+    };
+
+    const onUpdated = async (tabId, changeInfo, updatedTab) => {
+      if (tabId !== tab.id || changeInfo.status !== "complete") return;
+      const url = updatedTab.url ?? "";
+      console.log("[relist:poshmark] Tab navigated →", url);
+
+      if (!url.startsWith("https://poshmark.com")) return;
+      if (url.includes("/login") || url.includes("/signup") || url.includes("/auth")) {
+        console.log("[relist:poshmark] Still on auth page, waiting…");
+        return;
+      }
+
+      // User is on a real Poshmark page — login succeeded
+      console.log("[relist:poshmark] Login detected, waiting 1.5 s for cookies to settle…");
+      cleanup();
+      await new Promise((r) => setTimeout(r, 1500));
+
+      try {
+        await capturePoshmarkSession(tab.id, relistToken);
+        // Tab left open intentionally for debugging — remove this comment when done
+        console.log("[relist:poshmark] Session captured OK — tab left open for inspection");
+        resolve({ ok: true });
+      } catch (err) {
+        console.error("[relist:poshmark] capturePoshmarkSession failed:", err.message);
+        // Tab left open intentionally for debugging
+        reject(err);
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onRemoved.addListener(onRemoved);
+  });
+}
+
+// Captures Poshmark session data from the logged-in tab and POSTs to the ReList API.
+//
+// Auth cookie map (confirmed from live DevTools 2026-06):
+//   jwt       — httpOnly, secure; main session JWT
+//   ui        — httpOnly, secure; URL-encoded JSON: {uid, dh (handle), fn (full name), em, ...}
+//   _csrf     — NOT httpOnly; raw CSRF token string (send as X-CSRF-Token on every request)
+//   usegv3    — httpOnly; segment flags
+//   vsegv3    — httpOnly; visitor segment flags
+//   esid      — session ID
+//   ses_exp   — session expiry timestamp
+//   max_auth_exp — auth expiry timestamp
+//
+// All are read via chrome.cookies.getAll() in the service worker (which can access httpOnly
+// cookies). No injected script needed for capture.
+async function capturePoshmarkSession(tabId, relistToken) {
+  console.log("[relist:poshmark] capturePoshmarkSession start, tabId:", tabId);
+
+  // Read all cookies from the service worker — chrome.cookies can read httpOnly cookies
+  let allCookies = [];
+  try {
+    allCookies = await chrome.cookies.getAll({ url: "https://poshmark.com" });
+    console.log("[relist:poshmark] getAll(url) returned", allCookies.length, "cookies:",
+      allCookies.map((c) => `${c.name}(httpOnly=${c.httpOnly},domain=${c.domain})`).join(", "));
+  } catch (err) {
+    console.error("[relist:poshmark] getAll(url) failed:", err.message);
+  }
+
+  // Also grab .poshmark.com domain cookies (subdomain-scoped ones like _ga, __ssid, etc.)
+  try {
+    const sub = await chrome.cookies.getAll({ domain: ".poshmark.com" });
+    console.log("[relist:poshmark] getAll(domain) returned", sub.length, "cookies");
+    for (const c of sub) {
+      if (!allCookies.some((x) => x.name === c.name && x.domain === c.domain)) {
+        allCookies.push(c);
+      }
+    }
+  } catch (err) {
+    console.warn("[relist:poshmark] getAll(domain) failed:", err.message);
+  }
+
+  console.log("[relist:poshmark] Total cookies after merge:", allCookies.length);
+
+  // _csrf cookie — NOT httpOnly, value is the raw CSRF token
+  const csrfCookie = allCookies.find((c) => c.name === "_csrf");
+  const csrfToken = csrfCookie?.value ?? null;
+  console.log("[relist:poshmark] _csrf cookie found:", !!csrfCookie, "| value:", csrfToken);
+
+  // ui cookie — httpOnly JSON: {uid, dh (handle/username), fn (full name URL-encoded), em, ...}
+  let accountId = null;
+  let accountName = null;
+  const uiCookie = allCookies.find((c) => c.name === "ui");
+  console.log("[relist:poshmark] ui cookie found:", !!uiCookie, "| raw:", uiCookie?.value?.slice(0, 80));
+  if (uiCookie?.value) {
+    try {
+      const ui = JSON.parse(decodeURIComponent(uiCookie.value));
+      console.log("[relist:poshmark] ui cookie parsed:", JSON.stringify(ui));
+      accountId = ui.uid ?? null;
+      // dh = username handle (e.g. "flipping_studio"), fn = "Brett+Westwood"
+      accountName = ui.dh ?? ui.fn?.replace(/\+/g, " ") ?? null;
+    } catch (err) {
+      console.warn("[relist:poshmark] Failed to parse ui cookie:", err.message);
+    }
+  }
+
+  console.log("[relist:poshmark] accountId:", accountId, "| accountName:", accountName);
+
+  // jwt cookie — httpOnly, confirms session is active
+  const jwtCookie = allCookies.find((c) => c.name === "jwt");
+  console.log("[relist:poshmark] jwt cookie found:", !!jwtCookie);
+
+  if (!csrfToken && !accountId) {
+    console.error("[relist:poshmark] No CSRF token and no accountId — aborting");
+    throw new Error(
+      "Could not capture Poshmark session.\n\nMake sure you are fully logged in, then try again."
+    );
+  }
+
+  // Strip non-serializable fields before saving
+  const cookiesPayload = allCookies.map(({ hostOnly, session, ...c }) => c);
+  console.log("[relist:poshmark] Sending", cookiesPayload.length, "cookies to API");
+
+  // The accessToken field is used by our API as a connection marker.
+  // Poshmark uses cookie-based auth, so we store the CSRF token here as a
+  // convenient single-string auth signal; the full cookie jar is what matters.
+  const accessToken = csrfToken ?? `poshmark_${accountId}`;
+
+  console.log("[relist:poshmark] POSTing to connect-token…");
+  const res = await fetch(`${API_BASE}/api/marketplaces/poshmark/connect-token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${relistToken}`,
+    },
+    body: JSON.stringify({
+      accessToken,
+      accountId: accountId ? String(accountId) : null,
+      accountName: accountName ?? null,
+      cookies: cookiesPayload,
+      csrfToken: csrfToken ?? null,
+    }),
+  });
+
+  const body = await res.json().catch(() => ({}));
+  console.log("[relist:poshmark] connect-token response:", res.status, JSON.stringify(body));
+  if (!res.ok) throw new Error(body.error ?? "Failed to save Poshmark connection");
+  console.log("[relist:poshmark] Connection saved ✓ accountName:", accountName);
+}
+
+async function getPoshmarkStatus() {
+  const relistToken = await getToken();
+  if (!relistToken) return { connected: false };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/marketplaces/connections`, {
+      headers: { Authorization: `Bearer ${relistToken}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    const connections = data.data ?? [];
+    const poshmark = connections.find((c) => c.marketplace === "POSHMARK");
+    return {
+      connected: !!poshmark,
+      accountName: poshmark?.accountName ?? null,
+    };
+  } catch {
+    return { connected: false };
+  }
+}
+
 // ── Long polling ──────────────────────────────────────────────────────────────
 //
 // The extension holds a request open on /jobs/pending?wait=N; the server answers the moment a job
@@ -1159,10 +1736,13 @@ async function getMercariStatus() {
 // NOTE: the separate /extension/heartbeat ping was removed — every /jobs/pending call records
 // presence server-side, and the long poll issues one continuously. The API route still exists.
 
-/** One long poll. Returns an array of jobs, or null if we should stop (auth lost). */
-async function awaitPendingJobs() {
+/**
+ * One long poll against `path`. Returns an array of jobs, or null if we should stop (auth lost).
+ * Both marketplaces expose the same ?wait= contract, so one helper serves both loops.
+ */
+async function awaitPendingJobsFrom(path, label) {
   try {
-    const data = await apiFetch(`/api/mercari/jobs/pending?wait=${POLL_WAIT_SECONDS}`);
+    const data = await apiFetch(`${path}?wait=${POLL_WAIT_SECONDS}`);
     return data.data ?? [];
   } catch (err) {
     if (err.message === "Not authenticated") {
@@ -1170,9 +1750,36 @@ async function awaitPendingJobs() {
       chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
       return null;
     }
-    console.warn("[relist] poll failed:", err.message);
+    console.warn(`[relist] ${label} poll failed:`, err.message);
     await sleep(POLL_ERROR_BACKOFF_MS);
     return [];
+  }
+}
+
+/**
+ * One marketplace's long-poll loop. Mercari and Poshmark each run their own so neither waits
+ * behind the other's 25s poll window — they publish into separate tabs and never contend.
+ */
+async function marketplacePollLoop({ path, label, run }) {
+  while (!stopRequested) {
+    if (!(await getToken())) return;
+
+    const jobs = await awaitPendingJobsFrom(path, label);
+    if (jobs === null) return; // auth lost — apiFetch already cleared the token
+
+    if (jobs.length > 0) {
+      chrome.action.setBadgeText({ text: String(jobs.length) });
+      chrome.action.setBadgeBackgroundColor({ color: "#f97316" });
+      // Process the whole batch back-to-back; the marketplace tab stays warm across them.
+      for (const job of jobs) {
+        if (stopRequested) break;
+        await run(job);
+      }
+      chrome.action.setBadgeText({ text: "" });
+      continue; // re-poll immediately — more work may be queued
+    }
+
+    await sleep(POLL_GAP_MS);
   }
 }
 
@@ -1181,26 +1788,14 @@ async function pollLoop() {
   polling = true;
   stopRequested = false;
   try {
-    while (!stopRequested) {
-      if (!(await getToken())) break;
-
-      const jobs = await awaitPendingJobs();
-      if (jobs === null) break; // auth lost — apiFetch already cleared the token
-
-      if (jobs.length > 0) {
-        chrome.action.setBadgeText({ text: String(jobs.length) });
-        chrome.action.setBadgeBackgroundColor({ color: "#f97316" });
-        // Process the whole batch back-to-back; the Mercari tab stays warm across them.
-        for (const job of jobs) {
-          if (stopRequested) break;
-          await runJob(job);
-        }
-        chrome.action.setBadgeText({ text: "" });
-        continue; // re-poll immediately — more work may be queued
-      }
-
-      await sleep(POLL_GAP_MS);
-    }
+    await Promise.all([
+      marketplacePollLoop({ path: "/api/mercari/jobs/pending", label: "mercari", run: runJob }),
+      marketplacePollLoop({
+        path: "/api/poshmark/jobs/pending",
+        label: "poshmark",
+        run: runPoshmarkJob,
+      }),
+    ]);
   } finally {
     polling = false;
   }

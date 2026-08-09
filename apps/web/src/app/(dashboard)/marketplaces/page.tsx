@@ -57,7 +57,7 @@ const MARKETPLACES: MarketplaceMeta[] = [
     iconText: "text-rose-500",
     borderHover: "hover:border-rose-300",
     initial: "P",
-    api: "coming_soon",
+    api: "full",
     categories: ["Fashion", "Home", "Beauty"],
   },
   {
@@ -182,6 +182,7 @@ function MarketplacesContent(): React.JSX.Element {
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<Filter>("all");
   const [mercariModal, setMercariModal] = useState(false);
+  const [poshmarkModal, setPoshmarkModal] = useState(false);
 
   // Handle OAuth callback result (?connected=ebay or ?error=...)
   useEffect(() => {
@@ -235,6 +236,10 @@ function MarketplacesContent(): React.JSX.Element {
   async function handleConnect(key: string) {
     if (key === "MERCARI") {
       setMercariModal(true);
+      return;
+    }
+    if (key === "POSHMARK") {
+      setPoshmarkModal(true);
       return;
     }
     try {
@@ -363,6 +368,18 @@ function MarketplacesContent(): React.JSX.Element {
             setMercariModal(false);
             qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
             toast.success("Mercari connected successfully!");
+          }}
+        />
+      )}
+
+      {/* Poshmark connect modal */}
+      {poshmarkModal && (
+        <PoshmarkConnectModal
+          onClose={() => setPoshmarkModal(false)}
+          onConnected={() => {
+            setPoshmarkModal(false);
+            qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+            toast.success("Poshmark connected successfully!");
           }}
         />
       )}
@@ -831,6 +848,113 @@ function MercariConnectModal({
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Poshmark connect modal ────────────────────────────────────────────────────
+// Poshmark has no public API. Connection is captured by the ReList Chrome
+// extension, which opens poshmark.com in a real browser tab, waits for login,
+// reads session cookies + CSRF token, and POSTs them to
+// /api/marketplaces/poshmark/connect-token.
+
+const POSHMARK_EXTENSION_STEPS = [
+  "Install the ReList Chrome Extension from the Chrome Web Store.",
+  "Click the ReList icon in your browser toolbar to open the popup.",
+  'Click "Connect Poshmark Account" — a Poshmark login tab will open.',
+  "Sign in with your Poshmark credentials. The tab closes automatically once done.",
+];
+
+function PoshmarkConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: () => void;
+}) {
+  const qc = useQueryClient();
+  const [checking, setChecking] = useState(false);
+
+  async function verifyConnection() {
+    setChecking(true);
+    try {
+      const res = await marketplacesApi.listConnections();
+      const connections: any[] = res.data ?? [];
+      if (connections.some((c: any) => c.marketplace === "POSHMARK")) {
+        qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
+        onConnected();
+      } else {
+        toast.error("Poshmark not connected yet — complete the login in the extension popup.");
+      }
+    } catch {
+      toast.error("Could not verify connection. Check your network and try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-zinc-100 px-6 py-5">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-rose-50">
+            <span className="text-sm font-bold text-rose-500">P</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-zinc-900">Connect Poshmark</p>
+            <p className="text-xs text-zinc-500">Via the ReList Chrome Extension</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 pb-6 pt-5">
+          {/* Why the extension */}
+          <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" />
+            <p className="text-xs text-sky-800">
+              Poshmark has no public API. The extension logs in through Poshmark&apos;s real website
+              — the same way you&apos;d do it manually — so there are no bot-detection issues.
+            </p>
+          </div>
+
+          {/* Step-by-step guide */}
+          <div>
+            <p className="mb-2.5 text-xs font-semibold text-zinc-700">How to connect</p>
+            <ol className="space-y-2">
+              {POSHMARK_EXTENSION_STEPS.map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[11px] font-bold text-rose-600">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs leading-relaxed text-zinc-600">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Verify button */}
+          <button
+            onClick={verifyConnection}
+            disabled={checking}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-medium text-zinc-700 transition-all hover:bg-zinc-100 disabled:opacity-50"
+          >
+            {checking ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+            )}
+            {checking ? "Checking…" : "I've connected — verify"}
+          </button>
         </div>
       </div>
     </div>

@@ -39,14 +39,17 @@ function StatusRow({ result }: { result: CrosslistResult }) {
   }
 
   if (result.status === "NEEDS_WEBVIEW") {
+    // Both marketplaces publish out-of-band, but not the same way: Poshmark's job is already
+    // queued for the Chrome extension, while Mercari still needs the mobile app to finish it.
     return (
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
         <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         <div>
           <p className="text-sm font-semibold text-zinc-900">{label}</p>
           <p className="text-xs text-amber-700">
-            Draft created — finish publishing to Mercari from the ReList mobile app. Mercari can&apos;t
-            publish from the web yet.
+            {result.marketplace === "POSHMARK"
+              ? "Queued — the ReList extension is posting it now. This page updates once it lands."
+              : "Draft created — finish publishing to Mercari from the ReList mobile app. Mercari can't publish from the web yet."}
           </p>
         </div>
       </div>

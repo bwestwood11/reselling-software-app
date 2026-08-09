@@ -10,6 +10,10 @@ const mercariIcon = document.getElementById("mercari-icon");
 const mercariAccount = document.getElementById("mercari-account");
 const mercariConnectBtn = document.getElementById("mercari-connect-btn");
 const mercariError = document.getElementById("mercari-error");
+const poshmarkIcon = document.getElementById("poshmark-icon");
+const poshmarkAccount = document.getElementById("poshmark-account");
+const poshmarkConnectBtn = document.getElementById("poshmark-connect-btn");
+const poshmarkError = document.getElementById("poshmark-error");
 
 function showLogin() {
   loginSection.classList.remove("hidden");
@@ -45,8 +49,9 @@ async function refreshStatus() {
 
   activeJob.textContent = res.activeJobId ? `Processing ${res.activeJobId.slice(0, 8)}…` : "None";
 
-  // Mercari connection status
+  // Marketplace connection statuses
   refreshMercariStatus();
+  refreshPoshmarkStatus();
 }
 
 async function refreshMercariStatus() {
@@ -71,6 +76,49 @@ async function refreshMercariStatus() {
     mercariConnectBtn.classList.remove("hidden");
   }
 }
+
+async function refreshPoshmarkStatus() {
+  poshmarkError.classList.add("hidden");
+  poshmarkAccount.textContent = "Checking…";
+
+  try {
+    const status = await sendMessage({ type: "GET_POSHMARK_STATUS" });
+    if (status.connected) {
+      poshmarkAccount.textContent = status.accountName ?? "Connected";
+      poshmarkIcon.style.background = "#f0fdf4";
+      poshmarkIcon.style.color = "#22c55e";
+      poshmarkConnectBtn.classList.add("hidden");
+    } else {
+      poshmarkAccount.textContent = "Not connected";
+      poshmarkIcon.style.background = "#fff1f2";
+      poshmarkIcon.style.color = "#e11d48";
+      poshmarkConnectBtn.classList.remove("hidden");
+    }
+  } catch {
+    poshmarkAccount.textContent = "Unknown";
+    poshmarkConnectBtn.classList.remove("hidden");
+  }
+}
+
+poshmarkConnectBtn.addEventListener("click", async () => {
+  poshmarkError.classList.add("hidden");
+  poshmarkConnectBtn.disabled = true;
+  poshmarkConnectBtn.textContent = "Opening Poshmark…";
+  poshmarkAccount.textContent = "Waiting for login…";
+
+  const res = await sendMessage({ type: "CONNECT_POSHMARK" });
+
+  poshmarkConnectBtn.disabled = false;
+  poshmarkConnectBtn.textContent = "Connect Poshmark Account";
+
+  if (res.ok) {
+    await refreshPoshmarkStatus();
+  } else {
+    poshmarkAccount.textContent = "Not connected";
+    poshmarkError.textContent = res.error ?? "Connection failed. Please try again.";
+    poshmarkError.classList.remove("hidden");
+  }
+});
 
 mercariConnectBtn.addEventListener("click", async () => {
   mercariError.classList.add("hidden");

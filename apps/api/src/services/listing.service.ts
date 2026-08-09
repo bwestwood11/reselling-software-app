@@ -200,6 +200,52 @@ export class ListingService {
       },
     });
 
+    // Poshmark has no public API and requires cookie-based browser auth. Queue a
+    // PoshmarkJob for the Chrome extension, which runs in a real browser context.
+    if (listing.marketplace === "POSHMARK") {
+      const images = listing.inventoryItem?.images?.map((img) => img.url) ?? [];
+      const mpData = listing.marketplaceData as Record<string, unknown> | null;
+
+      const job = await this.db.poshmarkJob.create({
+        data: {
+          userId,
+          listingId: id,
+          payload: {
+            listingId: id,
+            title: listing.title,
+            description: listing.description ?? "",
+            price: Math.round(Number(listing.price) * 100),
+            condition: listing.inventoryItem?.condition ?? "GOOD",
+            images,
+            departmentId: mpData?.departmentId ?? null,
+            categoryId: mpData?.categoryId ?? null,
+            subcategoryId: mpData?.subcategoryId ?? null,
+            brand: mpData?.brand ?? null,
+            colors: mpData?.colors ?? [],
+            styleTags: mpData?.styleTags ?? [],
+            sizeId: mpData?.sizeId ?? null,
+            originalPriceCents: mpData?.originalPriceCents ?? null,
+            shippingDiscount: mpData?.shippingDiscount ?? null,
+          },
+        },
+      });
+
+      const updated = await this.db.listing.update({
+        where: { id },
+        data: { status: "PENDING", lastSyncAt: new Date(), syncError: null },
+      });
+
+      await this.db.syncEvent.updateMany({
+        where: { listingId: id, type: "PUBLISH", status: "pending" },
+        data: {
+          status: "success",
+          message: `Poshmark job queued (${job.id}) — extension will post directly`,
+        },
+      });
+
+      return updated;
+    }
+
     // Mercari cannot be published server-side (Cloudflare Bot Management blocks Node.js
     // requests by TLS fingerprint). Instead, queue a MercariJob for the Chrome extension,
     // which runs in a real browser context and calls Mercari's API directly.
@@ -399,6 +445,13 @@ export class ListingService {
         if (connection.marketplace === "MERCARI") {
           // Mercari's API is Cloudflare-protected; publish via WebView on the device instead
           results.push({ marketplace: "MERCARI", listingId: listing.id, status: "NEEDS_WEBVIEW" });
+        } else if (connection.marketplace === "POSHMARK") {
+          // Poshmark also has no server-side publish path (cookie auth + no public API), so
+          // publish() only queues a PoshmarkJob and leaves the listing PENDING. Report
+          // NEEDS_WEBVIEW rather than ACTIVE: the extension has not posted it yet, and the
+          // caller uses this status to keep its background-publishing progress card open.
+          await this.publish(listing.id, userId);
+          results.push({ marketplace: "POSHMARK", listingId: listing.id, status: "NEEDS_WEBVIEW" });
         } else {
           await this.publish(listing.id, userId);
           results.push({ marketplace: connection.marketplace, listingId: listing.id, status: "ACTIVE" });

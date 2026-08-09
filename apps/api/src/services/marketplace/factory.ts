@@ -4,6 +4,7 @@ import { EbayAdapter } from "./ebay";
 import { FacebookAdapter } from "./facebook";
 import { DepopAdapter } from "./depop";
 import { MercariAdapter } from "./mercari";
+import { PoshmarkAdapter } from "./poshmark";
 
 export class MarketplaceFactory {
   static create(
@@ -19,6 +20,8 @@ export class MarketplaceFactory {
         return new DepopAdapter(connection);
       case "MERCARI":
         return new MercariAdapter(connection);
+      case "POSHMARK":
+        return new PoshmarkAdapter(connection);
       default:
         throw new Error(`Unsupported marketplace: ${marketplace}`);
     }

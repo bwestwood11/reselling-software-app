@@ -778,6 +778,95 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // POST /api/marketplaces/poshmark/connect-token — saves a Poshmark session captured by
+  // the extension after the user logs in via poshmark.com/login.
+  fastify.post(
+    "/poshmark/connect-token",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { accessToken, accountId, accountName, cookies, csrfToken } = request.body as {
+        accessToken?: string;
+        accountId?: string;
+        accountName?: string;
+        cookies?: unknown[];
+        csrfToken?: string;
+      };
+
+      if (!accessToken?.trim()) {
+        return reply.status(400).send({ success: false, error: "accessToken is required" });
+      }
+
+      const cookiesJson =
+        Array.isArray(cookies) && cookies.length > 0 ? JSON.stringify(cookies) : undefined;
+
+      const existing = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "POSHMARK" } },
+        select: { metadata: true },
+      });
+      const existingMeta = parseMeta(existing?.metadata);
+      const newMeta: Record<string, unknown> = { ...existingMeta };
+      if (csrfToken) newMeta.csrfToken = csrfToken;
+      const metadataToStore = Object.keys(newMeta).length > 0 ? newMeta : undefined;
+
+      await fastify.prisma.marketplaceConnection.upsert({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "POSHMARK" } },
+        update: {
+          accessToken,
+          ...(cookiesJson !== undefined ? { sessionCookies: cookiesJson } : {}),
+          ...(metadataToStore !== undefined ? { metadata: metadataToStore as any } : {}),
+          accountId: accountId ?? null,
+          accountName: accountName ?? null,
+          isActive: true,
+          expiresAt: null,
+        },
+        create: {
+          userId: request.user!.id,
+          marketplace: "POSHMARK",
+          accessToken,
+          sessionCookies: cookiesJson ?? null,
+          metadata: (metadataToStore ?? undefined) as any,
+          accountId: accountId ?? null,
+          accountName: accountName ?? null,
+        },
+      });
+
+      return reply.send({
+        success: true,
+        data: { connected: true, accountName: accountName ?? null },
+      });
+    }
+  );
+
+  // GET /api/marketplaces/poshmark/session — returns stored cookies so the extension can
+  // re-inject them into a poshmark.com tab before making API calls.
+  fastify.get(
+    "/poshmark/session",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const connection = await fastify.prisma.marketplaceConnection.findUnique({
+        where: { userId_marketplace: { userId: request.user!.id, marketplace: "POSHMARK" } },
+        select: { accessToken: true, sessionCookies: true, metadata: true, isActive: true },
+      });
+
+      if (!connection?.isActive) {
+        return reply.status(404).send({ success: false, error: "Poshmark account not connected" });
+      }
+
+      let cookies: unknown[] = [];
+      if (connection.sessionCookies) {
+        try { cookies = JSON.parse(connection.sessionCookies); } catch {}
+      }
+
+      const meta = parseMeta(connection.metadata);
+      const csrfToken = typeof meta.csrfToken === "string" ? meta.csrfToken : null;
+
+      return reply.send({
+        success: true,
+        data: { accessToken: connection.accessToken, cookies, csrfToken },
+      });
+    }
+  );
+
   // GET /api/marketplaces/ebay/category-suggestions?q=
   fastify.get(
     "/ebay/category-suggestions",
