@@ -2,12 +2,12 @@
 
 import type { UseFormReturn } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
-import type { CrosslistFormValues } from "../crosslist-form-schema";
+import type { CrosslistFormValues, CrosslistFormInput } from "../crosslist-form-schema";
 import type { CrossFill } from "../hooks/use-crosslist-form";
 import { Field } from "../../ui/Field";
 
 interface Props {
-  form: UseFormReturn<CrosslistFormValues>;
+  form: UseFormReturn<CrosslistFormInput, any, CrosslistFormValues>;
   inventoryItems: any[];
   crossFillBanners: CrossFill[];
 }

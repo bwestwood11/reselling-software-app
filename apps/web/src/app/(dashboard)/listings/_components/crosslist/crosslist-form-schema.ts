@@ -54,6 +54,9 @@ export const crosslistFormSchema = z.object({
 });
 
 export type CrosslistFormValues = z.infer<typeof crosslistFormSchema>;
+// Zod v4 gives z.coerce fields an `unknown` input type (pre-coercion) distinct from their
+// output type — RHF needs the raw input shape for useForm's TFieldValues generic.
+export type CrosslistFormInput = z.input<typeof crosslistFormSchema>;
 
 export interface CrosslistFormProps {
   onClose: () => void;

@@ -6,6 +6,7 @@ import { SourceDestination } from "./sections/SourceDestination";
 import { ListingDetails } from "./sections/ListingDetails";
 import { EbaySettings } from "./sections/EbaySettings";
 import { MercariSettings } from "./sections/MercariSettings";
+import { PoshmarkSettings } from "./sections/PoshmarkSettings";
 import { PreviewPanel } from "./sections/PreviewPanel";
 
 export type { CreateListingFormProps };
@@ -77,13 +78,17 @@ export function CreateListingForm(props: CreateListingFormProps) {
               policiesError={lf.policiesError}
             />
           )}
+
+          {lf.isPoshmark && (
+            <PoshmarkSettings form={form} poshmark={lf.poshmark} selectedItem={lf.selectedItem} />
+          )}
         </div>
 
         <PreviewPanel
           selectedItem={lf.selectedItem}
           isMercari={lf.isMercari}
           isEbay={lf.isEbay}
-          price={form.watch("price") || 0}
+          price={Number(form.watch("price")) || 0}
           mercariShip={lf.mercariShip}
           busy={lf.busy}
           isPublishing={lf.isPublishing}

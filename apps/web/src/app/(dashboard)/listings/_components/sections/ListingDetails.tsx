@@ -3,12 +3,12 @@
 import type { UseFormReturn } from "react-hook-form";
 import { Input } from "@repo/ui";
 import { Textarea } from "@/components/ui/textarea";
-import type { FormValues } from "../listing-form-schema";
+import type { FormValues, FormInput } from "../listing-form-schema";
 import { SectionHeader } from "../ui/SectionHeader";
 import { Field } from "../ui/Field";
 
 interface Props {
-  form: UseFormReturn<FormValues>;
+  form: UseFormReturn<FormInput, any, FormValues>;
   isEbay: boolean;
 }
 

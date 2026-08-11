@@ -3,13 +3,13 @@
 import type { UseFormReturn } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { getMarketplaceLabel } from "@repo/utils";
-import type { FormValues } from "../listing-form-schema";
+import type { FormValues, FormInput } from "../listing-form-schema";
 import type { CrossFill } from "../hooks/use-listing-form";
 import { SectionHeader } from "../ui/SectionHeader";
 import { Field } from "../ui/Field";
 
 interface Props {
-  form: UseFormReturn<FormValues>;
+  form: UseFormReturn<FormInput, any, FormValues>;
   connections: any[];
   inventoryItems: any[];
   crossFill: CrossFill | null;

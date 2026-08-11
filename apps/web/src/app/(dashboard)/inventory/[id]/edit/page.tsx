@@ -50,6 +50,9 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+// Zod v4 gives z.coerce fields an `unknown` input type (pre-coercion) distinct from their
+// output type — RHF needs the raw input shape for useForm's TFieldValues generic.
+type FormInput = z.input<typeof schema>;
 
 const INITIAL_SLOTS = 3;
 const MAX_IMAGES = 10;
@@ -172,7 +175,7 @@ export default function EditInventoryItemPage({
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
+  } = useForm<FormInput, any, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { condition: "GOOD", quantity: 1 },
   });

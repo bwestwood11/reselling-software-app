@@ -11,13 +11,15 @@ import {
   POSHMARK_SHIPPING_DISCOUNTS,
   POSHMARK_CONDITION_MAP,
 } from "@/lib/poshmark/data";
-import type { CrosslistFormValues } from "../crosslist/crosslist-form-schema";
 import type { usePoshmarkFields } from "../hooks/use-poshmark-fields";
 import { SectionHeader } from "../ui/SectionHeader";
 import { Field } from "../ui/Field";
 
 interface Props {
-  form: UseFormReturn<CrosslistFormValues>;
+  // Shared by the single-listing form (listing-form-schema) and the crosslist form
+  // (crosslist-form-schema) — both declare the same poshmark* fields, so this is typed loosely
+  // rather than importing either schema's concrete form type.
+  form: UseFormReturn<any, any, any>;
   poshmark: ReturnType<typeof usePoshmarkFields>;
   selectedItem?: { condition?: string; brand?: string } | null;
 }

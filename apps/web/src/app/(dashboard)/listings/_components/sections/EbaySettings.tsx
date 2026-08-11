@@ -4,7 +4,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { ChevronRight, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { marketplacesApi } from "@/lib/api";
-import type { FormValues } from "../listing-form-schema";
+import type { FormValues, FormInput } from "../listing-form-schema";
 import { EBAY_CONDITIONS } from "../listing-form-schema";
 import type { useEbayCategories } from "../hooks/use-ebay-categories";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -15,7 +15,7 @@ import { NoPoliciesNotice } from "../ui/NoPoliciesNotice";
 type EbayState = ReturnType<typeof useEbayCategories>;
 
 interface Props {
-  form: UseFormReturn<FormValues>;
+  form: UseFormReturn<FormInput, any, FormValues>;
   ebay: EbayState;
   fulfillmentPolicies: any[];
   paymentPolicies: any[];

@@ -115,7 +115,7 @@ export function CrosslistForm(props: CrosslistFormProps) {
         selectedItem={cf.selectedItem}
         selectedConnections={selectedConnections}
         isMercari={cf.isMercari}
-        price={form.watch("price") || 0}
+        price={Number(form.watch("price")) || 0}
         mercariShip={cf.mercariShip}
         busy={cf.busy}
         isPublishing={cf.isPublishing}

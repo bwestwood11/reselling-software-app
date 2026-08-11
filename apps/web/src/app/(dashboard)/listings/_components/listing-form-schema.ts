@@ -19,9 +19,20 @@ export const listingFormSchema = z.object({
   mercariSizeId: z.coerce.number().int().positive().optional(),
   mercariAddressId: z.coerce.number().int().optional(),
   mercariZipCode: z.string().optional(),
+  poshmarkDepartmentId: z.string().optional(),
+  poshmarkCategoryId: z.string().optional(),
+  poshmarkSubcategoryId: z.string().optional(),
+  poshmarkCondition: z.string().optional(),
+  poshmarkBrand: z.string().optional(),
+  poshmarkSizeId: z.string().optional(),
+  poshmarkOriginalPrice: z.coerce.number().min(0).optional(),
+  poshmarkShippingDiscount: z.string().optional(),
 });
 
 export type FormValues = z.infer<typeof listingFormSchema>;
+// Zod v4 gives z.coerce fields an `unknown` input type (pre-coercion) distinct from their
+// `number` output type — RHF needs the raw input shape for useForm's TFieldValues generic.
+export type FormInput = z.input<typeof listingFormSchema>;
 
 export interface CreateListingFormProps {
   defaultInventoryItemId?: string;

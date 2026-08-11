@@ -6,7 +6,7 @@ import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectV
 import { ChevronRight, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { getMercariSizes, MERCARI_SIZE_SCHEMAS } from "@repo/types";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
-import type { FormValues } from "../listing-form-schema";
+import type { FormValues, FormInput } from "../listing-form-schema";
 import type { useMercariCategories } from "../hooks/use-mercari-categories";
 import type { useMercariShipping } from "../hooks/use-mercari-shipping";
 import type { MercariAddress } from "../hooks/use-listing-form";
@@ -17,7 +17,7 @@ type MercariCatState = ReturnType<typeof useMercariCategories>;
 type MercariShipState = ReturnType<typeof useMercariShipping>;
 
 interface Props {
-  form: UseFormReturn<FormValues>;
+  form: UseFormReturn<FormInput, any, FormValues>;
   mercariCat: MercariCatState;
   mercariShip: MercariShipState;
   mercariAddresses: MercariAddress[];

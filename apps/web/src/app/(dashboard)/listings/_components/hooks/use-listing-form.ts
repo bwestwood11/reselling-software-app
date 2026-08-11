@@ -12,11 +12,13 @@ import { useCreateListing } from "@/hooks/use-listings";
 import {
   listingFormSchema,
   type FormValues,
+  type FormInput,
   type CreateListingFormProps,
 } from "../listing-form-schema";
 import { useEbayCategories } from "./use-ebay-categories";
 import { useMercariCategories, type MercariCat } from "./use-mercari-categories";
 import { useMercariShipping } from "./use-mercari-shipping";
+import { usePoshmarkFields } from "./use-poshmark-fields";
 
 export type CrossFill = { source: string; fields: string[] };
 export type MercariAddress = {
@@ -44,6 +46,7 @@ export function useListingForm({
 
   const ebay = useEbayCategories();
   const mercariCat = useMercariCategories();
+  const poshmark = usePoshmarkFields();
 
   // ── Data queries ─────────────────────────────────────────────────────────
 
@@ -58,9 +61,10 @@ export function useListingForm({
 
   // ── Form ─────────────────────────────────────────────────────────────────
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInput, any, FormValues>({
     resolver: zodResolver(listingFormSchema),
     defaultValues: {
+      inventoryItemId: defaultInventoryItemId ?? "",
       marketplaceConnectionId: defaultConnectionId ?? "",
     },
   });
@@ -72,6 +76,7 @@ export function useListingForm({
   const selectedConnection = connections.find((c: any) => c.id === selectedConnectionId);
   const isEbay = selectedConnection?.marketplace === "EBAY";
   const isMercari = selectedConnection?.marketplace === "MERCARI";
+  const isPoshmark = selectedConnection?.marketplace === "POSHMARK";
 
   // Shipping needs to know if Mercari is active and the selected category
   const mercariShip = useMercariShipping(isMercari, mercariCat.selectedMercariCat?.id);
@@ -277,6 +282,33 @@ export function useListingForm({
       }
     }
 
+    // Poshmark-specific
+    if (prefillData.poshmark && isPoshmark) {
+      const p = prefillData.poshmark;
+      if (p.condition) setValue("poshmarkCondition", p.condition);
+      if (p.brand) setValue("poshmarkBrand", p.brand);
+      if (p.originalPriceCents != null) setValue("poshmarkOriginalPrice", p.originalPriceCents / 100);
+      if (p.shippingDiscount) setValue("poshmarkShippingDiscount", p.shippingDiscount);
+
+      // Category must be applied through the hook so its derived department/category/subcategory
+      // lists stay in sync with the form values.
+      if (p.departmentId) {
+        poshmark.applyPrefilledCategory({
+          departmentId: p.departmentId,
+          categoryId: p.categoryId,
+          subcategoryId: p.subcategoryId,
+        });
+        setValue("poshmarkDepartmentId", p.departmentId);
+        if (p.categoryId) setValue("poshmarkCategoryId", p.categoryId);
+        if (p.subcategoryId) setValue("poshmarkSubcategoryId", p.subcategoryId);
+      }
+
+      if (p.colors?.length) poshmark.setPoshmarkColors(p.colors.slice(0, 2));
+      if (p.styleTags?.length) poshmark.setPoshmarkStyleTags(p.styleTags.slice(0, 3));
+      // Size is a label, not an ID — resolved against the selected category's size list below.
+      if (p.sizeLabel) poshmark.setPoshmarkPrefilledSize(p.sizeLabel);
+    }
+
     // Update crossFill banner
     if (prefillData.filledFields.length > 0) {
       const label = prefillData.source && prefillData.source !== "INVENTORY"
@@ -287,7 +319,22 @@ export function useListingForm({
       setCrossFill(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefillData, detailId, prefillMarketplace, isMercari, isEbay]);
+  }, [prefillData, detailId, prefillMarketplace, isMercari, isEbay, isPoshmark]);
+
+  // Resolve a prefilled Poshmark size label once the category's size list is known — the list
+  // only exists after a category is picked, which may happen after the prefill lands.
+  const poshmarkPrefilledSizeLabel = poshmark.prefilledSizeLabel;
+  useEffect(() => {
+    if (!poshmarkPrefilledSizeLabel || poshmark.poshmarkSizes.length === 0) return;
+    const match = poshmark.poshmarkSizes.find(
+      (s) =>
+        s.display.toLowerCase() === poshmarkPrefilledSizeLabel.toLowerCase() ||
+        s.id === poshmarkPrefilledSizeLabel
+    );
+    if (match) setValue("poshmarkSizeId", match.id);
+    poshmark.setPoshmarkPrefilledSize(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poshmarkPrefilledSizeLabel, poshmark.poshmarkSizes]);
 
   // ── Mercari category search progressive fallback ──────────────────────────
   // When the prefill-seeded search returns no results, strip the last word and retry.
@@ -352,6 +399,25 @@ export function useListingForm({
       };
     }
 
+    if (isPoshmark) {
+      return {
+        ...(poshmark.poshmarkDeptId ? { departmentId: poshmark.poshmarkDeptId } : {}),
+        ...(poshmark.poshmarkCatId ? { categoryId: poshmark.poshmarkCatId } : {}),
+        ...(poshmark.poshmarkSubcatId ? { subcategoryId: poshmark.poshmarkSubcatId } : {}),
+        ...(values.poshmarkCondition ? { condition: values.poshmarkCondition } : {}),
+        ...(values.poshmarkBrand?.trim() ? { brand: values.poshmarkBrand.trim() } : {}),
+        ...(poshmark.poshmarkColors.length > 0 ? { colors: poshmark.poshmarkColors } : {}),
+        ...(poshmark.poshmarkStyleTags.length > 0 ? { styleTags: poshmark.poshmarkStyleTags } : {}),
+        ...(values.poshmarkSizeId ? { sizeId: values.poshmarkSizeId } : {}),
+        ...(values.poshmarkOriginalPrice
+          ? { originalPriceCents: Math.round(values.poshmarkOriginalPrice * 100) }
+          : {}),
+        ...(values.poshmarkShippingDiscount && values.poshmarkShippingDiscount !== "no_discount"
+          ? { shippingDiscount: values.poshmarkShippingDiscount }
+          : {}),
+      };
+    }
+
     if (!isEbay) return undefined;
 
     const specificsObj: Record<string, string> = {};
@@ -406,8 +472,18 @@ export function useListingForm({
     return true;
   }
 
+  function validatePoshmarkFields(): boolean {
+    // Poshmark rejects a post without a department + category; the subcategory is optional.
+    if (!poshmark.poshmarkDeptId || !poshmark.poshmarkCatId) {
+      toast.error("Select a Poshmark department and category");
+      return false;
+    }
+    return true;
+  }
+
   async function onSaveDraft(values: FormValues) {
     if (isEbay && !validateEbayFields(values)) return;
+    if (isPoshmark && !validatePoshmarkFields()) return;
     await createMutation.mutateAsync({
       inventoryItemId: values.inventoryItemId,
       marketplaceConnectionId: values.marketplaceConnectionId,
@@ -421,7 +497,8 @@ export function useListingForm({
   }
 
   async function onSaveAndPublish(values: FormValues) {
-    if (!validateEbayFields(values)) return;
+    if (isEbay && !validateEbayFields(values)) return;
+    if (isPoshmark && !validatePoshmarkFields()) return;
     setIsPublishing(true);
     try {
       const created = await createMutation.mutateAsync({
@@ -465,6 +542,7 @@ export function useListingForm({
     selectedConnectionId,
     isEbay,
     isMercari,
+    isPoshmark,
 
     // Cross-fill
     crossFill,
@@ -476,6 +554,7 @@ export function useListingForm({
     ebay,
     mercariCat,
     mercariShip,
+    poshmark,
 
     // Mercari addresses
     mercariAddresses,

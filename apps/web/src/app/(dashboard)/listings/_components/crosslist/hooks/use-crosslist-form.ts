@@ -15,6 +15,7 @@ import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import {
   crosslistFormSchema,
   type CrosslistFormValues,
+  type CrosslistFormInput,
   type CrosslistFormProps,
 } from "../crosslist-form-schema";
 import { useEbayCategories } from "../../hooks/use-ebay-categories";
@@ -105,7 +106,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
   // ── Form ─────────────────────────────────────────────────────────────────
 
-  const form = useForm<CrosslistFormValues>({
+  const form = useForm<CrosslistFormInput, any, CrosslistFormValues>({
     resolver: zodResolver(crosslistFormSchema),
     defaultValues: { itemMode: "existing", newCondition: "GOOD", newQuantity: 1 },
   });

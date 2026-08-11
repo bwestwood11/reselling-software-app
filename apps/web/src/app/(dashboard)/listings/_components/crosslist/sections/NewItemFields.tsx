@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
-import type { CrosslistFormValues } from "../crosslist-form-schema";
+import type { CrosslistFormValues, CrosslistFormInput } from "../crosslist-form-schema";
 import { SectionHeader } from "../../ui/SectionHeader";
 import { Field } from "../../ui/Field";
 
@@ -24,7 +24,7 @@ interface ImageSlot {
 }
 
 interface Props {
-  form: UseFormReturn<CrosslistFormValues>;
+  form: UseFormReturn<CrosslistFormInput, any, CrosslistFormValues>;
   subscription: SubscriptionInfo | undefined;
   images: (ImageSlot | undefined)[];
   editOptions: EditOptions;
