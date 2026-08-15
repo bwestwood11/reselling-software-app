@@ -1,0 +1,41 @@
+- generic [ref=f8e2]:
+  - banner [ref=f8e3]:
+    - navigation [ref=f8e4]:
+      - link [ref=f8e6] [cursor=pointer]:
+        - /url: /
+        - img "poshmark-logo" [ref=f8e7]
+  - main [ref=f8e8]:
+    - generic [ref=f8e11]:
+      - heading "Log In" [level=1] [ref=f8e12]
+      - generic [ref=f8e13]:
+        - generic [ref=f8e14]:
+          - generic [ref=f8e15]: Continue with Facebook
+          - generic [ref=f8e19]: Continue with Google
+          - generic [ref=f8e23]: Continue with Apple
+        - generic [ref=f8e27]: or fill out with
+        - generic [ref=f8e29]:
+          - textbox "Username or Email" [ref=f8e31]
+          - textbox "Password" [ref=f8e33]
+          - generic [ref=f8e34]:
+            - generic [ref=f8e35]:
+              - generic [ref=f8e37]:
+                - checkbox "Stay Signed In" [checked]
+                - text: Stay Signed In
+              - generic [ref=f8e39]:
+                - generic [ref=f8e40]: Uncheck if using a public device.
+                - generic [ref=f8e41]: Show More
+            - link "Forgot Password?" [ref=f8e42] [cursor=pointer]:
+              - /url: /user/password/reset
+            - button "Login" [ref=f8e43] [cursor=pointer]
+        - generic [ref=f8e44]: Don't have an account? Sign Up
+  - contentinfo [ref=f8e46]:
+    - generic [ref=f8e48]:
+      - text: © 2026 Poshmark, Inc.
+      - link "Privacy" [ref=f8e49] [cursor=pointer]:
+        - /url: /privacy#privacy
+      - link "Terms" [ref=f8e50] [cursor=pointer]:
+        - /url: /terms
+      - link "Contact" [ref=f8e51] [cursor=pointer]:
+        - /url: /contact
+      - link "Your Opt Out Rights" [ref=f8e52] [cursor=pointer]:
+        - /url: /account/data-sharing

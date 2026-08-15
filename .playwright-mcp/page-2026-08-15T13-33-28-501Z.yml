@@ -1,0 +1,255 @@
+- generic [ref=f98e2]:
+  - banner [ref=f98e3]:
+    - navigation [ref=f98e4]:
+      - link [ref=f98e6] [cursor=pointer]:
+        - /url: /
+        - img "poshmark-logo" [ref=f98e7]
+  - main [ref=f98e8]:
+    - generic [ref=f98e93]:
+      - heading "Edit Listing" [level=1] [ref=f98e94]
+      - generic [ref=f98e96]:
+        - generic [ref=f98e97]:
+          - generic [ref=f98e98]: Photos & Video
+          - paragraph [ref=f98e99]: Add up to 16 photos and 1 video to show the angles and details of your item.
+        - generic [ref=f98e104]:
+          - img "listing-editor__image" [ref=f98e109] [cursor=pointer]
+          - generic [ref=f98e110]:
+            - generic [ref=f98e112] [cursor=pointer]:
+              - generic:
+                - button "listing-editor__image + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video + Add Photo & Video img-file-input DROP PHOTOS & VIDEOS HERE TO UPLOAD" [ref=f98e113]
+                - generic [ref=f98e114]:
+                  - generic [ref=f98e115]: +
+                  - generic [ref=f98e116]: Add
+                  - generic [ref=f98e117]: Photo & Video
+            - generic [ref=f98e119] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e120]
+                - generic [ref=f98e121]:
+                  - generic [ref=f98e122]: +
+                  - generic [ref=f98e123]: Add
+                  - generic [ref=f98e124]: Photo & Video
+            - generic [ref=f98e126] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e127]
+                - generic [ref=f98e128]:
+                  - generic [ref=f98e129]: +
+                  - generic [ref=f98e130]: Add
+                  - generic [ref=f98e131]: Photo & Video
+            - generic [ref=f98e133] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e134]
+                - generic [ref=f98e135]:
+                  - generic [ref=f98e136]: +
+                  - generic [ref=f98e137]: Add
+                  - generic [ref=f98e138]: Photo & Video
+            - generic [ref=f98e140] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e141]
+                - generic [ref=f98e142]:
+                  - generic [ref=f98e143]: +
+                  - generic [ref=f98e144]: Add
+                  - generic [ref=f98e145]: Photo & Video
+            - generic [ref=f98e147] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e148]
+                - generic [ref=f98e149]:
+                  - generic [ref=f98e150]: +
+                  - generic [ref=f98e151]: Add
+                  - generic [ref=f98e152]: Photo & Video
+            - generic [ref=f98e154] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e155]
+                - generic [ref=f98e156]:
+                  - generic [ref=f98e157]: +
+                  - generic [ref=f98e158]: Add
+                  - generic [ref=f98e159]: Photo & Video
+            - generic [ref=f98e161] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e162]
+                - generic [ref=f98e163]:
+                  - generic [ref=f98e164]: +
+                  - generic [ref=f98e165]: Add
+                  - generic [ref=f98e166]: Photo & Video
+          - generic [ref=f98e167]:
+            - generic [ref=f98e169] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e170]
+                - generic [ref=f98e171]:
+                  - generic [ref=f98e172]: +
+                  - generic [ref=f98e173]: Add
+                  - generic [ref=f98e174]: Photo & Video
+            - generic [ref=f98e176] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e177]
+                - generic [ref=f98e178]:
+                  - generic [ref=f98e179]: +
+                  - generic [ref=f98e180]: Add
+                  - generic [ref=f98e181]: Photo & Video
+            - generic [ref=f98e183] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e184]
+                - generic [ref=f98e185]:
+                  - generic [ref=f98e186]: +
+                  - generic [ref=f98e187]: Add
+                  - generic [ref=f98e188]: Photo & Video
+            - generic [ref=f98e190] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e191]
+                - generic [ref=f98e192]:
+                  - generic [ref=f98e193]: +
+                  - generic [ref=f98e194]: Add
+                  - generic [ref=f98e195]: Photo & Video
+            - generic [ref=f98e197] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e198]
+                - generic [ref=f98e199]:
+                  - generic [ref=f98e200]: +
+                  - generic [ref=f98e201]: Add
+                  - generic [ref=f98e202]: Photo & Video
+            - generic [ref=f98e204] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e205]
+                - generic [ref=f98e206]:
+                  - generic [ref=f98e207]: +
+                  - generic [ref=f98e208]: Add
+                  - generic [ref=f98e209]: Photo & Video
+            - generic [ref=f98e211] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e212]
+                - generic [ref=f98e213]:
+                  - generic [ref=f98e214]: +
+                  - generic [ref=f98e215]: Add
+                  - generic [ref=f98e216]: Photo & Video
+            - generic [ref=f98e218] [cursor=pointer]:
+              - generic:
+                - button "+ Add Photo & Video" [ref=f98e219]
+                - generic [ref=f98e220]:
+                  - generic [ref=f98e221]: +
+                  - generic [ref=f98e222]: Add
+                  - generic [ref=f98e223]: Photo & Video
+          - generic [ref=f98e224]:
+            - button "img-file-input" [ref=f98e225]
+            - generic [ref=f98e226]: DROP PHOTOS & VIDEOS HERE TO UPLOAD
+      - generic [ref=f98e231]:
+        - generic [ref=f98e232]:
+          - generic [ref=f98e233]:
+            - generic [ref=f98e234]: Title
+            - paragraph [ref=f98e235]: Share key details like Brand, Size, and Color.
+          - textbox "What are you selling? (required)" [ref=f98e241]: Test Dummy Listing 5 DO NOT BUY
+        - generic [ref=f98e242]:
+          - generic [ref=f98e243]:
+            - generic [ref=f98e244]: Description
+            - paragraph [ref=f98e245]: Tell shoppers about your listing by describing the Brand, Size, Color, Condition, Material, and any other noteworthy details.
+          - textbox "form__text" [ref=f98e247]:
+            - /placeholder: Describe it! (required)
+            - text: "Dummy description for API capture testing #5. Please ignore."
+      - generic [ref=f98e249]:
+        - generic [ref=f98e250]:
+          - generic [ref=f98e251]: Category *
+          - paragraph [ref=f98e252]: Add details to help your buyers find your item quickly.
+        - generic [ref=f98e253]:
+          - generic [ref=f98e254]: Women Tops
+          - paragraph [ref=f98e262] [cursor=pointer]: Blouses
+      - generic [ref=f98e263]:
+        - generic [ref=f98e264]:
+          - generic [ref=f98e265]:
+            - generic [ref=f98e266]: Quantity
+            - paragraph [ref=f98e267]: Select a single or multi item.
+          - generic [ref=f98e268]:
+            - button "Single Item" [ref=f98e269] [cursor=pointer]
+            - button "Multi Item" [ref=f98e270] [cursor=pointer]
+            - paragraph [ref=f98e271]: If you have more than one of the same item for sale, select Multi Item to specify the quantity.
+        - generic [ref=f98e272]:
+          - generic [ref=f98e273]: Size
+          - generic [ref=f98e275]: M
+      - generic [ref=f98e282]:
+        - generic [ref=f98e283]:
+          - generic [ref=f98e284]: condition
+          - paragraph [ref=f98e285]: Specify the condition of your item.
+        - generic [ref=f98e286]:
+          - generic [ref=f98e287]: Good
+          - text: • • •
+      - generic [ref=f98e295]:
+        - generic [ref=f98e296]:
+          - generic [ref=f98e297]: Brand
+          - paragraph [ref=f98e298]: Optional
+          - paragraph [ref=f98e299]: Add details to help your buyers find your item quickly.
+        - textbox "input" [ref=f98e304]:
+          - /placeholder: Enter the Brand/Designer
+      - generic [ref=f98e306]:
+        - generic [ref=f98e307]:
+          - generic [ref=f98e308]: Color
+          - paragraph [ref=f98e309]: Optional
+          - paragraph [ref=f98e310]: Select up to 2 colors.
+        - generic [ref=f98e311]: Select up to 2 colors
+      - generic [ref=f98e317]:
+        - generic [ref=f98e318]:
+          - generic [ref=f98e319]: Style Tags
+          - paragraph [ref=f98e320]: Optional
+          - paragraph [ref=f98e321]: Make it easy for buyers to find your listings by selecting or creating up to 3 tags to describe your item (aesthetic, material, style, etc.)
+        - textbox "input" [ref=f98e327]:
+          - /placeholder: Add up to 3 tags
+      - generic [ref=f98e330]:
+        - generic [ref=f98e331]:
+          - generic [ref=f98e332]: Price
+          - paragraph [ref=f98e333]:
+            - text: Learn about
+            - generic [ref=f98e334] [cursor=pointer]: Poshmark's Seller fee
+          - paragraph [ref=f98e335]:
+            - text: Questions about Discounted Shipping?
+            - generic [ref=f98e336] [cursor=pointer]: Learn More
+        - generic [ref=f98e337]:
+          - generic [ref=f98e338]:
+            - generic [ref=f98e340]:
+              - generic [ref=f98e341]: Listing Price
+              - generic [ref=f98e342]: Smart Sell OFF
+            - generic [ref=f98e343]:
+              - textbox "form__text" [ref=f98e344]:
+                - /placeholder: "*Required"
+                - text: "25"
+              - generic [ref=f98e345] [cursor=pointer]: Price Drop
+            - generic: "OFF"
+          - generic [ref=f98e349]:
+            - heading "Discounted Shipping" [level=4] [ref=f98e350]
+            - generic [ref=f98e351]: Optional
+          - generic [ref=f98e357]: Your Earnings
+          - textbox [disabled] [ref=f98e360]: $20.00
+      - generic [ref=f98e362]:
+        - generic [ref=f98e363]:
+          - generic [ref=f98e364]: Availability *
+          - paragraph [ref=f98e365]:
+            - text: Questions?
+            - generic [ref=f98e366] [cursor=pointer]: Learn More
+        - generic [ref=f98e367]: For Sale
+      - generic [ref=f98e376]:
+        - generic [ref=f98e379]:
+          - generic [ref=f98e380]: Additional Details
+          - heading "(PRIVATE)" [level=4] [ref=f98e381]
+          - generic [ref=f98e382] [cursor=pointer]
+        - generic [ref=f98e383]: show details
+      - generic [ref=f98e385]:
+        - generic [ref=f98e386]:
+          - heading "Delete Listing" [level=4] [ref=f98e388] [cursor=pointer]
+          - heading "Copy Listing" [level=4] [ref=f98e390] [cursor=pointer]
+        - heading "Cancel" [level=4] [ref=f98e392] [cursor=pointer]
+        - button "Update" [ref=f98e393] [cursor=pointer]
+      - generic [ref=f98e396]:
+        - generic [ref=f98e397]:
+          - heading "Confirm Delete Listing" [level=5] [ref=f98e398]
+          - button [ref=f98e399] [cursor=pointer]
+        - paragraph [ref=f98e402]: Are you sure you want to delete this item?
+        - generic [ref=f98e404]:
+          - button "No" [ref=f98e405] [cursor=pointer]
+          - button "Yes" [ref=f98e406] [cursor=pointer]
+      - generic: "!"
+  - contentinfo [ref=f98e85]:
+    - generic [ref=f98e87]:
+      - text: © 2026 Poshmark, Inc.
+      - link "Privacy" [ref=f98e88] [cursor=pointer]:
+        - /url: /privacy#privacy
+      - link "Terms" [ref=f98e89] [cursor=pointer]:
+        - /url: /terms
+      - link "Contact" [ref=f98e90] [cursor=pointer]:
+        - /url: /contact
+      - link "Your Opt Out Rights" [ref=f98e91] [cursor=pointer]:
+        - /url: /account/data-sharing

@@ -1167,31 +1167,65 @@ async function getMercariStatus() {
 
 // ── Poshmark account connection ───────────────────────────────────────────────
 // IMPORTANT: Poshmark has no public API. The endpoints below are reverse-engineered
-// from their web app and are subject to change. Verify against live DevTools traffic.
+// from their web app and are subject to change.
 //
 // Auth: cookie-based. After login, the extension captures the full cookie jar and
 // the _csrf_token, then saves them to the ReList API via /api/marketplaces/poshmark/connect-token.
 //
-// Create listing (unverified — confirm via DevTools Network tab on poshmark.com):
-//   POST https://poshmark.com/api/v2/post
-//   Headers: X-CSRF-Token: <csrfToken>, Content-Type: application/json
-//   Cookies: auto-sent by browser (credentials:"include")
-//   Body: { listing: { title, description, price_amount, catalog, condition, ... } }
+// CONFIRMED 2026-08-15 — a single POST /api/v2/post (the old shape this file used to guess
+// at) does not exist; Poshmark returned its generic 404 handler for it and for
+// /api/v2/post.picture. The real flow was captured by driving an actual
+// poshmark.com/create-listing session end-to-end (Playwright network capture, plus a
+// page.route() intercept to read the raw multipart body) and is a 4-call sequence scoped
+// to a draft post id:
 //
-// Image upload (unverified — confirm via DevTools):
-//   POST https://poshmark.com/api/v2/post.picture
-//   Multipart form-data
+//   1. POST /vm-rest/users/{userId}/posts?pm_version=X          body {}                → { id: draftId }
+//   2. POST /api/posts/{draftId}/media/scratch?app_type=web     multipart, field "file" → { id: pictureId, ... }  (once per image)
+//   3. POST /vm-rest/posts/{draftId}?pm_version=X                body { post: {...} }    → save listing fields
+//   4. PUT  /vm-rest/posts/{draftId}/status/published?app_version=X&pm_version=X body {} → publish
+//
+// Headers: x-xsrf-token: <live _csrf cookie value> (NOT "X-CSRF-Token" — that header name
+// was also a guess and Poshmark ignores it). Cookies auto-sent via credentials:"include".
+//
+// {userId} is the Poshmark account's internal id, captured into MarketplaceConnection.accountId
+// at connect time from the `ui` cookie's `uid` field (see capturePoshmarkSession below).
+//
+// pm_version / app_version are literal client-build strings read off the live traffic
+// (currently POSHMARK_PM_VERSION / POSHMARK_APP_VERSION below). They may drift over time —
+// if these calls start failing with version-looking errors, recapture current values from
+// a live poshmark.com/create-listing session.
 
 const POSHMARK_BASE = "https://poshmark.com";
 
-// Maps our internal Condition to Poshmark condition strings
+// Client-build version strings observed on live traffic — see the comment block above.
+const POSHMARK_PM_VERSION = "2026.33.00";
+const POSHMARK_APP_VERSION = "2.55";
+
+// Maps our internal Condition to Poshmark condition codes.
+// CONFIRMED 2026-08-15 by reading the live `data-et-prop-content` attributes off the
+// condition dropdown on poshmark.com/create-listing (nwt / uln / ug / uf) — these are not
+// guesses. VERY_GOOD has no distinct Poshmark condition; it collapses into "ug" (Good).
 const POSHMARK_CONDITION_MAP = {
   NEW_WITH_TAGS: "nwt",
-  NEW_WITHOUT_TAGS: "like_new",
-  VERY_GOOD: "good",
-  GOOD: "good",
-  SATISFACTORY: "fair",
+  NEW_WITHOUT_TAGS: "uln",
+  VERY_GOOD: "ug",
+  GOOD: "ug",
+  SATISFACTORY: "uf",
 };
+
+// Reads the live _csrf cookie straight from the browser's cookie jar. Poshmark re-issues
+// this cookie on every page render, so the value restored from the stored session snapshot
+// (captured once at connect time) goes stale the moment acquirePoshmarkTab() navigates the
+// tab. Falls back to the stored token only if the live cookie can't be read.
+async function getLivePoshmarkCsrf(storedCsrfToken) {
+  try {
+    const cookie = await chrome.cookies.get({ url: POSHMARK_BASE, name: "_csrf" });
+    if (cookie?.value) return cookie.value;
+  } catch (err) {
+    console.warn("[relist:poshmark] Failed to read live _csrf cookie:", err.message);
+  }
+  return storedCsrfToken;
+}
 
 async function patchPoshmarkJob(id, update) {
   return apiFetch(`/api/poshmark/jobs/${id}`, {
@@ -1239,17 +1273,131 @@ async function runPoshmarkJob(job) {
   }
 }
 
+// Runs a JSON fetch inside the poshmark.com tab (so session cookies are sent automatically)
+// and returns { ok, status, data, rawText }. rawText is always populated so failures stay
+// diagnosable even when the body isn't valid JSON (HTML error pages, WAF blocks, etc.).
+async function poshmarkTabFetchJson(tabId, url, method, body, csrfToken) {
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (url, method, body, csrf) => {
+      const headers = { Accept: "application/json" };
+      // CONFIRMED header name — the real client sends x-xsrf-token, not X-CSRF-Token.
+      if (csrf) headers["x-xsrf-token"] = csrf;
+      const hasBody = body !== null;
+      if (hasBody) headers["Content-Type"] = "application/json";
+      const res = await fetch(url, {
+        method,
+        headers,
+        credentials: "include",
+        ...(hasBody ? { body: JSON.stringify(body) } : {}),
+      });
+      const rawText = await res.text().catch(() => "");
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        // not JSON — data stays {}, rawText carries the real body
+      }
+      return { ok: res.ok, status: res.status, data, rawText: rawText.slice(0, 500) };
+    },
+    args: [url, method, body ?? null, csrfToken],
+  });
+  return injection?.result;
+}
+
+function poshmarkErrorFromResponse(response, fallbackLabel) {
+  return new Error(
+    response?.data?.error?.message ??
+    response?.data?.message ??
+    (response?.rawText
+      ? `${fallbackLabel} (${response.status}): ${response.rawText}`
+      : `${fallbackLabel} (${response?.status})`)
+  );
+}
+
+// Step 1 of the real flow — create an empty draft post. Every subsequent call (image
+// uploads, field save, publish) is scoped to this id.
+async function createPoshmarkDraft(tabId, userId, csrfToken) {
+  const url = `${POSHMARK_BASE}/vm-rest/users/${userId}/posts?pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "POST", {}, csrfToken);
+  if (!response?.ok) {
+    console.error("[relist:poshmark] draft creation failed:", response);
+    throw poshmarkErrorFromResponse(response, "Poshmark draft creation failed");
+  }
+  const draftId = response.data?.id ?? null;
+  if (!draftId) throw new Error("Poshmark draft creation returned no listing id");
+  return draftId;
+}
+
+// Step 3 — save the listing fields (title, price, category, pictures, ...) onto the draft.
+async function savePoshmarkDraft(tabId, draftId, postBody, csrfToken) {
+  const url = `${POSHMARK_BASE}/vm-rest/posts/${draftId}?pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "POST", postBody, csrfToken);
+  if (!response?.ok) {
+    console.error("[relist:poshmark] draft save failed:", response);
+    throw poshmarkErrorFromResponse(response, "Poshmark listing save failed");
+  }
+}
+
+// Step 4 — publish the draft so it goes live on the seller's closet.
+async function publishPoshmarkDraft(tabId, draftId, csrfToken) {
+  const url =
+    `${POSHMARK_BASE}/vm-rest/posts/${draftId}/status/published` +
+    `?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "PUT", {}, csrfToken);
+  if (!response?.ok) {
+    console.error("[relist:poshmark] publish failed:", response);
+    throw poshmarkErrorFromResponse(response, "Poshmark publish failed");
+  }
+}
+
+// Step 5 — verify the draft actually made it to "published". CONFIRMED 2026-08-15: Poshmark's
+// publish endpoint returns HTTP 200 with an empty-looking body even when it silently rejects
+// the transition (e.g. a required field like size is missing for the category) — the draft is
+// left as-is, with its uploaded images still parked in `scratch_pictures` instead of being
+// promoted to `pictures`. Without this check, a listing that never actually published gets
+// marked COMPLETED and never appears in the seller's closet.
+async function verifyPoshmarkPublished(tabId, draftId, csrfToken) {
+  const url = `${POSHMARK_BASE}/vm-rest/posts/${draftId}?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "GET", null, csrfToken);
+  const post = response?.data?.data;
+  if (post?.status === "published") return;
+
+  const hints = [];
+  if (!post?.inventory?.size_quantities?.length) hints.push("no size set (size_quantities is empty)");
+  if ((post?.scratch_pictures?.length ?? 0) > 0) hints.push("images never left scratch_pictures");
+
+  console.error("[relist:poshmark] publish did not take effect:", {
+    status: post?.status,
+    hints,
+    data: post,
+  });
+  throw new Error(
+    `Poshmark accepted the publish request but the listing is still "${post?.status ?? "unknown"}", ` +
+    "not published" +
+    (hints.length ? ` (${hints.join("; ")})` : "") +
+    " — check the listing's required fields (size, category, price)."
+  );
+}
+
 // Posts a listing to Poshmark by injecting into a real poshmark.com tab.
 // The injected script runs in the poshmark.com origin context so session cookies
 // are sent automatically — no manual cookie header injection needed.
 //
-// IMPORTANT: Verify the API endpoint and payload shape against live network
-// traffic in Chrome DevTools before shipping to production.
+// See the confirmed 4-step flow documented in the comment block above.
 async function postToPoshmarkApi(job) {
   const connectionsData = await apiFetch("/api/marketplaces/connections");
   const connections = connectionsData.data ?? [];
   const poshConn = connections.find((c) => c.marketplace === "POSHMARK");
   if (!poshConn) throw new Error("Poshmark account not connected");
+
+  // Poshmark's internal user id — captured into accountId at connect time from the `ui`
+  // cookie's `uid` field (see capturePoshmarkSession). Every vm-rest/users/... call is
+  // scoped to it.
+  const userId = poshConn.accountId;
+  if (!userId) {
+    throw new Error("Poshmark connection is missing the account id — reconnect Poshmark");
+  }
 
   const {
     title,
@@ -1268,98 +1416,112 @@ async function postToPoshmarkApi(job) {
     shippingDiscount,
   } = job.payload;
 
-  // Step 1 — get the stored CSRF token. Cookies are restored by acquirePoshmarkTab() on a cold
-  // acquire, so there is no separate restore call here.
+  // Step 1 — get the stored CSRF token as a fallback. Cookies are restored by
+  // acquirePoshmarkTab() on a cold acquire, so there is no separate restore call here.
   const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
-  const csrfToken = sessionRes.data?.csrfToken ?? null;
+  const storedCsrfToken = sessionRes.data?.csrfToken ?? null;
 
-  // Step 2 — open (or reuse) a poshmark.com tab and post the listing
+  // Step 2 — open (or reuse) a poshmark.com tab and run the real create/publish sequence
   return withPoshmarkTab(async (tabId) => {
-    // Step 2a — upload images and get Poshmark picture IDs
-    const pictureIds = await uploadImagesToPoshmark(tabId, images, csrfToken);
+    // Poshmark re-issues a fresh _csrf cookie on every page render, which overwrites the
+    // restored one as soon as acquirePoshmarkTab() navigates the tab. Sending the stale
+    // stored token after that point gets every authenticated write rejected uniformly,
+    // which is exactly the symptom this works around — always prefer whatever _csrf value
+    // is live in the tab's cookie jar right now.
+    const csrfToken = await getLivePoshmarkCsrf(storedCsrfToken);
 
-    // Step 2b — build the listing payload
-    // IMPORTANT: verify these field names against live DevTools network traffic
-    const poshmarkCondition = POSHMARK_CONDITION_MAP[condition] ?? "good";
+    // Step 2a — create the draft post
+    const draftId = await createPoshmarkDraft(tabId, userId, csrfToken);
+
+    // Step 2b — upload images to the draft and get back Poshmark picture ids
+    const pictureIds = await uploadImagesToPoshmark(tabId, draftId, images, csrfToken);
+    if (pictureIds.length === 0) {
+      throw new Error("All Poshmark image uploads failed — see prior warnings for the cause");
+    }
+
+    // Step 2c — save the listing fields. The first uploaded picture is the cover shot;
+    // any remaining ones go in `pictures`.
+    const [coverShotId, ...restPictureIds] = pictureIds;
+    const poshmarkCondition = POSHMARK_CONDITION_MAP[condition] ?? "ug";
     const priceStr = (price / 100).toFixed(2);
 
-    const listingBody = {
-      listing: {
+    const postBody = {
+      post: {
+        catalog: {
+          ...(departmentId ? { department: departmentId } : {}),
+          ...(categoryId ? { category: categoryId } : {}),
+          ...(subcategoryId ? { category_features: [subcategoryId] } : {}),
+        },
+        colors: colors.map((name) => ({ name })),
+        inventory: {
+          status: "available",
+          size_quantities: sizeId
+            ? [
+                {
+                  size_id: sizeId,
+                  // Best-effort — the real web client sends a fully denormalized size_obj
+                  // (display strings + au/eu/uk equivalents from its local size-metadata
+                  // cache) that we can't reproduce without that same catalog data. Poshmark
+                  // accepted this reduced shape in testing; if size-specific saves start
+                  // failing, this is the first thing to recheck against a fresh capture.
+                  size_obj: { id: sizeId, display: sizeId, size_system: "us" },
+                  size_system: "us",
+                  quantity_available: 1,
+                  quantity_sold: 0,
+                },
+              ]
+            : [],
+        },
+        price_amount: { val: Number(priceStr), currency_code: "USD" },
+        original_price_amount: {
+          val: originalPriceCents != null ? Number((originalPriceCents / 100).toFixed(2)) : 0,
+          currency_code: "USD",
+        },
         title,
         description: description ?? "",
-        price_amount: { val: priceStr, currency_code: "USD" },
-        ...(originalPriceCents != null
-          ? { original_price: { val: (originalPriceCents / 100).toFixed(2), currency_code: "USD" } }
-          : {}),
-        catalog: {
-          ...(departmentId ? { department_id: departmentId } : {}),
-          ...(categoryId ? { category_id: categoryId } : {}),
-          ...(subcategoryId ? { subcategory_id: subcategoryId } : {}),
-        },
         condition: poshmarkCondition,
+        cover_shot: { id: coverShotId },
+        pictures: restPictureIds.map((id) => ({ id })),
+        videos: [],
         ...(brand?.trim() ? { brand: brand.trim() } : {}),
-        colors: colors.map((name) => ({ name })),
         ...(styleTags.length > 0 ? { style_tags: styleTags.map((t) => ({ name: t })) } : {}),
-        ...(sizeId ? { size_obj: { id: sizeId, size_system: "us" } } : {}),
-        pictures: pictureIds.map((id) => ({ id })),
-        ...(shippingDiscount && shippingDiscount !== "no_discount"
-          ? { seller_shipping_discount_id: shippingDiscount }
-          : {}),
+        seller_private_info: {},
+        autolist_draft: false,
+        seller_shipping_discount: {
+          id: shippingDiscount && shippingDiscount !== "no_discount" ? shippingDiscount : null,
+        },
       },
     };
 
-    // Step 2c — create the listing via Poshmark's internal API
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: async (url, body, csrf) => {
-        const headers = {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
-        };
-        const res = await fetch(url, {
-          method: "POST",
-          headers,
-          credentials: "include",
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({}));
-        return { ok: res.ok, status: res.status, data };
-      },
-      args: [`${POSHMARK_BASE}/api/v2/post`, listingBody, csrfToken],
-    });
+    await savePoshmarkDraft(tabId, draftId, postBody, csrfToken);
 
-    const response = result?.result;
-    if (!response?.ok) {
-      throw new Error(
-        response?.data?.error?.message ??
-        response?.data?.message ??
-        `Poshmark API error (${response?.status})`
-      );
-    }
+    // Step 2d — publish
+    await publishPoshmarkDraft(tabId, draftId, csrfToken);
 
-    // Extract listing ID from response — verify field name via DevTools
-    const listingId =
-      response.data?.data?.id ??
-      response.data?.listing?.id ??
-      response.data?.id ??
-      null;
+    // Step 2e — confirm it actually published. See verifyPoshmarkPublished for why this
+    // can't be skipped: Poshmark returns 200 on publish even when it silently rejects it.
+    await verifyPoshmarkPublished(tabId, draftId, csrfToken);
 
-    return listingId;
+    return draftId;
   });
 }
 
-// Upload images to Poshmark's CDN and return picture IDs.
-// IMPORTANT: endpoint and response shape must be verified against live DevTools traffic.
-async function uploadImagesToPoshmark(tabId, imageUrls, csrfToken) {
+// Upload images to a Poshmark draft post and return picture IDs, in order (the first is
+// used as the cover shot by the caller).
+async function uploadImagesToPoshmark(tabId, draftId, imageUrls, csrfToken) {
   if (imageUrls.length === 0) return [];
 
   const pictureIds = [];
+  let index = 0;
   for (const url of imageUrls.slice(0, 8)) {
     try {
       // Fetch image in the service worker (no CORS restrictions)
       const res = await fetch(url);
-      if (!res.ok) { console.warn("[relist] Poshmark image fetch failed:", url); continue; }
+      if (!res.ok) {
+        console.warn("[relist] Poshmark image fetch failed:", url);
+        index++;
+        continue;
+      }
       const buffer = await res.arrayBuffer();
       const type = res.headers.get("content-type") ?? "image/jpeg";
       const bytes = new Uint8Array(buffer);
@@ -1370,40 +1532,67 @@ async function uploadImagesToPoshmark(tabId, imageUrls, csrfToken) {
       }
       const base64 = btoa(binary);
 
+      // Extension MUST match the actual content-type. Inventory images can be
+      // JPEG/PNG/WebP/GIF (see apps/api/src/routes/upload.ts); a mismatched
+      // extension on a non-JPEG file makes Poshmark's backend try to decode it as the
+      // wrong format and throw a generic InternalError from POST /media/scratch.
+      const POSHMARK_IMAGE_EXT = {
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+      };
+      const ext = POSHMARK_IMAGE_EXT[type.split(";")[0].trim().toLowerCase()] ?? "jpg";
+      const filename = `file${index}.${ext}`;
+      const uploadUrl = `${POSHMARK_BASE}/api/posts/${draftId}/media/scratch?app_type=web`;
+
       // Upload from inside the poshmark.com tab so session cookies are sent
       const [injection] = await chrome.scripting.executeScript({
         target: { tabId },
-        func: async (base64Data, mimeType, csrf) => {
+        func: async (uploadUrl, base64Data, mimeType, csrf, filename) => {
           const blob = await fetch(`data:${mimeType};base64,${base64Data}`).then((r) => r.blob());
           const form = new FormData();
-          form.append("photo", blob, "photo.jpg");
+          // CONFIRMED field name "file" (previously guessed "photo", which was wrong) —
+          // captured 2026-08-15 via a page.route() intercept on a real poshmark.com upload.
+          form.append("file", blob, filename);
 
           const headers = {};
-          if (csrf) headers["X-CSRF-Token"] = csrf;
+          if (csrf) headers["x-xsrf-token"] = csrf;
 
-          // IMPORTANT: verify this upload endpoint via DevTools (Network tab) on poshmark.com
-          const res = await fetch("https://poshmark.com/api/v2/post.picture", {
+          const res = await fetch(uploadUrl, {
             method: "POST",
             headers,
             credentials: "include",
             body: form,
           });
-          const data = await res.json().catch(() => ({}));
-          return { ok: res.ok, data };
+          const rawText = await res.text().catch(() => "");
+          let data = {};
+          try {
+            data = rawText ? JSON.parse(rawText) : {};
+          } catch {
+            // not JSON — leave data empty, rawText carries the real body below
+          }
+          return { ok: res.ok, status: res.status, data, rawText: rawText.slice(0, 500) };
         },
-        args: [base64, type, csrfToken],
+        args: [uploadUrl, base64, type, csrfToken, filename],
       });
 
       const uploadResult = injection?.result;
       if (uploadResult?.ok) {
-        const picId = uploadResult.data?.data?.id ?? uploadResult.data?.id ?? null;
+        const picId = uploadResult.data?.id ?? null;
         if (picId) pictureIds.push(picId);
       } else {
-        console.warn("[relist] Poshmark image upload failed for:", url, uploadResult?.data);
+        console.warn("[relist] Poshmark image upload failed for:", url, {
+          status: uploadResult?.status,
+          data: uploadResult?.data,
+          rawText: uploadResult?.rawText,
+        });
       }
     } catch (err) {
       console.warn("[relist] Poshmark image error:", err.message);
     }
+    index++;
   }
   return pictureIds;
 }

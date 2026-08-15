@@ -1,0 +1,408 @@
+- generic [ref=f93e2]:
+  - banner [ref=f93e3]:
+    - navigation [ref=f93e4]:
+      - generic [ref=f93e5]:
+        - link [ref=f93e6] [cursor=pointer]:
+          - /url: /feed
+          - img "poshmark-logo" [ref=f93e7]
+        - generic [ref=f93e10]:
+          - button "listings" [ref=f93e13]:
+            - generic [ref=f93e15] [cursor=pointer]
+          - searchbox "Search" [ref=f93e20]
+          - button [ref=f93e21] [cursor=pointer]:
+            - img "search-icon-black" [ref=f93e22]
+        - list [ref=f93e23]:
+          - listitem [ref=f93e24]:
+            - link "My Offers" [ref=f93e25] [cursor=pointer]:
+              - /url: /offers/my_offers
+          - listitem [ref=f93e28]:
+            - link "My Bundles" [ref=f93e29] [cursor=pointer]:
+              - /url: /bundles/shop
+          - listitem [ref=f93e32]:
+            - link "My Likes" [ref=f93e33] [cursor=pointer]:
+              - /url: /likes
+          - listitem [ref=f93e36]:
+            - link "2 News" [ref=f93e37] [cursor=pointer]:
+              - /url: /news
+              - generic [ref=f93e38]: "2"
+              - generic [ref=f93e40]: News
+          - listitem [ref=f93e41]:
+            - img "flipping_studio" [ref=f93e45] [cursor=pointer]
+    - navigation [ref=f93e46]:
+      - generic [ref=f93e47]:
+        - generic [ref=f93e48]:
+          - heading "POSH MARKETS" [level=5] [ref=f93e49]
+          - generic [ref=f93e50]: All
+        - list [ref=f93e53]:
+          - listitem [ref=f93e54]:
+            - link "Feed" [ref=f93e55] [cursor=pointer]:
+              - /url: /feed
+          - listitem [ref=f93e56]:
+            - link "Women" [ref=f93e57] [cursor=pointer]:
+              - /url: /category/Women
+          - listitem [ref=f93e58]:
+            - link "Men" [ref=f93e59] [cursor=pointer]:
+              - /url: /category/Men
+          - listitem [ref=f93e60]:
+            - link "Kids" [ref=f93e61] [cursor=pointer]:
+              - /url: /category/Kids
+          - listitem [ref=f93e62]:
+            - link "Home" [ref=f93e63] [cursor=pointer]:
+              - /url: /category/Home
+          - listitem [ref=f93e64]:
+            - link "Electronics" [ref=f93e65] [cursor=pointer]:
+              - /url: /category/Electronics
+          - listitem [ref=f93e66]:
+            - link "Pets" [ref=f93e67] [cursor=pointer]:
+              - /url: /category/Pets
+          - listitem [ref=f93e68]:
+            - link "Beauty & Wellness" [ref=f93e69] [cursor=pointer]:
+              - /url: /category/Women-Makeup
+          - listitem [ref=f93e70]:
+            - link "Brands" [ref=f93e71] [cursor=pointer]:
+              - /url: /brands
+          - listitem [ref=f93e72]:
+            - link "Parties" [ref=f93e73] [cursor=pointer]:
+              - /url: /parties
+          - listitem [ref=f93e74]:
+            - link "Posh Shows" [ref=f93e75] [cursor=pointer]:
+              - /url: /shows
+        - list [ref=f93e76]:
+          - listitem [ref=f93e77]:
+            - link "How it works" [ref=f93e78] [cursor=pointer]:
+              - /url: /what_is_poshmark
+          - listitem [ref=f93e79]:
+            - link "sell Sell on Poshmark" [ref=f93e80] [cursor=pointer]:
+              - /url: /sell
+              - img "sell" [ref=f93e81]
+              - generic [ref=f93e82]: Sell on Poshmark
+  - main [ref=f93e83]:
+    - generic [ref=f93e86]:
+      - list [ref=f93e89]:
+        - listitem [ref=f93e90]:
+          - link "Home" [ref=f93e91] [cursor=pointer]:
+            - /url: /
+          - text: /
+        - listitem [ref=f93e92]:
+          - button "Show hidden breadcrumbs" [ref=f93e93] [cursor=pointer]: …
+          - menu:
+            - menuitem: Women
+          - text: /
+        - listitem [ref=f93e94]:
+          - link "Women's Tops" [ref=f93e95] [cursor=pointer]:
+            - /url: /category/Women-Tops
+          - text: /
+        - listitem [ref=f93e96]:
+          - link "Women's Blouses" [ref=f93e97] [cursor=pointer]:
+            - /url: /category/Women-Tops-Blouses
+      - generic [ref=f93e98]:
+        - generic:
+          - generic:
+            - generic [ref=f93e100]:
+              - list [ref=f93e105]:
+                - listitem [ref=f93e106]:
+                  - generic [ref=f93e108] [cursor=pointer]
+              - list [ref=f93e114]:
+                - listitem [ref=f93e115]:
+                  - img "Test Dummy Listing 5 DO NOT BUY - Picture 1 of 1" [ref=f93e117]
+            - generic [ref=f93e118]:
+              - generic [ref=f93e119]:
+                - generic [ref=f93e122]:
+                  - link [ref=f93e123] [cursor=pointer]:
+                    - /url: /closet/flipping_studio
+                    - img "flipping_studio" [ref=f93e124]
+                  - generic [ref=f93e126]:
+                    - link "flipping_studio" [ref=f93e128] [cursor=pointer]:
+                      - /url: /closet/flipping_studio
+                    - generic [ref=f93e129]: Updated 8 mins ago
+                - generic [ref=f93e130]: Edit Listing
+              - generic [ref=f93e135]:
+                - heading "Test Dummy Listing 5 DO NOT BUY" [level=1] [ref=f93e136]
+                - generic [ref=f93e137]: Good
+              - paragraph [ref=f93e140]: $25
+              - region [ref=f93e141]:
+                - generic [ref=f93e142]:
+                  - generic [ref=f93e143]:
+                    - heading "Listing Metrics" [level=2] [ref=f93e144]
+                    - button "Listing Metrics" [ref=f93e145] [cursor=pointer]
+                  - paragraph [ref=f93e147]: Last 60 days
+                - list [ref=f93e148]:
+                  - listitem "0 Impressions" [ref=f93e149]:
+                    - generic [ref=f93e151]:
+                      - generic [ref=f93e152]: "0"
+                      - generic [ref=f93e153]: Impressions
+                  - listitem "0 Clicks" [ref=f93e154]:
+                    - generic [ref=f93e156]:
+                      - generic [ref=f93e157]: "0"
+                      - generic [ref=f93e158]: Clicks
+                  - listitem "0 Buyer Offers" [ref=f93e159]:
+                    - generic [ref=f93e161]:
+                      - generic [ref=f93e162]: "0"
+                      - generic [ref=f93e163]: Buyer Offers
+                  - listitem "0 Likes" [ref=f93e164]:
+                    - generic [ref=f93e166]:
+                      - generic [ref=f93e167]: "0"
+                      - generic [ref=f93e168]: Likes
+                  - listitem "0 Seller Offers" [ref=f93e169]:
+                    - generic [ref=f93e171]:
+                      - generic [ref=f93e172]: "0"
+                      - generic [ref=f93e173]: Seller Offers
+                  - listitem "0 Days Listed" [ref=f93e174]:
+                    - generic [ref=f93e176]:
+                      - generic [ref=f93e177]: "0"
+                      - generic [ref=f93e178]: Days Listed
+                - generic [ref=f93e179]: Listing metrics are only visible to you.
+              - generic [ref=f93e180]:
+                - generic [ref=f93e181]:
+                  - generic [ref=f93e182]: Size
+                  - generic [ref=f93e183]:
+                    - button "M" [disabled] [ref=f93e185]
+                    - generic [ref=f93e186] [cursor=pointer]: Size Chart
+                - button "Offer / Price Drop" [ref=f93e193] [cursor=pointer]
+              - generic [ref=f93e194]:
+                - generic [ref=f93e195]: "Dummy description for API capture testing #5. Please ignore."
+                - generic [ref=f93e197]:
+                  - paragraph [ref=f93e198]: Category
+                  - link "Women" [ref=f93e200] [cursor=pointer]:
+                    - /url: /category/Women-Tops
+                  - link "Tops" [ref=f93e202] [cursor=pointer]:
+                    - /url: /category/Women-Tops
+                  - link "Blouses" [ref=f93e204] [cursor=pointer]:
+                    - /url: /category/Women-Tops-Blouses
+              - generic [ref=f93e205]:
+                - generic [ref=f93e206]: Shipping/Discount
+                - list [ref=f93e207]:
+                  - listitem [ref=f93e208]:
+                    - paragraph [ref=f93e212] [cursor=pointer]: $6.49 Shipping
+              - generic [ref=f93e216] [cursor=pointer]:
+                - paragraph [ref=f93e217]: "Posh Protect: Buyer Protection Policy"
+                - paragraph [ref=f93e218]: Get your order as described or receive your money back. Learn More.
+              - generic [ref=f93e219]:
+                - paragraph [ref=f93e220]: About the seller
+                - generic [ref=f93e223]:
+                  - img "flipping_studio" [ref=f93e224]
+                  - generic [ref=f93e225]:
+                    - heading [level=4] [ref=f93e227]:
+                      - paragraph [ref=f93e228]: "@flipping_studio"
+                    - generic [ref=f93e229]:
+                      - paragraph [ref=f93e233]: "Last Active: this hour"
+                      - link "View Closet" [ref=f93e234] [cursor=pointer]:
+                        - /url: /closet/flipping_studio
+                  - generic [ref=f93e235]:
+                    - generic [ref=f93e236]:
+                      - heading "48" [level=4] [ref=f93e237]
+                      - text: Listings
+                    - generic [ref=f93e238]:
+                      - heading "3" [level=4] [ref=f93e239]
+                      - text: Sold Listings
+                    - generic [ref=f93e240]:
+                      - heading "3 days" [level=4] [ref=f93e241]
+                      - text: Avg. Ship time
+                    - generic [ref=f93e242]:
+                      - heading "--" [level=4] [ref=f93e243]
+                      - text: Love Notes
+        - generic [ref=f93e244]:
+          - generic [ref=f93e246]:
+            - generic [ref=f93e247] [cursor=pointer]: Like
+            - generic [ref=f93e250]: Comment
+            - generic [ref=f93e254] [cursor=pointer]: Share
+          - generic [ref=f93e260]:
+            - generic [ref=f93e261]:
+              - link [ref=f93e262] [cursor=pointer]:
+                - /url: /closet/flipping_studio
+                - img "flipping_studio" [ref=f93e265]
+              - textbox "Add your comment.." [ref=f93e269]
+            - button "Send" [ref=f93e271] [cursor=pointer]
+      - generic [ref=f93e272]:
+        - generic [ref=f93e278]:
+          - generic [ref=f93e281]:
+            - paragraph [ref=f93e282]
+            - paragraph [ref=f93e283]
+          - generic [ref=f93e286]:
+            - paragraph [ref=f93e287]
+            - paragraph [ref=f93e288]
+          - generic [ref=f93e291]:
+            - paragraph [ref=f93e292]
+            - paragraph [ref=f93e293]
+          - generic [ref=f93e296]:
+            - paragraph [ref=f93e297]
+            - paragraph [ref=f93e298]
+          - generic [ref=f93e301]:
+            - paragraph [ref=f93e302]
+            - paragraph [ref=f93e303]
+          - generic [ref=f93e306]:
+            - paragraph [ref=f93e307]
+            - paragraph [ref=f93e308]
+          - generic [ref=f93e311]:
+            - paragraph [ref=f93e312]
+            - paragraph [ref=f93e313]
+          - generic [ref=f93e316]:
+            - paragraph [ref=f93e317]
+            - paragraph [ref=f93e318]
+        - generic [ref=f93e319]:
+          - generic [ref=f93e320]: People also Searched
+          - list [ref=f93e321]:
+            - listitem [ref=f93e322]:
+              - link "black and white jones new york polka dot top" [ref=f93e323] [cursor=pointer]:
+                - /url: /browse/black-and-white-jones-new-york-polka-dot-top
+              - link "black and white juicy couture blouse" [ref=f93e324] [cursor=pointer]:
+                - /url: /browse/black-and-white-juicy-couture-blouse
+              - link "black and white karen scott polka dot top" [ref=f93e325] [cursor=pointer]:
+                - /url: /browse/black-and-white-karen-scott-polka-dot-top
+              - link "black and white karen scott t-shirt" [ref=f93e326] [cursor=pointer]:
+                - /url: /browse/black-and-white-karen-scott-t-shirt
+              - link "black and white lands' end tank top" [ref=f93e327] [cursor=pointer]:
+                - /url: /browse/black-and-white-lands'-end-tank-top
+              - link "black and white laura scott blouse" [ref=f93e328] [cursor=pointer]:
+                - /url: /browse/black-and-white-laura-scott-blouse
+              - link "black and white lauren conrad tank tops" [ref=f93e329] [cursor=pointer]:
+                - /url: /browse/black-and-white-lauren-conrad-tank-tops
+              - link "black and white lace top pink peplum" [ref=f93e330] [cursor=pointer]:
+                - /url: /browse/black-and-white-lace-top-pink-peplum
+              - link "black and white lf polka dot top" [ref=f93e331] [cursor=pointer]:
+                - /url: /browse/black-and-white-lf-polka-dot-top
+              - link "black and white liz claiborne t-shirt" [ref=f93e332] [cursor=pointer]:
+                - /url: /browse/black-and-white-liz-claiborne-t-shirt
+  - contentinfo [ref=f93e333]:
+    - generic [ref=f93e334]:
+      - generic [ref=f93e336]:
+        - generic [ref=f93e337]:
+          - list [ref=f93e338]:
+            - listitem [ref=f93e339]:
+              - heading "Shop Categories" [level=4] [ref=f93e340]
+            - listitem [ref=f93e341]:
+              - link "Women" [ref=f93e342] [cursor=pointer]:
+                - /url: /category/Women
+            - listitem [ref=f93e343]:
+              - link "Men" [ref=f93e344] [cursor=pointer]:
+                - /url: /category/Men
+            - listitem [ref=f93e345]:
+              - link "Kids" [ref=f93e346] [cursor=pointer]:
+                - /url: /category/Kids
+            - listitem [ref=f93e347]:
+              - link "Home" [ref=f93e348] [cursor=pointer]:
+                - /url: /category/Home
+            - listitem [ref=f93e349]:
+              - link "Electronics" [ref=f93e350] [cursor=pointer]:
+                - /url: /category/Electronics
+            - listitem [ref=f93e351]:
+              - link "Pets" [ref=f93e352] [cursor=pointer]:
+                - /url: /category/Pets
+            - listitem [ref=f93e353]:
+              - link "Handbags" [ref=f93e354] [cursor=pointer]:
+                - /url: /category/Women-Handbags
+            - listitem [ref=f93e355]:
+              - link "Shoes" [ref=f93e356] [cursor=pointer]:
+                - /url: /category/Women-Shoes
+            - listitem [ref=f93e357]:
+              - link "Jewelry & Accessories" [ref=f93e358] [cursor=pointer]:
+                - /url: /category/Women-Jewelry
+            - listitem [ref=f93e359]:
+              - link "Makeup" [ref=f93e360] [cursor=pointer]:
+                - /url: /category/Women-Makeup
+            - listitem [ref=f93e361]:
+              - link "Dresses" [ref=f93e362] [cursor=pointer]:
+                - /url: /category/Women-Dresses
+          - list [ref=f93e363]:
+            - listitem [ref=f93e364]:
+              - heading "Popular Brands" [level=4] [ref=f93e365]
+            - listitem [ref=f93e366]:
+              - link "Nike" [ref=f93e367] [cursor=pointer]:
+                - /url: /brand/Nike
+            - listitem [ref=f93e368]:
+              - link "Michael Kors" [ref=f93e369] [cursor=pointer]:
+                - /url: /brand/Michael_Kors
+            - listitem [ref=f93e370]:
+              - link "Louis Vuitton" [ref=f93e371] [cursor=pointer]:
+                - /url: /brand/Louis_Vuitton
+            - listitem [ref=f93e372]:
+              - link "lululemon athletica" [ref=f93e373] [cursor=pointer]:
+                - /url: /brand/lululemon_athletica
+            - listitem [ref=f93e374]:
+              - link "PINK Victoria's Secret" [ref=f93e375] [cursor=pointer]:
+                - /url: /brand/PINK_Victoria's_Secret
+            - listitem [ref=f93e376]:
+              - link "Coach" [ref=f93e377] [cursor=pointer]:
+                - /url: /brand/Coach
+            - listitem [ref=f93e378]:
+              - link "Chanel" [ref=f93e379] [cursor=pointer]:
+                - /url: /brand/Chanel
+            - listitem [ref=f93e380]:
+              - link "See All Brands »" [ref=f93e381] [cursor=pointer]:
+                - /url: /brands
+          - list [ref=f93e382]:
+            - listitem [ref=f93e383]:
+              - heading "Company" [level=4] [ref=f93e384]
+            - listitem [ref=f93e385]:
+              - link "About" [ref=f93e386] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=f93e387]:
+              - link "Our Community" [ref=f93e388] [cursor=pointer]:
+                - /url: /our-community
+            - listitem [ref=f93e389]:
+              - link "Blog" [ref=f93e390] [cursor=pointer]:
+                - /url: https://blog.poshmark.com
+            - listitem [ref=f93e391]:
+              - link "FAQs" [ref=f93e392] [cursor=pointer]:
+                - /url: /faq
+            - listitem [ref=f93e393]:
+              - link "Live Shopping" [ref=f93e394] [cursor=pointer]:
+                - /url: /live
+            - listitem [ref=f93e395]:
+              - link "Sell on Poshmark" [ref=f93e396] [cursor=pointer]:
+                - /url: /sell
+            - listitem [ref=f93e397]:
+              - link "How it works" [ref=f93e398] [cursor=pointer]:
+                - /url: /what_is_poshmark
+            - listitem [ref=f93e399]:
+              - link "Gift Cards" [ref=f93e400] [cursor=pointer]:
+                - /url: /gift-cards
+            - listitem [ref=f93e401]:
+              - link "Careers" [ref=f93e402] [cursor=pointer]:
+                - /url: /careers
+            - listitem [ref=f93e403]:
+              - link "Press" [ref=f93e404] [cursor=pointer]:
+                - /url: https://newsroom.poshmark.com
+            - listitem [ref=f93e405]:
+              - link "Accessibility" [ref=f93e406] [cursor=pointer]:
+                - /url: /accessibility
+        - generic [ref=f93e407]:
+          - generic [ref=f93e408]:
+            - heading "Buy and Sell on App" [level=4] [ref=f93e409]
+            - generic [ref=f93e410]:
+              - link [ref=f93e411] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/poshmark/id470412147?mt=8&ls=1&link_location=%2Flisting%2FTest-Dummy-Listing-5-DO-NOT-BUY-6a80686937ab17781b7f3e15
+                - img "Btn-appstore@2x" [ref=f93e412]
+              - link [ref=f93e413] [cursor=pointer]:
+                - /url: https://play.google.com/store/apps/details?id=com.poshmark.app&link_location=%2Flisting%2FTest-Dummy-Listing-5-DO-NOT-BUY-6a80686937ab17781b7f3e15
+                - img "Btn-playstore@2x" [ref=f93e414]
+          - generic [ref=f93e415]:
+            - heading "Connect With Us" [level=4] [ref=f93e416]
+            - generic [ref=f93e417]:
+              - link "Instagram" [ref=f93e418] [cursor=pointer]:
+                - /url: https://instagram.com/poshmark
+              - link "Tiktok" [ref=f93e420] [cursor=pointer]:
+                - /url: https://www.tiktok.com/@poshmark
+              - link "Twitter" [ref=f93e422] [cursor=pointer]:
+                - /url: https://www.twitter.com/Poshmarkapp
+              - link "Facebook" [ref=f93e424] [cursor=pointer]:
+                - /url: https://www.facebook.com/poshmark
+              - link "Youtube" [ref=f93e426] [cursor=pointer]:
+                - /url: https://www.youtube.com/poshmarklive
+              - link "Pinterest" [ref=f93e428] [cursor=pointer]:
+                - /url: https://www.pinterest.com/poshmark
+            - generic [ref=f93e430]:
+              - heading "shop in" [level=4] [ref=f93e431]
+              - generic [ref=f93e435] [cursor=pointer]:
+                - img "United States" [ref=f93e436]
+                - generic [ref=f93e437]: United States
+      - generic [ref=f93e438]:
+        - text: © 2026 Poshmark, Inc.
+        - link "Privacy" [ref=f93e439] [cursor=pointer]:
+          - /url: /privacy#privacy
+        - link "Terms" [ref=f93e440] [cursor=pointer]:
+          - /url: /terms
+        - link "Contact" [ref=f93e441] [cursor=pointer]:
+          - /url: /contact
+        - link "Your Opt Out Rights" [ref=f93e442] [cursor=pointer]:
+          - /url: /account/data-sharing

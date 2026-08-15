@@ -1,0 +1,65 @@
+- generic [ref=f50e2]:
+  - banner [ref=f50e3]:
+    - navigation [ref=f50e4]:
+      - link [ref=f50e6] [cursor=pointer]:
+        - /url: /
+        - img "poshmark-logo" [ref=f50e7]
+  - main [ref=f50e8]:
+    - generic [ref=f50e11]:
+      - heading [level=1] [ref=f50e12]
+      - generic [ref=f50e15]:
+        - paragraph [ref=f50e16]
+        - paragraph [ref=f50e17]
+        - paragraph [ref=f50e18]
+        - paragraph [ref=f50e19]
+      - generic [ref=f50e23]:
+        - paragraph [ref=f50e24]
+        - paragraph [ref=f50e25]
+        - paragraph [ref=f50e26]
+        - paragraph [ref=f50e27]
+      - generic [ref=f50e31]:
+        - paragraph [ref=f50e32]
+        - paragraph [ref=f50e33]
+        - paragraph [ref=f50e34]
+        - paragraph [ref=f50e35]
+      - generic [ref=f50e39]:
+        - paragraph [ref=f50e40]
+        - paragraph [ref=f50e41]
+        - paragraph [ref=f50e42]
+        - paragraph [ref=f50e43]
+      - generic [ref=f50e47]:
+        - paragraph [ref=f50e48]
+        - paragraph [ref=f50e49]
+        - paragraph [ref=f50e50]
+        - paragraph [ref=f50e51]
+      - generic [ref=f50e55]:
+        - paragraph [ref=f50e56]
+        - paragraph [ref=f50e57]
+        - paragraph [ref=f50e58]
+        - paragraph [ref=f50e59]
+      - generic [ref=f50e63]:
+        - paragraph [ref=f50e64]
+        - paragraph [ref=f50e65]
+        - paragraph [ref=f50e66]
+        - paragraph [ref=f50e67]
+      - generic [ref=f50e71]:
+        - paragraph [ref=f50e72]
+        - paragraph [ref=f50e73]
+        - paragraph [ref=f50e74]
+        - paragraph [ref=f50e75]
+      - generic [ref=f50e79]:
+        - paragraph [ref=f50e80]
+        - paragraph [ref=f50e81]
+        - paragraph [ref=f50e82]
+        - paragraph [ref=f50e83]
+  - contentinfo [ref=f50e85]:
+    - generic [ref=f50e87]:
+      - text: © 2026 Poshmark, Inc.
+      - link "Privacy" [ref=f50e88] [cursor=pointer]:
+        - /url: /privacy#privacy
+      - link "Terms" [ref=f50e89] [cursor=pointer]:
+        - /url: /terms
+      - link "Contact" [ref=f50e90] [cursor=pointer]:
+        - /url: /contact
+      - link "Your Opt Out Rights" [ref=f50e91] [cursor=pointer]:
+        - /url: /account/data-sharing

@@ -752,10 +752,17 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     };
   }
 
-  function validatePoshmarkFields(): boolean {
+  function validatePoshmarkFields(values: CrosslistFormValues): boolean {
     // Poshmark rejects a post without a department + category; the subcategory is optional.
     if (!poshmark.poshmarkDeptId || !poshmark.poshmarkCatId) {
       toast.error("Select a Poshmark department and category");
+      return false;
+    }
+    // Poshmark accepts a publish request with no size and silently leaves the listing as a
+    // draft instead of erroring — catch it here for any category that actually has sizes
+    // (some, like Jewelry or Other, don't).
+    if (poshmark.poshmarkSizes.length > 0 && !values.poshmarkSizeId) {
+      toast.error("Select a Poshmark size");
       return false;
     }
     return true;
@@ -796,7 +803,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
       return;
     }
     if (isEbay && !validateEbayFields(values)) return;
-    if (isPoshmark && !validatePoshmarkFields()) return;
+    if (isPoshmark && !validatePoshmarkFields(values)) return;
     if (itemMode === "existing" && !values.inventoryItemId) {
       toast.error("Select an inventory item");
       return;

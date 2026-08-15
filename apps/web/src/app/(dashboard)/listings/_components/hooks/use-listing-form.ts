@@ -472,10 +472,17 @@ export function useListingForm({
     return true;
   }
 
-  function validatePoshmarkFields(): boolean {
+  function validatePoshmarkFields(values: FormValues): boolean {
     // Poshmark rejects a post without a department + category; the subcategory is optional.
     if (!poshmark.poshmarkDeptId || !poshmark.poshmarkCatId) {
       toast.error("Select a Poshmark department and category");
+      return false;
+    }
+    // Poshmark accepts a publish request with no size and silently leaves the listing as a
+    // draft instead of erroring — catch it here for any category that actually has sizes
+    // (some, like Jewelry or Other, don't).
+    if (poshmark.poshmarkSizes.length > 0 && !values.poshmarkSizeId) {
+      toast.error("Select a Poshmark size");
       return false;
     }
     return true;
@@ -483,7 +490,7 @@ export function useListingForm({
 
   async function onSaveDraft(values: FormValues) {
     if (isEbay && !validateEbayFields(values)) return;
-    if (isPoshmark && !validatePoshmarkFields()) return;
+    if (isPoshmark && !validatePoshmarkFields(values)) return;
     await createMutation.mutateAsync({
       inventoryItemId: values.inventoryItemId,
       marketplaceConnectionId: values.marketplaceConnectionId,
@@ -498,7 +505,7 @@ export function useListingForm({
 
   async function onSaveAndPublish(values: FormValues) {
     if (isEbay && !validateEbayFields(values)) return;
-    if (isPoshmark && !validatePoshmarkFields()) return;
+    if (isPoshmark && !validatePoshmarkFields(values)) return;
     setIsPublishing(true);
     try {
       const created = await createMutation.mutateAsync({

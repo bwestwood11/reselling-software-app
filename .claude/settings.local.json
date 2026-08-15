@@ -3,7 +3,11 @@
     "allow": [
       "Bash(pnpm db:generate)",
       "Bash(pnpm --filter api typecheck)",
-      "Bash(curl -s http://localhost:3001/api/marketplaces/poshmark/connect-token -X POST -H \"Content-Type: application/json\" -d '{}')"
+      "Bash(curl -s http://localhost:3001/api/marketplaces/poshmark/connect-token -X POST -H \"Content-Type: application/json\" -d '{}')",
+      "mcp__playwright__browser_run_code_unsafe",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_find",
+      "Bash(node -e ' *)"
     ]
   }
 }
