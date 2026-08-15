@@ -1276,6 +1276,12 @@ async function runPoshmarkJob(job) {
 // Runs a JSON fetch inside the poshmark.com tab (so session cookies are sent automatically)
 // and returns { ok, status, data, rawText }. rawText is always populated so failures stay
 // diagnosable even when the body isn't valid JSON (HTML error pages, WAF blocks, etc.).
+//
+// CONFIRMED 2026-08-15: Poshmark's vm-rest API returns validation failures as
+// `{"error": {"errorType": ..., "userMessage": ..., "statusCode": 400}}` in the JSON body
+// with the OUTER HTTP status still 200 — `res.ok` alone never sees these. `ok` here is
+// `res.ok && !data.error` so a save/publish that Poshmark silently rejected is treated as a
+// real failure instead of a false success.
 async function poshmarkTabFetchJson(tabId, url, method, body, csrfToken) {
   const [injection] = await chrome.scripting.executeScript({
     target: { tabId },
@@ -1298,7 +1304,7 @@ async function poshmarkTabFetchJson(tabId, url, method, body, csrfToken) {
       } catch {
         // not JSON — data stays {}, rawText carries the real body
       }
-      return { ok: res.ok, status: res.status, data, rawText: rawText.slice(0, 500) };
+      return { ok: res.ok && !data?.error, status: res.status, data, rawText: rawText.slice(0, 500) };
     },
     args: [url, method, body ?? null, csrfToken],
   });
@@ -1307,7 +1313,11 @@ async function poshmarkTabFetchJson(tabId, url, method, body, csrfToken) {
 
 function poshmarkErrorFromResponse(response, fallbackLabel) {
   return new Error(
-    response?.data?.error?.message ??
+    // CONFIRMED field name — Poshmark's embedded error object uses `userMessage`, not
+    // `message`. `errorType` (e.g. "InvalidInputError") is the fallback when userMessage
+    // is null, which happens for some error classes (e.g. plain "ValidationError").
+    response?.data?.error?.userMessage ??
+    response?.data?.error?.errorType ??
     response?.data?.message ??
     (response?.rawText
       ? `${fallbackLabel} (${response.status}): ${response.rawText}`
@@ -1443,7 +1453,13 @@ async function postToPoshmarkApi(job) {
     // any remaining ones go in `pictures`.
     const [coverShotId, ...restPictureIds] = pictureIds;
     const poshmarkCondition = POSHMARK_CONDITION_MAP[condition] ?? "ug";
-    const priceStr = (price / 100).toFixed(2);
+    // CONFIRMED 2026-08-15: Poshmark's create-listing API rejects price_amount.val with cents
+    // ("Whole dollar amount required") — every real captured listing used an integer price.
+    // Rounding here (rather than truncating) means the seller's price of e.g. $19.99 lists as
+    // $20, not $19 — closest to what was actually entered.
+    const priceWholeDollars = Math.round(price / 100);
+    const originalPriceWholeDollars =
+      originalPriceCents != null ? Math.round(originalPriceCents / 100) : 0;
 
     const postBody = {
       post: {
@@ -1452,18 +1468,24 @@ async function postToPoshmarkApi(job) {
           ...(categoryId ? { category: categoryId } : {}),
           ...(subcategoryId ? { category_features: [subcategoryId] } : {}),
         },
-        colors: colors.map((name) => ({ name })),
+        // Poshmark rejects colors sent as bare { name } — it expects a canonical
+        // { name, rgb, message_id } triple from its own color catalog, which we don't have
+        // (no discoverable metadata endpoint for it, and a malformed entry fails the whole
+        // save, not just the color). Omitted until we have real data; `colors` param is
+        // intentionally unused above pending that.
+        colors: [],
         inventory: {
           status: "available",
           size_quantities: sizeId
             ? [
                 {
                   size_id: sizeId,
-                  // Best-effort — the real web client sends a fully denormalized size_obj
-                  // (display strings + au/eu/uk equivalents from its local size-metadata
-                  // cache) that we can't reproduce without that same catalog data. Poshmark
-                  // accepted this reduced shape in testing; if size-specific saves start
-                  // failing, this is the first thing to recheck against a fresh capture.
+                  // CONFIRMED 2026-08-15 (raw-fetch test against a real draft, category
+                  // Men > Sweaters, size "XLT"): this reduced shape is sufficient — Poshmark
+                  // fills in display_with_size_set / display_with_size_system /
+                  // display_with_system_and_set / size_set_tags server-side from just `id`
+                  // and the post's category. No need to reproduce the real web client's
+                  // au/eu/uk equivalents.
                   size_obj: { id: sizeId, display: sizeId, size_system: "us" },
                   size_system: "us",
                   quantity_available: 1,
@@ -1472,9 +1494,9 @@ async function postToPoshmarkApi(job) {
               ]
             : [],
         },
-        price_amount: { val: Number(priceStr), currency_code: "USD" },
+        price_amount: { val: priceWholeDollars, currency_code: "USD" },
         original_price_amount: {
-          val: originalPriceCents != null ? Number((originalPriceCents / 100).toFixed(2)) : 0,
+          val: originalPriceWholeDollars,
           currency_code: "USD",
         },
         title,
