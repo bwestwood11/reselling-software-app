@@ -362,6 +362,145 @@ automated in the extension): navigate to `https://poshmark.com/edit-listing/{id}
 **"Delete Listing"** link/heading, confirm with the **"Yes"** button in the resulting
 "Confirm Delete Listing" dialog. Works on both draft and published listings.
 
+## Sold-item detection
+
+Captured 2026-08-16 by driving a real logged-in `poshmark.com` session (closet page, a sold
+listing's detail page, and the "My Sales" order page) and reading both live network traffic and
+each page's embedded `window.__INITIAL_STATE__` Redux state. **CONFIRMED** unless noted.
+
+**The listing's top-level `status` field does NOT change when an item sells** — it stays
+`"published"` forever (until delisted). The sold signal lives one level down, in `inventory`:
+
+```
+GET https://poshmark.com/vm-rest/posts/{postId}?app_version=5.04&pm_version=2026.33.00
+```
+
+Response (`response.data`), for a listing that has sold:
+
+```json
+{
+  "status": "published",
+  "inventory": {
+    "status": "sold_out",
+    "status_changed_at": "2026-08-08T19:01:32-07:00",
+    "size_quantities": [
+      { "size_id": "38", "quantity_available": 0, "quantity_reserved": 0, "quantity_sold": 1, "...": "..." }
+    ],
+    "last_unit_reserved_at": "2026-08-08T19:01:29-07:00"
+  }
+}
+```
+
+- **`inventory.status`** — `"available"` while listed, **`"sold_out"`** once every unit is sold.
+  This is the field to check, not `status`. (An intermediate `"reserved"`-style value likely
+  exists for items sitting in an active offer/bundle awaiting checkout, per the presence of
+  `last_unit_reserved_at`/`reserve_reason` fields — not directly observed this session since no
+  in-progress sale was available to inspect; treat as inference.)
+- **`inventory.status_changed_at`** — timestamp of the sale. Usable as `Listing.soldAt`.
+- **`inventory.size_quantities[].quantity_sold`** vs `quantity_available` — per-size breakdown;
+  relevant for multi-quantity/multi-size listings where the item as a whole may still show
+  `available` while one size is sold out. `SyncEvent`/status-check logic should probably treat
+  "sold" as "every `size_quantities[]` entry has `quantity_available === 0`" rather than relying
+  solely on the top-level `inventory.status` if partial-size sellouts matter.
+
+This is the **same endpoint already used for step 5 of the publish flow** (see above) — a single
+GET per listing, no new auth or discovery needed. This is the natural fit for
+`PoshmarkAdapter.checkStatus(externalId)` in `apps/api/src/services/marketplace/poshmark.ts`
+(currently a stub returning `{ status: "unknown" }`, and the header comment listing
+`GET /api/v2/posts/:id` as the "get listing" endpoint is **wrong** — same dead guess documented
+in "History of wrong guesses" above; the real one is the `vm-rest` URL shown here).
+
+**There is no discrete bulk JSON endpoint, but a single plain HTTP request does return every
+listing's status at once**, which is good enough in practice. `GET poshmark.com/closet/{username}`
+server-renders the whole closet — id, title, `inventory.status`, everything — into
+`window.__INITIAL_STATE__.$_closet.listingsPostData.data[]` embedded in the HTML `<script>` tag.
+Confirmed two ways: reading it live off `window.__INITIAL_STATE__` in a real tab, and separately
+with a bare `fetch("https://poshmark.com/closet/{username}", { credentials: "include" })` from
+page context (i.e. a plain cookie-authenticated HTTP GET, no browser rendering required) —
+brace-balanced-parsing the JSON out of the raw HTML between `window.__INITIAL_STATE__=` and its
+matching closing `}` (a naive regex/`indexOf("</script>")` cut is **not** safe — the object
+contains `</script>`-adjacent JS on the same line — walk the string counting `{`/`}` while
+tracking string literals instead) gives back the identical `43`-item array, `3` of them
+`inventory.status: "sold_out"`, for a 44-listing closet. One request, every item's status.
+
+Caveat: only confirmed for a closet small enough to load in one shot. The payload's `more` field
+(`{ total, page_group_id, is_next_max_id_present }`) reads like a cursor-pagination marker —
+`is_next_max_id_present: false` here — implying closets past some size (not observed; this
+account only had 44) may need a follow-up request keyed by `page_group_id`/a `max_id` cursor to
+get the rest. Sort/filter UI changes (Sort By, the Sold Items availability toggle) all resolved
+client-side against the already-loaded payload with **no follow-up XHR** in this closet, which
+didn't help surface what that follow-up pagination call looks like. Re-verify against an account
+with 50+ listings before relying on "always one request" for large inventories.
+
+This makes a full-closet sync (`GET /closet/{username}` once, parse, diff every `Listing` row's
+`externalId` against the returned statuses) strictly cheaper than the per-listing loop below for
+accounts under that unconfirmed size ceiling — one request instead of N. The per-listing
+`GET /vm-rest/posts/{postId}` endpoint is still the one to reach for when checking a single
+listing (e.g. right after a publish, or a targeted re-check), and is the safe fallback regardless
+of closet size.
+
+**A real closet-scoped JSON endpoint (no HTML parsing) was searched for and not found — don't
+re-attempt this without new evidence.** Scrolling a category browse page
+(`poshmark.com/category/Women`) past its initial batch confirmed Poshmark does have a genuine
+JSON search/pagination API:
+
+```
+GET /vm-rest/channel_groups/category/channels/department/collections/post
+    ?request={"filters":{"department":"Women","inventory_status":["available"]},"experience":"all","sizeSystem":"us","max_id":"<opaque ENC_ cursor>","count":48}
+    &summarize=true&pm_version=2026.33.00
+```
+
+This confirms the SSR batch size for these grids is **48 items** (`count: 48`), with an opaque
+`max_id` cursor token (`ENC_...`) for subsequent pages — presumably the same mechanism the
+closet page's `more.page_group_id`/`is_next_max_id_present` fields are pointing at, though the
+actual closet pagination call was never observed (this account's 44-listing closet never needed
+a second page).
+
+**Tried and confirmed NOT to work:** passing `filters.creator_id` (with and without a
+`department` filter alongside it) to scope this endpoint to one seller's own listings —
+both attempts returned `{"error":{"errorType":"ValidationError","statusCode":400}}`. This
+endpoint's filters are department/category/brand/price/size/color/condition/inventory_status
+only; there is no seller/creator scoping parameter on it. It cannot be repurposed as a
+"my closet as JSON" endpoint — it's for the public department/category browse grids only.
+
+**Richer order-level data** (buyer info, shipping status, payout) lives at
+`poshmark.com/order/sales` (and `?status=completed|in_transit|...`), also SSR-embedded — this
+time in `window.__INITIAL_STATE__.$_order_list.userSales.data.sales_summary[]`. Confirmed shape
+of one entry:
+
+```json
+{
+  "id": "6a7f7fd87ed2c3eea5f0fbac",
+  "state": "seller_confirm_initiated",
+  "display_status": "In Transit",
+  "title": "Nike Gridiron Jersey Florida State Dark Gray Men's Size XL",
+  "total_price_amount": { "val": "30.0", "currency_code": "USD" },
+  "seller_earning_amount": { "val": "24.0", "currency_code": "USD" },
+  "inventory_booked_at": "2026-08-14T13:51:38-07:00",
+  "picture_url": "https://di2ponv0v5otw.cloudfront.net/posts/2026/07/20/{postId}/m_....jpg",
+  "buyer": { "id": "...", "username": "...", "full_name": "...", "...": "..." },
+  "shipping_address": { "name": "...", "street": "...", "city": "...", "...": "..." }
+}
+```
+
+- **No `post_id`/`listing_id` field on the order object.** The only way to correlate an order
+  back to a `Listing.externalId` is parsing the postId out of the `picture_url` path (the 24-hex
+  segment right before the filename — confirmed to match a real listing id format). Fragile but
+  workable; title/price matching is the fallback and is worse.
+- **`state`** is the internal enum (`seller_confirm_initiated` observed); **`display_status`** is
+  the human string shown in the UI ("In Transit", "Order Completed", etc. — the status filter
+  dropdown also lists Awaiting Shipment, Shipped, Delivered, Cancelled, Issues as options, not
+  independently confirmed against a live order in each state).
+- **`buyer`/`shipping_address` contain real PII** (buyer's full name, username, mailing address).
+  If this endpoint is ever used for the sales-detection feature, do not persist more of this than
+  the feature actually needs — the `inventory.status`/`status_changed_at` fields from the
+  per-listing `vm-rest/posts/{postId}` endpoint above are sufficient for a pure "did this sell"
+  check with no buyer PII involved at all, so prefer that endpoint unless payout/order-lifecycle
+  detail is a real requirement.
+- Also not discovered as a live XHR endpoint this session — same SSR-embedded-state caveat as the
+  closet page applies (status filter clicks re-navigated the page rather than firing a
+  fetchable API call).
+
 ## `pm_version` / `app_version`
 
 Every `vm-rest` call carries `pm_version` (observed: `2026.33.00`); publish additionally

@@ -7,10 +7,16 @@
 // `_csrf_token` and the session JWT. Obtain these by logging in via the mobile WebView.
 //
 // POSHMARK_API base: https://poshmark.com
-// Create listing:   POST /api/v2/posts   (verify path against DevTools)
-// Update listing:   PUT  /api/v2/posts/:id
-// Delist listing:   DELETE /api/v2/posts/:id   (or PATCH with status: "not_for_sale")
-// Get listing:      GET  /api/v2/posts/:id
+// The `/api/v2/posts...` paths that used to be documented here don't exist — see
+// extension/POSHMARK.md "History of wrong guesses". The real, verified flow (draft
+// create -> image upload -> save -> publish -> verify) lives under /vm-rest/, fully
+// documented in extension/POSHMARK.md and implemented in extension/background.js.
+//
+// Sold-item detection (see extension/POSHMARK.md "Sold-item detection" for full capture
+// notes): GET /vm-rest/posts/{postId}?app_version=5.04&pm_version={PM_VERSION} — check
+// response.data.inventory.status === "sold_out" (NOT response.data.status, which stays
+// "published" forever). response.data.inventory.status_changed_at is the sale timestamp.
+// This is the same endpoint already used to verify a publish succeeded.
 //
 // Poshmark publishes are handled via the mobile WebView flow (same as Mercari)
 // because server-side cookie injection is unreliable without a real browser TLS
