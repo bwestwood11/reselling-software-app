@@ -866,6 +866,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // Manual "check Poshmark for sales now" — bypasses the once-an-hour server-side interval.
+  if (msg.type === "POSHMARK_STATUS_CHECK_NOW") {
+    runPoshmarkStatusCheck({ force: true })
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
   if (msg.type === "GET_PENDING_COUNT") {
     Promise.all([
       apiFetch("/api/mercari/jobs/pending").then((d) => (d.data ?? []).length).catch(() => 0),
@@ -1934,6 +1942,203 @@ async function getPoshmarkStatus() {
   }
 }
 
+// ── Poshmark status checking (hourly sold detection) ─────────────────────────
+//
+// Poshmark has no webhooks and no public API, so the only way to find out that a listing sold
+// is to read each post back through an authenticated poshmark.com tab. This runs once an hour
+// on a chrome.alarms tick and reports everything it reads to the ReList API.
+//
+// The SERVER owns the schedule, not this alarm: every sweep starts with
+// POST /api/poshmark/status-check/claim, which answers `due: false` if the account was already
+// swept within the last hour. That way a user running the extension in two browsers (or a
+// service worker that gets woken repeatedly) still polls Poshmark once per hour, and every
+// claim/complete pair is recorded server-side as a MarketplacePollRun.
+//
+// Endpoint is the same GET the publish flow uses for its step-5 verification (see POSHMARK.md):
+//   GET /vm-rest/posts/{postId}?app_version=X&pm_version=X → { data: { status, inventory, ... } }
+
+/** Alarm name for the hourly sweep. 60 minutes matches the server-side poll interval. */
+const POSHMARK_STATUS_ALARM = "poshmark-status-check";
+const POSHMARK_STATUS_PERIOD_MINUTES = 60;
+/** Pause between per-listing reads so a large closet doesn't hammer Poshmark in a burst. */
+const POSHMARK_STATUS_GAP_MS = 400;
+
+let poshmarkStatusCheckRunning = false;
+
+// chrome.notifications requires an iconUrl for "basic" notifications and the extension ships no
+// icon files (icons/ holds only a README), so a packaged 32x32 solid-green square is inlined here
+// rather than pointing at a path that would make every sold notification fail to render.
+const SOLD_NOTIFICATION_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAL0lEQVR42u3OIQEAAAgDMFIQipoEhRg3E/Or3rmkEhAQEBAQEBAQEBAQEBAQSAcel1EIeUbP2o4AAAAASUVORK5CYII=";
+
+/**
+ * Read one Poshmark post back and classify it.
+ *
+ * INFERENCE WARNING — unlike the publish flow (every field of which was confirmed against live
+ * traffic, see POSHMARK.md), the sold-detection signals below are read off the same confirmed
+ * GET response but were not observed on a genuinely sold listing. `raw` is therefore reported to
+ * the API for every check so a misclassification can be diagnosed from stored data rather than
+ * re-guessed. Signals used, in order:
+ *   • post.status — "published" while live; anything else means it left the closet
+ *   • post.inventory.status — "available" while live (confirmed on create); treated as sold
+ *     when it reads sold_out/sold/not_for_sale
+ *   • post.inventory.size_quantities — every size at quantity_available 0 with something in
+ *     quantity_sold means the whole post is sold through
+ */
+async function fetchPoshmarkPostStatus(tabId, postId, csrfToken) {
+  const url = `${POSHMARK_BASE}/vm-rest/posts/${postId}?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "GET", null, csrfToken);
+
+  if (response?.status === 404) return { status: "removed", raw: { httpStatus: 404 } };
+
+  const post = response?.data?.data;
+  if (!post) {
+    const errorType = response?.data?.error?.errorType;
+    // Poshmark answers a deleted post with a NotFound-flavoured embedded error, HTTP 200.
+    if (errorType && /notfound|not_found/i.test(errorType)) {
+      return { status: "removed", raw: { errorType } };
+    }
+    return {
+      status: "error",
+      error: poshmarkErrorFromResponse(response, "Poshmark status check failed").message,
+      raw: { httpStatus: response?.status ?? null, rawText: response?.rawText ?? null },
+    };
+  }
+
+  const sizes = post.inventory?.size_quantities ?? [];
+  const inventoryStatus = post.inventory?.status ?? null;
+  const soldOutBySize =
+    sizes.length > 0 &&
+    sizes.every((s) => (s.quantity_available ?? 0) === 0) &&
+    sizes.some((s) => (s.quantity_sold ?? 0) > 0);
+  const soldByStatus = ["sold_out", "sold", "not_for_sale"].includes(inventoryStatus);
+
+  const raw = {
+    postStatus: post.status ?? null,
+    inventoryStatus,
+    sizeQuantities: sizes.map((s) => ({
+      size_id: s.size_id ?? null,
+      quantity_available: s.quantity_available ?? null,
+      quantity_sold: s.quantity_sold ?? null,
+    })),
+  };
+
+  if (soldByStatus || soldOutBySize) return { status: "sold", raw };
+  if (post.status && post.status !== "published") return { status: "removed", raw };
+  return { status: "active", raw };
+}
+
+/**
+ * Called with the Poshmark listing ids (our ReList listing ids) that were found sold on this
+ * sweep while we still had them listed — i.e. genuinely new sales, not ones already reconciled.
+ *
+ * The server-side half of this (marking the listing and inventory item SOLD, writing the SOLD
+ * sync event, and delisting the same item from the other marketplaces) already ran inside
+ * POST /status-check/:id/complete. This hook is the BROWSER-side half: work that needs the
+ * user's logged-in marketplace tabs — today just telling the user, and in future running the
+ * extension-driven delists (Mercari/Poshmark) that the server cannot perform itself.
+ */
+async function onSold(ids) {
+  if (!ids?.length) return;
+  console.log(`[relist:poshmark] ${ids.length} newly sold listing(s):`, ids);
+
+  chrome.action.setBadgeText({ text: String(ids.length) });
+  chrome.action.setBadgeBackgroundColor({ color: "#16a34a" });
+
+  try {
+    await chrome.notifications?.create({
+      type: "basic",
+      iconUrl: SOLD_NOTIFICATION_ICON,
+      title: ids.length === 1 ? "Poshmark sale detected" : `${ids.length} Poshmark sales detected`,
+      message:
+        ids.length === 1
+          ? "One listing sold on Poshmark — ReList has marked it sold."
+          : `${ids.length} listings sold on Poshmark — ReList has marked them sold.`,
+    });
+  } catch (err) {
+    console.warn("[relist:poshmark] sold notification failed:", err.message);
+  }
+
+  // TODO(delist): once the API exposes delist jobs for the extension-driven marketplaces,
+  // pull the pending DELIST work for these listings and run it here in the Mercari/Poshmark
+  // tabs. The server already records what needs delisting as `needs_extension`.
+}
+
+/**
+ * One hourly sweep. Asks the server whether a poll is due, reads every listing it hands back,
+ * reports the results, then runs onSold() for whatever came back newly sold.
+ */
+async function runPoshmarkStatusCheck({ force = false } = {}) {
+  if (poshmarkStatusCheckRunning) return { skipped: "already_running" };
+  // A publish in flight owns the Poshmark tab; skipping means the sweep is not claimed, so the
+  // next alarm tick picks it up with the hour's slot still open.
+  if (activePoshmarkJobId) return { skipped: "publish_in_progress" };
+  if (!(await getToken())) return { skipped: "not_authenticated" };
+
+  poshmarkStatusCheckRunning = true;
+  const started = Date.now();
+  let claim;
+
+  try {
+    claim = await apiFetch("/api/poshmark/status-check/claim", {
+      method: "POST",
+      body: JSON.stringify({ force }),
+    });
+    const data = claim.data ?? {};
+    if (!data.due) return { skipped: data.reason ?? "not_due" };
+    if (!data.listings?.length) return { checked: 0, sold: 0 };
+
+    const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
+    const storedCsrfToken = sessionRes.data?.csrfToken ?? null;
+
+    const results = await withPoshmarkTab(async (tabId) => {
+      const csrfToken = await getLivePoshmarkCsrf(storedCsrfToken);
+      const out = [];
+      for (const listing of data.listings) {
+        try {
+          const result = await fetchPoshmarkPostStatus(tabId, listing.externalId, csrfToken);
+          out.push({ listingId: listing.listingId, externalId: listing.externalId, ...result });
+        } catch (err) {
+          out.push({
+            listingId: listing.listingId,
+            externalId: listing.externalId,
+            status: "error",
+            error: err.message ?? "Status check threw",
+          });
+        }
+        await sleep(POSHMARK_STATUS_GAP_MS);
+      }
+      return out;
+    });
+
+    const completed = await apiFetch(`/api/poshmark/status-check/${data.pollRunId}/complete`, {
+      method: "POST",
+      body: JSON.stringify({ results }),
+    });
+
+    const newlySold = completed.data?.newlySold ?? [];
+    await onSold(newlySold.map((s) => s.listingId));
+
+    console.log(
+      `[relist:poshmark] status check: ${results.length} listing(s) in ${Date.now() - started}ms, ` +
+      `${newlySold.length} newly sold`
+    );
+    return { checked: results.length, sold: newlySold.length };
+  } catch (err) {
+    console.error("[relist:poshmark] status check failed:", err.message);
+    // Close the claimed run out so it isn't left RUNNING and reaped as a timeout later.
+    const pollRunId = claim?.data?.pollRunId;
+    if (pollRunId) {
+      await apiFetch(`/api/poshmark/status-check/${pollRunId}/fail`, {
+        method: "POST",
+        body: JSON.stringify({ errorMessage: err.message ?? "Status check failed" }),
+      }).catch(() => {});
+    }
+    return { error: err.message };
+  } finally {
+    poshmarkStatusCheckRunning = false;
+  }
+}
+
 // ── Long polling ──────────────────────────────────────────────────────────────
 //
 // The extension holds a request open on /jobs/pending?wait=N; the server answers the moment a job
@@ -2017,15 +2222,29 @@ function startPolling() {
   // Watchdog: restarts the loop if the service worker was evicted mid-wait. 1 minute is the
   // minimum period Chrome allows for MV3 alarms.
   chrome.alarms.create("relist-poll", { periodInMinutes: 1 });
+  // Hourly Poshmark sold-detection sweep. Chrome coalesces this with the watchdog tick; the
+  // server-side claim is what actually enforces "once an hour", so an early or repeated fire
+  // costs one cheap API call and nothing more.
+  chrome.alarms.create(POSHMARK_STATUS_ALARM, {
+    periodInMinutes: POSHMARK_STATUS_PERIOD_MINUTES,
+  });
   pollLoop();
+  runPoshmarkStatusCheck();
 }
 
 function stopPolling() {
   stopRequested = true;
   chrome.alarms.clear("relist-poll");
+  chrome.alarms.clear(POSHMARK_STATUS_ALARM);
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === POSHMARK_STATUS_ALARM) {
+    getToken().then((token) => {
+      if (token) runPoshmarkStatusCheck();
+    });
+    return;
+  }
   if (alarm.name !== "relist-poll") return;
   getToken().then((token) => {
     if (token) pollLoop();

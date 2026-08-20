@@ -28,6 +28,7 @@ model User {
   mercariJobs            MercariJob[]
   poshmarkJobs           PoshmarkJob[]
   sources                Source[]
+  pollRuns               MarketplacePollRun[]
 }
 
 model Session {
@@ -94,6 +95,10 @@ model MarketplaceConnection {
   accountId       String? // external account ID
   accountName     String?
   isActive     Boolean         @default(true)
+  // Status-check polling bookkeeping. `lastPolledAt` is the claim marker used to decide
+  // whether an hourly poll is due; it is stamped when a run is CLAIMED (not when it
+  // finishes) so two browsers running the extension cannot both poll the same hour.
+  lastPolledAt    DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
@@ -214,6 +219,9 @@ model Listing {
   soldAt                  DateTime?
   endedAt                 DateTime?
   lastSyncAt              DateTime?
+  // Per-listing status-check bookkeeping, written by the marketplace status pollers.
+  lastStatusCheckAt       DateTime?
+  statusCheckCount        Int                   @default(0)
   syncError               String?
   syncFailCount           Int                   @default(0)
   publishAttempts         Int                   @default(0) // publish tries so far; capped at MAX_PUBLISH_ATTEMPTS
@@ -357,6 +365,38 @@ model MercariCategory {
 }
 
 // ─── Sync Events ──────────────────────────────────────────────────────────────
+
+// ─── Marketplace Status Polling ───────────────────────────────────────────────
+
+enum MarketplacePollStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+/// One status-check sweep over a user's active listings on one marketplace.
+/// A row is created when the extension claims a poll (status RUNNING) and closed out when it
+/// reports results, so the table is a complete audit of every poll — including ones that
+/// never came back (they stay RUNNING and are reaped as FAILED by the next claim).
+model MarketplacePollRun {
+  id             String                @id @default(cuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketplace    MarketplaceType
+  status         MarketplacePollStatus @default(RUNNING)
+  startedAt      DateTime              @default(now())
+  finishedAt     DateTime?
+  requestedCount Int                   @default(0) // listings handed to the extension
+  checkedCount   Int                   @default(0) // listings the extension actually read back
+  soldCount      Int                   @default(0) // newly sold this run (were ACTIVE for us)
+  errorCount     Int                   @default(0)
+  soldListingIds String[]              @default([])
+  errorMessage   String?
+  data           Json? // per-listing results, for debugging a bad sweep
+  createdAt      DateTime              @default(now())
+
+  @@index([userId, marketplace, startedAt])
+}
 
 enum SyncEventType {
   PUBLISH

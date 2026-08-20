@@ -3,11 +3,17 @@ import type { Prisma } from "@repo/db";
 import { requireAuth } from "../middleware/auth";
 import { markInventoryItemListed } from "../services/listing-state";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
+import {
+  PoshmarkStatusService,
+  type PoshmarkStatusResult,
+} from "../services/poshmark-status.service";
 
 /** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
 const POLL_TICK_MS = 750;
 
 export async function poshmarkRoutes(fastify: FastifyInstance) {
+  const statusService = new PoshmarkStatusService(fastify.prisma);
+
   // POST /api/poshmark/jobs — enqueue a new Poshmark crosslisting job
   fastify.post("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
     const body = request.body as {
@@ -162,5 +168,81 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, data: job });
+  });
+
+  // ─── Status checking (hourly sold detection) ────────────────────────────────
+  //
+  // Poshmark has no webhooks, so the extension sweeps the user's active listings once an hour
+  // from an authenticated poshmark.com tab. The server owns the schedule and the audit trail:
+  // it decides whether a sweep is due (so two browsers don't both poll), opens a
+  // MarketplacePollRun, and runs onSold() for whatever came back sold.
+
+  // POST /api/poshmark/status-check/claim — extension asks whether a sweep is due.
+  // Returns { due: false, ... } when the last poll was under an hour ago, or the listings to
+  // read plus a pollRunId to report against. `force: true` skips the interval check.
+  fastify.post("/status-check/claim", { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = (request.body ?? {}) as { force?: boolean };
+
+    await recordExtensionHeartbeat(request.user!.id);
+
+    const result = await statusService.claim(request.user!.id, { force: body.force === true });
+    return reply.send({ success: true, data: result });
+  });
+
+  // POST /api/poshmark/status-check/:pollRunId/complete — extension reports what it read.
+  // The server works out which listings are NEWLY sold (sold on Poshmark, still ACTIVE for us)
+  // and runs the sold-item handling, including delisting the item elsewhere.
+  fastify.post(
+    "/status-check/:pollRunId/complete",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { pollRunId } = request.params as { pollRunId: string };
+      const body = request.body as { results?: PoshmarkStatusResult[] };
+
+      if (!Array.isArray(body?.results)) {
+        return reply.status(400).send({ success: false, error: "results[] is required" });
+      }
+
+      try {
+        const result = await statusService.complete(request.user!.id, pollRunId, body.results);
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to record status check";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
+  // POST /api/poshmark/status-check/:pollRunId/fail — extension could not run the sweep
+  // (no Poshmark tab, session expired, ...). Closes the run out so it isn't left RUNNING.
+  fastify.post(
+    "/status-check/:pollRunId/fail",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { pollRunId } = request.params as { pollRunId: string };
+      const body = (request.body ?? {}) as { errorMessage?: string };
+
+      const { count } = await fastify.prisma.marketplacePollRun.updateMany({
+        where: { id: pollRunId, userId: request.user!.id, status: "RUNNING" },
+        data: {
+          status: "FAILED",
+          finishedAt: new Date(),
+          errorMessage: body.errorMessage ?? "Status check failed in the extension",
+        },
+      });
+
+      if (count === 0) {
+        return reply.status(404).send({ success: false, error: "Poll run not found" });
+      }
+      return reply.send({ success: true });
+    }
+  );
+
+  // GET /api/poshmark/status-check/runs — recent sweeps, newest first.
+  fastify.get("/status-check/runs", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as { limit?: string };
+    const limit = Math.min(Number.parseInt(query.limit ?? "20", 10) || 20, 100);
+    const runs = await statusService.listRuns(request.user!.id, limit);
+    return reply.send({ success: true, data: runs });
   });
 }

@@ -3,7 +3,15 @@
   "name": "ReList – Crosslister",
   "version": "1.1.0",
   "description": "Automatically crosslist your ReList inventory to Mercari and Poshmark.",
-  "permissions": ["tabs", "activeTab", "storage", "scripting", "cookies", "alarms"],
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "scripting",
+    "cookies",
+    "alarms",
+    "notifications"
+  ],
   "host_permissions": [
     "https://www.mercari.com/*",
     "https://poshmark.com/*",
