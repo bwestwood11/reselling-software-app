@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getMarketplaceLabel } from "@repo/utils";
-import { listingsApi, marketplacesApi, inventoryApi } from "@/lib/api";
+import { listingsApi, marketplacesApi, mercariApi, inventoryApi } from "@/lib/api";
 import { useInventory, useInventoryItem } from "@/hooks/use-inventory";
 import { useCreateListing } from "@/hooks/use-listings";
 import {
@@ -39,6 +39,7 @@ export function useListingForm({
   onClose,
 }: CreateListingFormProps) {
   const createMutation = useCreateListing();
+  const queryClient = useQueryClient();
   const [isPublishing, setIsPublishing] = useState(false);
   const [crossFill, setCrossFill] = useState<CrossFill | null>(null);
 
@@ -488,9 +489,68 @@ export function useListingForm({
     return true;
   }
 
+  function validateMercariFields(values: FormValues): boolean {
+    if (!mercariCat.selectedMercariCat) {
+      toast.error("Select a Mercari category");
+      return false;
+    }
+    if (mercariCat.selectedMercariCat.isSizeRequired && !values.mercariSizeId) {
+      toast.error("Select a Mercari size");
+      return false;
+    }
+    // Mercari rejects a createListing that has no zipCode (see MercariSettings.tsx) — the zip is
+    // set either by picking a saved address or typing it directly.
+    if (!values.mercariZipCode?.trim()) {
+      toast.error("Select a Mercari shipping address");
+      return false;
+    }
+    if (
+      mercariShip.mercariShipMethod === "PREPAID" &&
+      (parseFloat(mercariShip.mercariWeightLb) || 0) <= 0 &&
+      (parseFloat(mercariShip.mercariWeightOz) || 0) <= 0
+    ) {
+      toast.error("Enter a package weight for prepaid shipping");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * listingsApi.publish() only confirms the job was queued for the extension — Mercari cannot be
+   * published server-side (Cloudflare blocks it), so the extension calls Mercari's API on its own
+   * schedule afterward. Any validation Mercari itself rejects (bad category, missing zip, etc.)
+   * only shows up in that later step, so a queued-then-forgotten flow would report success and
+   * never mention the failure. This polls the job the publish call reported and turns its
+   * eventual COMPLETED/FAILED into the toast the immediate publish response couldn't give.
+   */
+  async function pollMercariPublish(jobId: string) {
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      try {
+        const jobRes = await mercariApi.getJob(jobId);
+        const status: string = jobRes?.data?.status ?? "PENDING";
+        if (status === "COMPLETED") {
+          toast.success("Published to Mercari");
+          queryClient.invalidateQueries({ queryKey: ["listings"] });
+          return;
+        }
+        if (status === "FAILED") {
+          toast.error(jobRes?.data?.errorMessage ?? "Mercari rejected the listing");
+          queryClient.invalidateQueries({ queryKey: ["listings"] });
+          return;
+        }
+      } catch {
+        // transient network hiccup — keep polling until the deadline
+      }
+    }
+    toast.error("Mercari hasn't confirmed the listing yet — check the Listings page.");
+  }
+
   async function onSaveDraft(values: FormValues) {
     if (isEbay && !validateEbayFields(values)) return;
     if (isPoshmark && !validatePoshmarkFields(values)) return;
+    if (isMercari && !validateMercariFields(values)) return;
     await createMutation.mutateAsync({
       inventoryItemId: values.inventoryItemId,
       marketplaceConnectionId: values.marketplaceConnectionId,
@@ -506,6 +566,7 @@ export function useListingForm({
   async function onSaveAndPublish(values: FormValues) {
     if (isEbay && !validateEbayFields(values)) return;
     if (isPoshmark && !validatePoshmarkFields(values)) return;
+    if (isMercari && !validateMercariFields(values)) return;
     setIsPublishing(true);
     try {
       const created = await createMutation.mutateAsync({
@@ -519,9 +580,17 @@ export function useListingForm({
       });
       const listingId = created?.data?.id;
       if (!listingId) throw new Error("Could not retrieve listing ID after creation");
-      await listingsApi.publish(listingId);
-      toast.success("Listing published!");
-      onClose();
+      const publishRes = await listingsApi.publish(listingId);
+
+      if (isMercari) {
+        const jobId: string | undefined = publishRes?.data?.jobId;
+        toast.success("Queued — Mercari is posting the listing now");
+        onClose();
+        if (jobId) void pollMercariPublish(jobId);
+      } else {
+        toast.success("Listing published!");
+        onClose();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to publish");
     } finally {

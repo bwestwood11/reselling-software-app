@@ -2248,236 +2248,154 @@ async function delistFromPoshmark(externalId) {
 }
 
 /**
- * Mercari delisting is driven through the seller's own edit page rather than the GraphQL API.
+ * Confirmed via live Playwright capture (2026-08-22): clicking the "Delete" button on Mercari's
+ * own edit page (testid="DeleteButton") fires this GraphQL mutation directly — no confirmation
+ * dialog appears — and the page redirects to /mypage/listings/active/ on success:
  *
- * Every Mercari API call in this file rides on a persisted-query sha256Hash captured from live
- * DevTools traffic (see createListing / uploadTempListingPhotos). No such capture exists for a
- * delete or status mutation, and Mercari's gateway answers an unregistered query with
- * PersistedQueryNotFound rather than executing it — so there is no honest API path to use here.
- * Driving the page the user would drive is the reliable option, and it is the same session and
- * the same tab machinery the publish flow already relies on.
+ *   operationName: "UpdateItemStatusMutation"
+ *   sha256Hash: "55bd4e7d2bc2936638e1451da3231e484993635d7603431d1a2978e3d59656f8"
+ *   variables: { input: { id: "<externalId>", status: "cancel" } }
+ *   Response:  { data: { updateItemStatus: { status: "OK", __typename: "GenericResponse" } } }
  *
- * INFERENCE — the control labels below were not captured from a live edit page. They are matched
- * by regex over several plausible labels rather than by a brittle CSS selector, and the flow
- * reports exactly which label it clicked so a mismatch is diagnosable from the job error instead
- * of guessed at again.
+ * Also confirmed live: re-sending "cancel" for an item that is already cancelled still returns
+ * status:"OK" (no error) — the mutation is idempotent — so a successful response is proof enough
+ * that the listing is inactive. There is no separate "already gone" branch to detect, unlike the
+ * publish flow's edit-page-redirect check.
+ *
+ * The previous approach (see git history) drove the rendered edit page instead, on the theory that
+ * this mutation's persisted-query hash had never been captured. That flow was failing in
+ * production with ZERO visible clickable elements on the page at all — not a label mismatch, the
+ * page had nothing rendered yet. acquireMercariTab() creates its tab with active:false, and Chrome
+ * throttles rAF/timers in non-visible background tabs, which is consistent with this Next.js app
+ * never finishing hydration inside the flow's timeout. Calling the API directly sidesteps SPA
+ * hydration entirely — this only needs the tab's cookies to be primed, not its DOM rendered.
+ *
+ * Bearer/CSRF resolution mirrors createListing() above: same token strategies (getMercariSession
+ * cache → /v1/initialize → __NEXT_DATA__ → _mwus cookie → localStorage JWT scan), because the
+ * plain-cookie request (no explicit auth/csrf headers) was confirmed live to fail with
+ * {"errors":[{"status":401,"message":"Unauthorized"}]} — the session cookie alone does not
+ * authorize this endpoint.
  */
-const MERCARI_EDIT_PATH = (externalId) => `${MERCARI_BASE}/sell/edit/${externalId}/`;
-
-/** How long to wait for a control to appear before giving up on the page. */
-const MERCARI_DOM_TIMEOUT_MS = 15_000;
-
-/**
- * How long the post-delete probe waits for the delete control to REAPPEAR before concluding the
- * listing is gone. Shorter than the flow timeout (we expect to find nothing) but long enough to
- * outlast React hydration, so a slow page is not mistaken for a successful delete.
- */
-const MERCARI_PROBE_TIMEOUT_MS = 6_000;
-
-/**
- * Navigate an already-acquired tab and wait for the new document to finish loading.
- *
- * waitForInjectable() is not enough here: the tab is already on the right origin before the
- * navigation starts, so it would return against the OLD page. The old href is read first and the
- * wait requires either the wanted path or a changed href, so an immediate `readyState:"complete"`
- * from the outgoing document cannot be mistaken for the new one having loaded.
- *
- * Returns where the tab actually landed. A redirect away from the requested path is a RESULT, not
- * an error — for an edit page it is how Mercari says the listing no longer exists.
- */
-async function navigateTabTo(tabId, url, origin, timeoutMs = 25_000) {
-  const readLocation = async () => {
-    const [res] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => ({ href: location.href, pathname: location.pathname, ready: document.readyState }),
-    });
-    return res?.result ?? null;
-  };
-
-  const before = await readLocation().catch(() => null);
-  const wanted = new URL(url).pathname;
-  await chrome.tabs.update(tabId, { url });
-
-  const started = Date.now();
-  let last = null;
-  while (Date.now() - started < timeoutMs) {
-    try {
-      last = await readLocation();
-      const arrived =
-        last &&
-        last.ready === "complete" &&
-        new URL(last.href).origin === origin &&
-        (last.pathname === wanted || last.href !== before?.href);
-      if (arrived) return { ...last, landedOnTarget: last.pathname === wanted };
-    } catch {
-      // injection throws mid-navigation — keep retrying
-    }
-    await sleep(150);
-  }
-  throw new Error(`Timed out loading ${url} (last seen: ${last?.href ?? "nothing"})`);
-}
-
-/**
- * Find Mercari's delete-listing control on the currently loaded page, and optionally click
- * through the whole flow.
- *
- * `probeOnly` runs the identical search without clicking, which is what makes verification
- * trustworthy: the check that the listing is gone uses the SAME matcher that found the control in
- * the first place, so a broken matcher fails at step 1 rather than silently "verifying" a delete
- * that never happened.
- *
- * The click sequence runs as one injected script so it happens against a single live DOM —
- * re-injecting between the trigger and the confirmation would race the modal's mount.
- */
-async function runMercariDeleteFlow(tabId, { timeoutMs, probeOnly = false }) {
-  const [injection] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: async (timeout, probeOnly) => {
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      const CLICKABLE = 'button, a, [role="button"], [role="menuitem"], input[type="submit"]';
-
-      const label = (el) =>
-        (el.innerText ?? el.textContent ?? el.value ?? "").replace(/\s+/g, " ").trim();
-
-      const isVisible = (el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0 && rect.height === 0) return false;
-        const style = getComputedStyle(el);
-        return style.visibility !== "hidden" && style.display !== "none";
-      };
-
-      /**
-       * Innermost visible clickable whose whole label matches. `exclude` skips controls already
-       * used, so the confirm step cannot re-find the trigger button sitting behind the modal.
-       */
-      const find = (re, exclude) => {
-        const matches = [];
-        for (const el of document.querySelectorAll(CLICKABLE)) {
-          if (exclude?.has(el)) continue;
-          if (el.disabled || !isVisible(el)) continue;
-          const text = label(el);
-          // Control labels are short; a long match means a container was hit, not the control.
-          if (text.length > 0 && text.length <= 40 && re.test(text)) matches.push(el);
-        }
-        // Prefer a match that contains no other match — that is the actual control.
-        return (
-          matches.find((el) => !matches.some((other) => other !== el && el.contains(other))) ??
-          matches[0] ??
-          null
-        );
-      };
-
-      const waitFor = async (re, exclude, ms) => {
-        const deadline = Date.now() + ms;
-        for (;;) {
-          const el = find(re, exclude);
-          if (el) return el;
-          if (Date.now() >= deadline) return null;
-          await sleep(200);
-        }
-      };
-
-      const visibleControls = () =>
-        [...document.querySelectorAll(CLICKABLE)]
-          .filter(isVisible)
-          .map(label)
-          .filter((t) => t && t.length <= 40)
-          .slice(0, 40);
-
-      const TRIGGER_RE = /^(delete|delete listing|delete item|remove listing)$/i;
-      const used = new Set();
-
-      // A probe reports whether the control is there, without clicking. It still WAITS for the
-      // control rather than looking once: Mercari is a hydrated React page, so "not found yet"
-      // a few hundred ms after load is not the same as "not there" — and that difference is the
-      // difference between correctly verifying a delete and falsely confirming one.
-      if (probeOnly) {
-        const found = await waitFor(TRIGGER_RE, used, timeout);
-        return { ok: true, probe: true, present: Boolean(found), href: location.href };
-      }
-
-      const trigger = await waitFor(TRIGGER_RE, used, timeout);
-      if (!trigger) {
-        return {
-          ok: false,
-          error: "Could not find a delete control on the Mercari edit page",
-          controls: visibleControls(),
-          href: location.href,
-        };
-      }
-
-      const clicked = [label(trigger)];
-      used.add(trigger);
-      trigger.click();
-
-      // The confirmation in the dialog Mercari raises. Some layouts commit on the first click, so
-      // a miss here is not a failure — the verification step is what decides the outcome.
-      const CONFIRM_RE = /^(yes|delete|confirm|delete listing|yes, delete)$/i;
-      const confirm = await waitFor(CONFIRM_RE, used, timeout);
-      if (confirm) {
-        clicked.push(label(confirm));
-        confirm.click();
-      }
-
-      // Let Mercari submit before the caller reads the page back.
-      await sleep(1500);
-      return { ok: true, clicked, confirmed: Boolean(confirm), href: location.href };
-    },
-    args: [timeoutMs, probeOnly],
-  });
-
-  const result = injection?.result;
-  if (!result) throw new Error("Mercari delete flow returned no result");
-  if (!result.ok) {
-    console.error("[relist:mercari] delete flow failed:", result);
-    throw new Error(
-      `${result.error} — controls seen: ${(result.controls ?? []).join(" | ") || "none"}`
-    );
-  }
-  return result;
-}
-
-/**
- * Confirm the listing is gone by reloading its edit page and probing for the delete control
- * again. Mercari cannot offer to delete a listing that no longer exists, so the control still
- * being there means the delete did not take — and this is treated as a job FAILURE rather than
- * shrugged off, because reporting COMPLETED would end the listing in ReList while it stays
- * live and buyable on Mercari.
- */
-async function verifyMercariDelisted(tabId, externalId) {
-  const nav = await navigateTabTo(tabId, MERCARI_EDIT_PATH(externalId), MERCARI_BASE);
-  if (!nav.landedOnTarget) return { verified: true, evidence: `redirected to ${nav.href}` };
-
-  const probe = await runMercariDeleteFlow(tabId, {
-    timeoutMs: MERCARI_PROBE_TIMEOUT_MS,
-    probeOnly: true,
-  });
-  if (!probe.present) return { verified: true, evidence: "edit page no longer offers delete" };
-
-  throw new Error(
-    "Mercari still offers to delete this listing after the delete flow ran — it was probably " +
-    "not removed. Check the listing on Mercari."
-  );
-}
-
-/** Run one Mercari delist job end to end, in a logged-in mercari.com tab. */
 async function delistFromMercari(externalId) {
   if (!externalId) throw new Error("Mercari delist job has no externalId");
 
-  return withMercariTab(async (tabId) => {
-    const nav = await navigateTabTo(tabId, MERCARI_EDIT_PATH(externalId), MERCARI_BASE);
-    // Mercari redirects away from the edit page for a listing that no longer exists — already
-    // delisted (by the user, or by a retried job), which is the outcome we wanted.
-    if (!nav.landedOnTarget) {
-      console.log(`[relist:mercari] ${externalId} already gone — redirected to ${nav.href}`);
-      return { alreadyGone: true, href: nav.href };
-    }
+  const { accessToken: bearerToken, csrfToken: storedCsrf } = await getMercariSession();
 
-    const flow = await runMercariDeleteFlow(tabId, { timeoutMs: MERCARI_DOM_TIMEOUT_MS });
-    console.log(`[relist:mercari] delete flow clicked: ${flow.clicked.join(" → ")}`);
-    const verification = await verifyMercariDelisted(tabId, externalId);
-    return { ...flow, ...verification };
-  });
+  const requestBody = {
+    operationName: "UpdateItemStatusMutation",
+    variables: { input: { id: externalId, status: "cancel" } },
+    extensions: {
+      persistedQuery: {
+        version: 1,
+        sha256Hash: "55bd4e7d2bc2936638e1451da3231e484993635d7603431d1a2978e3d59656f8",
+      },
+    },
+  };
+
+  return withMercariTab((tabId) =>
+    chrome.scripting
+      .executeScript({
+        target: { tabId },
+        func: async (body, token, storedCsrf) => {
+          // ── Resolve Bearer token in page context (same strategies as createListing) ────────
+          if (!token) {
+            token = await (async () => {
+              try {
+                const r = await fetch("https://www.mercari.com/v1/initialize", { credentials: "include" });
+                if (r.ok) { const d = await r.json().catch(() => null); if (d?.accessToken) return d.accessToken; }
+              } catch {}
+              const JWT_RE = /^[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$/;
+              const scanObj = (obj, depth = 0) => {
+                if (!obj || typeof obj !== "object" || depth > 10) return null;
+                for (const [k, v] of Object.entries(obj)) {
+                  if (typeof v === "string" && (k === "accessToken" || k === "access_token") && v.length > 20) return v;
+                  if (typeof v === "string" && v.length > 100 && JWT_RE.test(v)) return v;
+                  const found = scanObj(v, depth + 1);
+                  if (found) return found;
+                }
+                return null;
+              };
+              try { const t = scanObj(window.__NEXT_DATA__?.props); if (t) return t; } catch {}
+              try {
+                const m = document.cookie.match(/(?:^|;\s*)_mwus=([^;]+)/);
+                if (m) { const p = JSON.parse(atob(decodeURIComponent(m[1]))); if (p?.accessToken) return p.accessToken; }
+              } catch {}
+              try {
+                for (const k of Object.keys(localStorage)) {
+                  const v = localStorage.getItem(k) ?? "";
+                  if (JWT_RE.test(v) && v.length > 100) return v;
+                }
+              } catch {}
+              return null;
+            })();
+          }
+
+          // ── CSRF token — prefer stored value captured at connect time ──────────
+          let csrf = storedCsrf ?? null;
+          if (!csrf) {
+            try {
+              const cookieStr = document.cookie;
+              const csrfMatch = cookieStr.match(
+                /(?:^|;\s*)(?:_csrf|xsrf-token|csrf-token|csrfToken)=([^;]+)/i
+              );
+              if (csrfMatch) csrf = decodeURIComponent(csrfMatch[1]);
+
+              if (!csrf) {
+                for (const key of Object.keys(localStorage)) {
+                  if (/csrf/i.test(key)) {
+                    const val = localStorage.getItem(key);
+                    if (val && val.length > 10 && val.length < 100) { csrf = val; break; }
+                  }
+                }
+              }
+
+              if (!csrf) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) csrf = meta.getAttribute("content");
+              }
+            } catch {}
+          }
+
+          const headers = {
+            "Content-Type": "application/json",
+            "apollo-require-preflight": "true",
+            "x-platform": "web",
+            "x-app-version": "1",
+            "x-double-web": "1",
+          };
+          if (token) headers["authorization"] = `Bearer ${token}`;
+          if (csrf) headers["x-csrf-token"] = csrf;
+
+          const bodyStr = JSON.stringify(body);
+          const res = await fetch("https://www.mercari.com/v1/api", {
+            method: "POST",
+            headers,
+            credentials: "include",
+            body: bodyStr,
+          });
+          const data = await res.json().catch(() => ({}));
+          return { ok: res.ok, status: res.status, data };
+        },
+        args: [requestBody, bearerToken, storedCsrf],
+      })
+      .then((results) => {
+        const result = results[0]?.result;
+        if (!result) throw new Error("Mercari delist request returned no result");
+
+        console.log(`[relist:mercari] delist ${externalId} response:`, JSON.stringify(result.data));
+
+        if (!result.ok) {
+          throw new Error(result.data?.errors?.[0]?.message ?? `Mercari delist failed (${result.status})`);
+        }
+        if (result.data?.errors?.length) {
+          throw new Error(result.data.errors[0].message ?? "GraphQL error from Mercari");
+        }
+        if (result.data?.data?.updateItemStatus?.status !== "OK") {
+          throw new Error(`Unexpected Mercari delist response: ${JSON.stringify(result.data)}`);
+        }
+        return { ok: true };
+      })
+  );
 }
 
 // ── Long polling ──────────────────────────────────────────────────────────────

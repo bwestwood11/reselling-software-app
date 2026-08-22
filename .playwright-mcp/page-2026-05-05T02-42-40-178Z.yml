@@ -1,7 +1,0 @@
-- generic:
-  - generic:
-    - generic [active]:
-      - generic:
-        - img
-        - heading "Loading..." [level=6] [ref=e3]
-    - generic [ref=e4]: Navigated to Vendoo Crosslister

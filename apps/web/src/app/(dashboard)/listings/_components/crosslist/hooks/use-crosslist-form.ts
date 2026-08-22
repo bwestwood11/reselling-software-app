@@ -768,6 +768,62 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     return true;
   }
 
+  function validateMercariFields(values: CrosslistFormValues): boolean {
+    if (!mercariCat.selectedMercariCat) {
+      toast.error("Select a Mercari category");
+      return false;
+    }
+    if (mercariCat.selectedMercariCat.isSizeRequired && !values.mercariSizeId) {
+      toast.error("Select a Mercari size");
+      return false;
+    }
+    // Mercari rejects a createListing that has no zipCode (see MercariSettings.tsx) — the zip is
+    // set either by picking a saved address or typing it directly.
+    if (!values.mercariZipCode?.trim()) {
+      toast.error("Select a Mercari shipping address");
+      return false;
+    }
+    if (
+      mercariShip.mercariShipMethod === "PREPAID" &&
+      (parseFloat(mercariShip.mercariWeightLb) || 0) <= 0 &&
+      (parseFloat(mercariShip.mercariWeightOz) || 0) <= 0
+    ) {
+      toast.error("Enter a package weight for prepaid shipping");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * The crosslist response only confirms a Mercari job was queued for the extension — Mercari
+   * cannot be published server-side (Cloudflare blocks it), so anything Mercari itself rejects
+   * (bad category, missing zip, etc.) only shows up once the extension actually calls Mercari's
+   * API. This polls the job the response reported and turns its eventual COMPLETED/FAILED into
+   * the toast the immediate response couldn't give.
+   */
+  async function pollMercariPublish(jobId: string) {
+    const { mercariApi } = await import("@/lib/api");
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      try {
+        const jobRes = await mercariApi.getJob(jobId);
+        const status: string = jobRes?.data?.status ?? "PENDING";
+        if (status === "COMPLETED") {
+          toast.success("Published to Mercari");
+          return;
+        }
+        if (status === "FAILED") {
+          toast.error(jobRes?.data?.errorMessage ?? "Mercari rejected the listing");
+          return;
+        }
+      } catch {
+        // transient network hiccup — keep polling until the deadline
+      }
+    }
+    toast.error("Mercari hasn't confirmed the listing yet — check the Listings page.");
+  }
+
   function validateEbayFields(values: CrosslistFormValues): boolean {
     if (!values.ebayCategoryId?.trim()) {
       toast.error("Category ID is required for eBay listings");
@@ -804,6 +860,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     }
     if (isEbay && !validateEbayFields(values)) return;
     if (isPoshmark && !validatePoshmarkFields(values)) return;
+    if (isMercari && !validateMercariFields(values)) return;
     if (itemMode === "existing" && !values.inventoryItemId) {
       toast.error("Select an inventory item");
       return;
@@ -863,6 +920,14 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
       const resultList: CrosslistResult[] = res?.data ?? [];
       setResults(resultList);
+
+      // Each queued Mercari job is polled independently for its real COMPLETED/FAILED outcome —
+      // see pollMercariPublish for why the crosslist response alone can't tell us that.
+      for (const r of resultList) {
+        if (r.marketplace === "MERCARI" && r.status !== "error" && r.jobId) {
+          void pollMercariPublish(r.jobId);
+        }
+      }
 
       // Mercari and Poshmark come back as NEEDS_WEBVIEW: queued, not posted. Hold the progress
       // card open for the extension's round trip so the user can see it is still working.

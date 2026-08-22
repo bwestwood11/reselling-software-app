@@ -247,7 +247,7 @@ export class ListingService {
         },
       });
 
-      return updated;
+      return { ...updated, jobId: job.id };
     }
 
     // Mercari cannot be published server-side (Cloudflare Bot Management blocks Node.js
@@ -308,7 +308,9 @@ export class ListingService {
 
       // No server-side fallback: Mercari publishing is extension-only (see the scope note in
       // jobs/mercari-zenrows.worker.ts). The job stays PENDING until the extension picks it up.
-      return updated;
+      // jobId is returned so the caller can poll /api/mercari/jobs/:id for the real outcome —
+      // this call only confirms the job was queued, not that Mercari accepted the listing.
+      return { ...updated, jobId: job.id };
     }
 
     try {
@@ -438,6 +440,7 @@ export class ListingService {
       listingId?: string;
       status: string;
       error?: string;
+      jobId?: string;
     }> = [];
 
     for (const mp of input.marketplaces) {
@@ -470,8 +473,17 @@ export class ListingService {
         }
 
         if (connection.marketplace === "MERCARI") {
-          // Mercari's API is Cloudflare-protected; publish via WebView on the device instead
-          results.push({ marketplace: "MERCARI", listingId: listing.id, status: "NEEDS_WEBVIEW" });
+          // Mercari's API is Cloudflare-protected; this.publish() only queues a MercariJob for
+          // the extension and leaves the listing PENDING, same as the Poshmark branch below.
+          // (This call was missing entirely — the listing was created as DRAFT and reported
+          // NEEDS_WEBVIEW, but no job was ever queued, so nothing followed up and nothing errored.)
+          const publishResult = await this.publish(listing.id, userId);
+          results.push({
+            marketplace: "MERCARI",
+            listingId: listing.id,
+            status: "NEEDS_WEBVIEW",
+            ...("jobId" in publishResult ? { jobId: (publishResult as { jobId: string }).jobId } : {}),
+          });
         } else if (connection.marketplace === "POSHMARK") {
           // Poshmark also has no server-side publish path (cookie auth + no public API), so
           // publish() only queues a PoshmarkJob and leaves the listing PENDING. Report

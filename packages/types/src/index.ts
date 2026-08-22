@@ -153,6 +153,8 @@ export interface CrosslistResult {
   listingId?: string;
   status: "DRAFT" | "ACTIVE" | "NEEDS_WEBVIEW" | "error";
   error?: string;
+  /** Set for NEEDS_WEBVIEW results (Mercari) — poll GET /api/mercari/jobs/:jobId for the outcome. */
+  jobId?: string;
 }
 
 // ─── Marketplace Connection Types ─────────────────────────────────────────────

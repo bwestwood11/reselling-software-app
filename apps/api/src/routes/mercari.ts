@@ -172,15 +172,19 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data: job });
   });
 
-  // GET /api/mercari/jobs — list all jobs with optional status filter
+  // GET /api/mercari/jobs — list all jobs, optionally filtered by status and/or listingId.
+  // (getJobForListing() in the web client relies on the listingId filter — without it, this
+  // returned the user's single most recent job across ALL listings, which meant polling for one
+  // listing's outcome could read another in-flight job's status/error instead.)
   fastify.get("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
-    const query = request.query as { status?: string; limit?: string };
+    const query = request.query as { status?: string; listingId?: string; limit?: string };
     const limit = Math.min(Number.parseInt(query.limit ?? "50", 10), 100);
 
     const jobs = await fastify.prisma.mercariJob.findMany({
       where: {
         userId: request.user!.id,
         ...(query.status ? { status: query.status as any } : {}),
+        ...(query.listingId ? { listingId: query.listingId } : {}),
       },
       orderBy: { createdAt: "desc" },
       take: limit,
