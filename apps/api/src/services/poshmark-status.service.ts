@@ -1,4 +1,9 @@
 import type { MarketplaceType, Prisma, PrismaClient } from "@repo/db";
+import {
+  enqueueExtensionDelist,
+  isExtensionDelistMarketplace,
+  retireInventoryItemIfFullyDelisted,
+} from "./extension-delist.service";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 
@@ -32,15 +37,17 @@ const POLL_RUN_STALE_MS = 15 * 60 * 1000;
 /**
  * Marketplaces whose adapter can genuinely delist from the server. Mercari and Poshmark are
  * driven from the browser extension (Cloudflare / cookie-session walls), so a sold-elsewhere
- * delist on those has to go through the extension — see delistSiblings().
+ * delist on those is queued as an extension job instead — see delistSiblings() and
+ * extension-delist.service.ts.
  */
 const SERVER_SIDE_DELIST_MARKETPLACES: MarketplaceType[] = ["EBAY", "DEPOP"];
 
 /**
- * Auto-delisting siblings is destructive and irreversible on the marketplace side, so it is
- * off unless explicitly switched on. Set AUTO_DELIST_ON_SOLD=true to enable.
+ * Taking the item off sale everywhere else is the whole point of sold detection, so it is ON by
+ * default. It is still irreversible on the marketplace side, so the escape hatch stays: set
+ * AUTO_DELIST_ON_SOLD=false to have sales recorded and the siblings only flagged, not delisted.
  */
-const AUTO_DELIST_ON_SOLD = process.env.AUTO_DELIST_ON_SOLD === "true";
+const AUTO_DELIST_ON_SOLD = process.env.AUTO_DELIST_ON_SOLD !== "false";
 
 /** What the extension reports back for one listing it read. */
 export interface PoshmarkStatusResult {
@@ -56,7 +63,14 @@ export interface PoshmarkStatusResult {
 export interface SiblingDelistOutcome {
   listingId: string;
   marketplace: MarketplaceType;
-  result: "delisted" | "failed" | "needs_extension" | "skipped_disabled";
+  /**
+   * delisted        — removed server-side through the marketplace adapter, listing is ENDED
+   * queued_extension — a delist job is waiting for the browser extension to run it
+   * failed / skipped_disabled — see the messages written to SyncEvent
+   */
+  result: "delisted" | "failed" | "queued_extension" | "skipped_disabled";
+  /** Job id when result is queued_extension, so a caller can follow the delist. */
+  jobId?: string;
   error?: string;
 }
 
@@ -242,21 +256,10 @@ export class PoshmarkStatusService {
 
       const siblings = await this.delistSiblings(listing.id, listing.inventoryItemId, listing.userId);
 
-      // Only retire the inventory item once nothing else is still live for it.
-      const stillActive = await this.db.listing.count({
-        where: { inventoryItemId: listing.inventoryItemId, status: "ACTIVE" },
-      });
-      if (stillActive === 0) {
-        await this.db.inventoryItem.update({
-          where: { id: listing.inventoryItemId },
-          data: {
-            status: "SOLD",
-            soldPrice: salePrice,
-            soldAt,
-            soldVia: listing.marketplace as string,
-          },
-        });
-      }
+      // Only retire the inventory item once nothing else is still live for it. Siblings whose
+      // delist is queued for the extension are still ACTIVE here, so this is a no-op for them —
+      // completeExtensionDelist() calls the same helper again when the last one comes back.
+      await retireInventoryItemIfFullyDelisted(this.db, listing.inventoryItemId);
 
       outcomes.push({
         listingId,
@@ -313,19 +316,61 @@ export class PoshmarkStatusService {
         continue;
       }
 
-      if (!SERVER_SIDE_DELIST_MARKETPLACES.includes(sibling.marketplace)) {
-        await this.db.syncEvent.create({
-          data: {
+      // Mercari and Poshmark cannot be delisted from here — hand them to the extension, which
+      // holds the logged-in browser session. enqueueExtensionDelist writes the pending
+      // SyncEvent; the listing is marked ENDED when the extension reports the job COMPLETED.
+      if (isExtensionDelistMarketplace(sibling.marketplace)) {
+        if (!sibling.externalId) {
+          const error = `${sibling.marketplace} listing has no marketplace id — cannot delist`;
+          await this.db.syncEvent.create({
+            data: { listingId: sibling.id, type: "DELIST", status: "failed", message: error },
+          });
+          outcomes.push({
             listingId: sibling.id,
-            type: "DELIST",
-            status: "pending",
-            message: `Item sold on Poshmark — ${sibling.marketplace} delisting must run in the extension`,
-          },
+            marketplace: sibling.marketplace,
+            result: "failed",
+            error,
+          });
+          continue;
+        }
+
+        try {
+          const { jobId } = await enqueueExtensionDelist(
+            this.db,
+            sibling,
+            "Item sold on Poshmark"
+          );
+          outcomes.push({
+            listingId: sibling.id,
+            marketplace: sibling.marketplace,
+            result: "queued_extension",
+            jobId,
+          });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : "Could not queue extension delist";
+          await this.db.syncEvent.create({
+            data: { listingId: sibling.id, type: "DELIST", status: "failed", message: error },
+          });
+          outcomes.push({
+            listingId: sibling.id,
+            marketplace: sibling.marketplace,
+            result: "failed",
+            error,
+          });
+        }
+        continue;
+      }
+
+      if (!SERVER_SIDE_DELIST_MARKETPLACES.includes(sibling.marketplace)) {
+        const error = `${sibling.marketplace} has no automated delist path`;
+        await this.db.syncEvent.create({
+          data: { listingId: sibling.id, type: "DELIST", status: "failed", message: error },
         });
         outcomes.push({
           listingId: sibling.id,
           marketplace: sibling.marketplace,
-          result: "needs_extension",
+          result: "failed",
+          error,
         });
         continue;
       }

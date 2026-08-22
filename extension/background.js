@@ -139,6 +139,18 @@ async function runJob(job) {
   const started = Date.now();
 
   try {
+    if (job.payload?.type === "delist") {
+      // ── delist job — take an existing listing off Mercari ──────────────────
+      const result = await delistFromMercari(job.payload.externalId ?? job.externalId);
+      await claim;
+      await patchJob(job.id, { status: "COMPLETED" });
+      console.log(
+        `[relist] job ${job.id} (delist) done in ${Date.now() - started}ms`,
+        result
+      );
+      return;
+    }
+
     if (job.payload?.type === "fetch-addresses") {
       // ── fetch-addresses job — no listing, no form ─────────────────────────
       const bearerToken = await getMercariBearerToken();
@@ -168,7 +180,9 @@ async function runJob(job) {
     await claim;
     await patchJob(job.id, {
       status: "FAILED",
-      errorMessage: err.message ?? "Mercari publish error",
+      errorMessage:
+        err.message ??
+        (job.payload?.type === "delist" ? "Mercari delist error" : "Mercari publish error"),
     }).catch(() => {});
   } finally {
     activeJobId = null;
@@ -1256,6 +1270,18 @@ async function runPoshmarkJob(job) {
   const started = Date.now();
 
   try {
+    if (job.payload?.type === "delist") {
+      // ── delist job — take an existing listing off sale on Poshmark ─────────
+      const result = await delistFromPoshmark(job.payload.externalId ?? job.externalId);
+      await claim;
+      await patchPoshmarkJob(job.id, { status: "COMPLETED" });
+      console.log(
+        `[relist] poshmark job ${job.id} (delist) done in ${Date.now() - started}ms`,
+        result
+      );
+      return;
+    }
+
     const externalId = await postToPoshmarkApi(job);
     await claim;
     await patchPoshmarkJob(job.id, { status: "COMPLETED", externalId: externalId ?? undefined });
@@ -1274,7 +1300,9 @@ async function runPoshmarkJob(job) {
     await claim;
     await patchPoshmarkJob(job.id, {
       status: "FAILED",
-      errorMessage: err.message ?? "Poshmark publish error",
+      errorMessage:
+        err.message ??
+        (job.payload?.type === "delist" ? "Poshmark delist error" : "Poshmark publish error"),
     }).catch(() => {});
   } finally {
     activePoshmarkJobId = null;
@@ -2028,18 +2056,28 @@ async function fetchPoshmarkPostStatus(tabId, postId, csrfToken) {
 }
 
 /**
- * Called with the Poshmark listing ids (our ReList listing ids) that were found sold on this
- * sweep while we still had them listed — i.e. genuinely new sales, not ones already reconciled.
+ * Called with the newly sold listings reported back by POST /status-check/:id/complete — sold on
+ * Poshmark while we still had them listed, i.e. genuine new sales rather than ones already
+ * reconciled.
  *
- * The server-side half of this (marking the listing and inventory item SOLD, writing the SOLD
- * sync event, and delisting the same item from the other marketplaces) already ran inside
- * POST /status-check/:id/complete. This hook is the BROWSER-side half: work that needs the
- * user's logged-in marketplace tabs — today just telling the user, and in future running the
- * extension-driven delists (Mercari/Poshmark) that the server cannot perform itself.
+ * The server has already marked each listing SOLD, written the SOLD sync event, delisted the
+ * siblings it can reach itself (eBay, Depop), and QUEUED a delist job for every Mercari and
+ * Poshmark sibling. Those jobs need no handling here: they land on the same two queues this
+ * worker is already long-polling, so runJob()/runPoshmarkJob() pick them up within ~750ms and
+ * run them through delistFromMercari()/delistFromPoshmark().
+ *
+ * What is left for this hook is the part only the browser can do: tell the user.
  */
-async function onSold(ids) {
-  if (!ids?.length) return;
-  console.log(`[relist:poshmark] ${ids.length} newly sold listing(s):`, ids);
+async function onSold(outcomes) {
+  if (!outcomes?.length) return;
+  const ids = outcomes.map((o) => o.listingId);
+  const queuedDelists = outcomes.flatMap((o) =>
+    (o.siblings ?? []).filter((s) => s.result === "queued_extension")
+  );
+  console.log(
+    `[relist:poshmark] ${ids.length} newly sold listing(s):`, ids,
+    queuedDelists.length ? `— ${queuedDelists.length} sibling delist job(s) queued` : ""
+  );
 
   chrome.action.setBadgeText({ text: String(ids.length) });
   chrome.action.setBadgeBackgroundColor({ color: "#16a34a" });
@@ -2050,17 +2088,16 @@ async function onSold(ids) {
       iconUrl: SOLD_NOTIFICATION_ICON,
       title: ids.length === 1 ? "Poshmark sale detected" : `${ids.length} Poshmark sales detected`,
       message:
-        ids.length === 1
+        (ids.length === 1
           ? "One listing sold on Poshmark — ReList has marked it sold."
-          : `${ids.length} listings sold on Poshmark — ReList has marked them sold.`,
+          : `${ids.length} listings sold on Poshmark — ReList has marked them sold.`) +
+        (queuedDelists.length
+          ? ` Delisting ${queuedDelists.length} copy/copies from other marketplaces.`
+          : ""),
     });
   } catch (err) {
     console.warn("[relist:poshmark] sold notification failed:", err.message);
   }
-
-  // TODO(delist): once the API exposes delist jobs for the extension-driven marketplaces,
-  // pull the pending DELIST work for these listings and run it here in the Mercari/Poshmark
-  // tabs. The server already records what needs delisting as `needs_extension`.
 }
 
 /**
@@ -2116,7 +2153,7 @@ async function runPoshmarkStatusCheck({ force = false } = {}) {
     });
 
     const newlySold = completed.data?.newlySold ?? [];
-    await onSold(newlySold.map((s) => s.listingId));
+    await onSold(newlySold);
 
     console.log(
       `[relist:poshmark] status check: ${results.length} listing(s) in ${Date.now() - started}ms, ` +
@@ -2137,6 +2174,310 @@ async function runPoshmarkStatusCheck({ force = false } = {}) {
   } finally {
     poshmarkStatusCheckRunning = false;
   }
+}
+
+// ── Extension-driven delisting ────────────────────────────────────────────────
+//
+// Neither marketplace can be delisted from the ReList server: Cloudflare Bot Management blocks
+// Node.js requests to www.mercari.com, and Poshmark's vm-rest API only answers a real browser
+// cookie session. Both adapters' delist() are therefore no-ops server-side (see
+// apps/api/src/services/marketplace/{mercari,poshmark}.ts) and the work lands here instead.
+//
+// A delist arrives as an ordinary job on the marketplace's existing queue, discriminated by
+// `payload.type === "delist"` (the same mechanism the Mercari queue already uses for
+// "fetch-addresses"). Payload: { type, listingId, externalId, reason }.
+//
+// What enqueues them: when the hourly Poshmark sweep finds a sale, the server marks that listing
+// SOLD and queues a delist job for every sibling listing of the same inventory item — so the item
+// comes off Mercari and Poshmark automatically instead of staying buyable after it is gone.
+
+/**
+ * Poshmark status to move a live post to when delisting.
+ *
+ * INFERENCE — unlike the publish flow (every field confirmed against live traffic, see
+ * POSHMARK.md), this transition was not observed on the wire. It mirrors the CONFIRMED publish
+ * call exactly — `PUT /vm-rest/posts/{id}/status/published` — with the target status swapped for
+ * `not_for_sale`, which is the value Poshmark's own GET response uses for a post the seller has
+ * taken off sale. `not_for_sale` is chosen over deleting the post because it is reversible: the
+ * listing can be relisted, and a wrong sold-detection therefore costs nothing permanent.
+ */
+const POSHMARK_DELIST_STATUS = "not_for_sale";
+
+/**
+ * Take one Poshmark post off sale, then read it back to confirm the transition actually happened.
+ *
+ * The read-back is not optional: Poshmark's status endpoints return HTTP 200 with an
+ * empty-looking body even when they silently refuse the transition (CONFIRMED on the publish
+ * side, see verifyPoshmarkPublished) — so "the PUT succeeded" is not evidence the post moved.
+ */
+async function delistPoshmarkPost(tabId, postId, csrfToken) {
+  const url =
+    `${POSHMARK_BASE}/vm-rest/posts/${postId}/status/${POSHMARK_DELIST_STATUS}` +
+    `?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
+  const response = await poshmarkTabFetchJson(tabId, url, "PUT", {}, csrfToken);
+
+  // A 404 means the post is already gone from Poshmark — the outcome we wanted, so not an error.
+  if (response?.status === 404) return { status: "removed", raw: { httpStatus: 404 } };
+  if (!response?.ok) {
+    console.error("[relist:poshmark] delist call failed:", response);
+    throw poshmarkErrorFromResponse(response, "Poshmark delist failed");
+  }
+
+  const after = await fetchPoshmarkPostStatus(tabId, postId, csrfToken);
+  if (after.status === "active") {
+    console.error("[relist:poshmark] delist did not take effect:", after.raw);
+    throw new Error(
+      "Poshmark accepted the delist request but the listing is still published — " +
+      "the post may need to be taken off sale manually."
+    );
+  }
+  return after;
+}
+
+/** Run one Poshmark delist job end to end, in a logged-in poshmark.com tab. */
+async function delistFromPoshmark(externalId) {
+  if (!externalId) throw new Error("Poshmark delist job has no externalId");
+
+  const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
+  const storedCsrfToken = sessionRes.data?.csrfToken ?? null;
+
+  return withPoshmarkTab(async (tabId) => {
+    const csrfToken = await getLivePoshmarkCsrf(storedCsrfToken);
+    return delistPoshmarkPost(tabId, externalId, csrfToken);
+  });
+}
+
+/**
+ * Mercari delisting is driven through the seller's own edit page rather than the GraphQL API.
+ *
+ * Every Mercari API call in this file rides on a persisted-query sha256Hash captured from live
+ * DevTools traffic (see createListing / uploadTempListingPhotos). No such capture exists for a
+ * delete or status mutation, and Mercari's gateway answers an unregistered query with
+ * PersistedQueryNotFound rather than executing it — so there is no honest API path to use here.
+ * Driving the page the user would drive is the reliable option, and it is the same session and
+ * the same tab machinery the publish flow already relies on.
+ *
+ * INFERENCE — the control labels below were not captured from a live edit page. They are matched
+ * by regex over several plausible labels rather than by a brittle CSS selector, and the flow
+ * reports exactly which label it clicked so a mismatch is diagnosable from the job error instead
+ * of guessed at again.
+ */
+const MERCARI_EDIT_PATH = (externalId) => `${MERCARI_BASE}/sell/edit/${externalId}/`;
+
+/** How long to wait for a control to appear before giving up on the page. */
+const MERCARI_DOM_TIMEOUT_MS = 15_000;
+
+/**
+ * How long the post-delete probe waits for the delete control to REAPPEAR before concluding the
+ * listing is gone. Shorter than the flow timeout (we expect to find nothing) but long enough to
+ * outlast React hydration, so a slow page is not mistaken for a successful delete.
+ */
+const MERCARI_PROBE_TIMEOUT_MS = 6_000;
+
+/**
+ * Navigate an already-acquired tab and wait for the new document to finish loading.
+ *
+ * waitForInjectable() is not enough here: the tab is already on the right origin before the
+ * navigation starts, so it would return against the OLD page. The old href is read first and the
+ * wait requires either the wanted path or a changed href, so an immediate `readyState:"complete"`
+ * from the outgoing document cannot be mistaken for the new one having loaded.
+ *
+ * Returns where the tab actually landed. A redirect away from the requested path is a RESULT, not
+ * an error — for an edit page it is how Mercari says the listing no longer exists.
+ */
+async function navigateTabTo(tabId, url, origin, timeoutMs = 25_000) {
+  const readLocation = async () => {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({ href: location.href, pathname: location.pathname, ready: document.readyState }),
+    });
+    return res?.result ?? null;
+  };
+
+  const before = await readLocation().catch(() => null);
+  const wanted = new URL(url).pathname;
+  await chrome.tabs.update(tabId, { url });
+
+  const started = Date.now();
+  let last = null;
+  while (Date.now() - started < timeoutMs) {
+    try {
+      last = await readLocation();
+      const arrived =
+        last &&
+        last.ready === "complete" &&
+        new URL(last.href).origin === origin &&
+        (last.pathname === wanted || last.href !== before?.href);
+      if (arrived) return { ...last, landedOnTarget: last.pathname === wanted };
+    } catch {
+      // injection throws mid-navigation — keep retrying
+    }
+    await sleep(150);
+  }
+  throw new Error(`Timed out loading ${url} (last seen: ${last?.href ?? "nothing"})`);
+}
+
+/**
+ * Find Mercari's delete-listing control on the currently loaded page, and optionally click
+ * through the whole flow.
+ *
+ * `probeOnly` runs the identical search without clicking, which is what makes verification
+ * trustworthy: the check that the listing is gone uses the SAME matcher that found the control in
+ * the first place, so a broken matcher fails at step 1 rather than silently "verifying" a delete
+ * that never happened.
+ *
+ * The click sequence runs as one injected script so it happens against a single live DOM —
+ * re-injecting between the trigger and the confirmation would race the modal's mount.
+ */
+async function runMercariDeleteFlow(tabId, { timeoutMs, probeOnly = false }) {
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (timeout, probeOnly) => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const CLICKABLE = 'button, a, [role="button"], [role="menuitem"], input[type="submit"]';
+
+      const label = (el) =>
+        (el.innerText ?? el.textContent ?? el.value ?? "").replace(/\s+/g, " ").trim();
+
+      const isVisible = (el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) return false;
+        const style = getComputedStyle(el);
+        return style.visibility !== "hidden" && style.display !== "none";
+      };
+
+      /**
+       * Innermost visible clickable whose whole label matches. `exclude` skips controls already
+       * used, so the confirm step cannot re-find the trigger button sitting behind the modal.
+       */
+      const find = (re, exclude) => {
+        const matches = [];
+        for (const el of document.querySelectorAll(CLICKABLE)) {
+          if (exclude?.has(el)) continue;
+          if (el.disabled || !isVisible(el)) continue;
+          const text = label(el);
+          // Control labels are short; a long match means a container was hit, not the control.
+          if (text.length > 0 && text.length <= 40 && re.test(text)) matches.push(el);
+        }
+        // Prefer a match that contains no other match — that is the actual control.
+        return (
+          matches.find((el) => !matches.some((other) => other !== el && el.contains(other))) ??
+          matches[0] ??
+          null
+        );
+      };
+
+      const waitFor = async (re, exclude, ms) => {
+        const deadline = Date.now() + ms;
+        for (;;) {
+          const el = find(re, exclude);
+          if (el) return el;
+          if (Date.now() >= deadline) return null;
+          await sleep(200);
+        }
+      };
+
+      const visibleControls = () =>
+        [...document.querySelectorAll(CLICKABLE)]
+          .filter(isVisible)
+          .map(label)
+          .filter((t) => t && t.length <= 40)
+          .slice(0, 40);
+
+      const TRIGGER_RE = /^(delete|delete listing|delete item|remove listing)$/i;
+      const used = new Set();
+
+      // A probe reports whether the control is there, without clicking. It still WAITS for the
+      // control rather than looking once: Mercari is a hydrated React page, so "not found yet"
+      // a few hundred ms after load is not the same as "not there" — and that difference is the
+      // difference between correctly verifying a delete and falsely confirming one.
+      if (probeOnly) {
+        const found = await waitFor(TRIGGER_RE, used, timeout);
+        return { ok: true, probe: true, present: Boolean(found), href: location.href };
+      }
+
+      const trigger = await waitFor(TRIGGER_RE, used, timeout);
+      if (!trigger) {
+        return {
+          ok: false,
+          error: "Could not find a delete control on the Mercari edit page",
+          controls: visibleControls(),
+          href: location.href,
+        };
+      }
+
+      const clicked = [label(trigger)];
+      used.add(trigger);
+      trigger.click();
+
+      // The confirmation in the dialog Mercari raises. Some layouts commit on the first click, so
+      // a miss here is not a failure — the verification step is what decides the outcome.
+      const CONFIRM_RE = /^(yes|delete|confirm|delete listing|yes, delete)$/i;
+      const confirm = await waitFor(CONFIRM_RE, used, timeout);
+      if (confirm) {
+        clicked.push(label(confirm));
+        confirm.click();
+      }
+
+      // Let Mercari submit before the caller reads the page back.
+      await sleep(1500);
+      return { ok: true, clicked, confirmed: Boolean(confirm), href: location.href };
+    },
+    args: [timeoutMs, probeOnly],
+  });
+
+  const result = injection?.result;
+  if (!result) throw new Error("Mercari delete flow returned no result");
+  if (!result.ok) {
+    console.error("[relist:mercari] delete flow failed:", result);
+    throw new Error(
+      `${result.error} — controls seen: ${(result.controls ?? []).join(" | ") || "none"}`
+    );
+  }
+  return result;
+}
+
+/**
+ * Confirm the listing is gone by reloading its edit page and probing for the delete control
+ * again. Mercari cannot offer to delete a listing that no longer exists, so the control still
+ * being there means the delete did not take — and this is treated as a job FAILURE rather than
+ * shrugged off, because reporting COMPLETED would end the listing in ReList while it stays
+ * live and buyable on Mercari.
+ */
+async function verifyMercariDelisted(tabId, externalId) {
+  const nav = await navigateTabTo(tabId, MERCARI_EDIT_PATH(externalId), MERCARI_BASE);
+  if (!nav.landedOnTarget) return { verified: true, evidence: `redirected to ${nav.href}` };
+
+  const probe = await runMercariDeleteFlow(tabId, {
+    timeoutMs: MERCARI_PROBE_TIMEOUT_MS,
+    probeOnly: true,
+  });
+  if (!probe.present) return { verified: true, evidence: "edit page no longer offers delete" };
+
+  throw new Error(
+    "Mercari still offers to delete this listing after the delete flow ran — it was probably " +
+    "not removed. Check the listing on Mercari."
+  );
+}
+
+/** Run one Mercari delist job end to end, in a logged-in mercari.com tab. */
+async function delistFromMercari(externalId) {
+  if (!externalId) throw new Error("Mercari delist job has no externalId");
+
+  return withMercariTab(async (tabId) => {
+    const nav = await navigateTabTo(tabId, MERCARI_EDIT_PATH(externalId), MERCARI_BASE);
+    // Mercari redirects away from the edit page for a listing that no longer exists — already
+    // delisted (by the user, or by a retried job), which is the outcome we wanted.
+    if (!nav.landedOnTarget) {
+      console.log(`[relist:mercari] ${externalId} already gone — redirected to ${nav.href}`);
+      return { alreadyGone: true, href: nav.href };
+    }
+
+    const flow = await runMercariDeleteFlow(tabId, { timeoutMs: MERCARI_DOM_TIMEOUT_MS });
+    console.log(`[relist:mercari] delete flow clicked: ${flow.clicked.join(" → ")}`);
+    const verification = await verifyMercariDelisted(tabId, externalId);
+    return { ...flow, ...verification };
+  });
 }
 
 // ── Long polling ──────────────────────────────────────────────────────────────

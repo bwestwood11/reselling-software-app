@@ -60,9 +60,15 @@ export function useDelistListing() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: listingsApi.delist,
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["listings"] });
-      toast.success("Listing ended");
+      // Mercari and Poshmark are delisted by the browser extension, so the listing is not
+      // ended yet — saying so beats a "Listing ended" toast for an item still live.
+      toast.success(
+        result?.data?.delistQueued
+          ? "Delist queued — the ReList extension is removing it now"
+          : "Listing ended"
+      );
     },
     onError: (err: Error) => toast.error(err.message),
   });

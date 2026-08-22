@@ -8,6 +8,10 @@ import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 import { markInventoryItemListed } from "./listing-state";
+import {
+  enqueueExtensionDelist,
+  isExtensionDelistMarketplace,
+} from "./extension-delist.service";
 
 interface ListOptions {
   page: number;
@@ -353,12 +357,35 @@ export class ListingService {
     await markInventoryItemListed(this.db, inventoryItemId);
   }
 
+  /**
+   * Take a listing off sale.
+   *
+   * Mercari and Poshmark cannot be reached from the server (Cloudflare / cookie-session walls),
+   * so their adapters' delist() are no-ops. Marking the listing ENDED anyway used to report a
+   * clean success while the item stayed live and buyable on the marketplace. Those two now go
+   * through the browser extension instead: a delist job is queued and the listing stays ACTIVE
+   * until the extension confirms it is gone. See extension-delist.service.ts.
+   */
   async delist(id: string, userId: string) {
     const listing = await this.db.listing.findFirst({
       where: { id, userId },
       include: { marketplaceConnection: true },
     });
     if (!listing) throw new Error("Listing not found");
+
+    if (listing.externalId && isExtensionDelistMarketplace(listing.marketplace)) {
+      const { jobId, deduped } = await enqueueExtensionDelist(
+        this.db,
+        listing,
+        "Delist requested"
+      );
+      return {
+        ...listing,
+        delistQueued: true as const,
+        jobId,
+        deduped,
+      };
+    }
 
     if (listing.externalId) {
       const connection = await refreshConnectionIfNeeded(

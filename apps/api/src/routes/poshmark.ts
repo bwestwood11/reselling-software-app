@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
 import { requireAuth } from "../middleware/auth";
+import { completeExtensionDelist } from "../services/extension-delist.service";
 import { markInventoryItemListed } from "../services/listing-state";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
 import {
@@ -98,6 +99,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // PATCH /api/poshmark/jobs/:id — extension reports job outcome
   // On COMPLETED: marks the linked Listing ACTIVE and the inventory item as listed.
   // On FAILED: marks the Listing FAILED. No credit refund — cross-listing is never charged.
+  // Delist jobs (payload.type === "delist") take a separate path — see extension-delist.service.
   fastify.patch("/jobs/:id", { preHandler: [requireAuth] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
@@ -125,6 +127,18 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
         completedAt: isTerminal ? now : existing.completedAt,
       },
     });
+
+    const payloadObj = (existing.payload ?? {}) as Record<string, unknown>;
+
+    // A delist job must never run the publish path below — that would mark the listing ACTIVE,
+    // which is exactly backwards for a listing we just removed from Poshmark.
+    if (payloadObj.type === "delist" && existing.listingId && isTerminal) {
+      await completeExtensionDelist(fastify.prisma, existing.listingId, {
+        ok: body.status === "COMPLETED",
+        errorMessage: body.errorMessage,
+      });
+      return reply.send({ success: true, data: job });
+    }
 
     if (existing.listingId && isTerminal) {
       if (body.status === "COMPLETED") {

@@ -501,6 +501,36 @@ of one entry:
   closet page applies (status filter clicks re-navigated the page rather than firing a
   fetchable API call).
 
+## Delisting (taking a live post off sale)
+
+**INFERENCE — not captured from live traffic.** Implemented in `background.js` as
+`delistPoshmarkPost()`.
+
+```
+PUT https://poshmark.com/vm-rest/posts/{postId}/status/not_for_sale?app_version=2.55&pm_version=2026.33.00
+```
+
+Body `{}`, `x-xsrf-token` header, `credentials: "include"` — i.e. byte-for-byte the CONFIRMED
+publish call (`PUT .../status/published`, step 4 of the listing-creation flow) with only the target
+status swapped. `not_for_sale` is not a guessed name: it is the value Poshmark's own
+`GET /vm-rest/posts/{id}` response uses for a post the seller has taken off sale.
+
+`not_for_sale` is deliberately preferred over deleting the post — it is reversible, so a
+mis-detected sale costs nothing permanent. (Deleting has no known API at all; the only confirmed
+route is the UI flow noted above: `/edit-listing/{id}` → "Delete Listing" → "Yes".)
+
+Because this is unconfirmed, and because **`vm-rest` lies about failures** (see "Silent failures"
+above — HTTP 200 with an embedded error, and status transitions that are accepted and then quietly
+ignored), the delist ALWAYS reads the post back through the confirmed
+`GET /vm-rest/posts/{postId}` afterwards and fails the job if the post is still `published`. A 404
+on the PUT is treated as success — the post is already gone, which is the outcome we wanted.
+
+When a delist runs: the hourly sold-detection sweep reports a sale to
+`POST /api/poshmark/status-check/:pollRunId/complete`; the server marks that listing SOLD and
+queues a delist job for every sibling listing of the same inventory item on Mercari and Poshmark
+(`payload.type === "delist"`, on the existing publish queues). The extension picks those up on its
+next long poll and runs them. See `apps/api/src/services/extension-delist.service.ts`.
+
 ## `pm_version` / `app_version`
 
 Every `vm-rest` call carries `pm_version` (observed: `2026.33.00`); publish additionally

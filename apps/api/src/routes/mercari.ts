@@ -18,6 +18,7 @@ function parseMeta(raw: unknown): Record<string, unknown> {
 }
 import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
+import { completeExtensionDelist } from "../services/extension-delist.service";
 import {
   getRootCategories,
   getChildCategories,
@@ -189,7 +190,8 @@ export async function mercariRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /api/mercari/jobs/:id — extension reports job outcome
-  // On COMPLETED: marks the linked Listing as ACTIVE (publish jobs) or saves addresses (fetch-addresses jobs).
+  // On COMPLETED: marks the linked Listing as ACTIVE (publish jobs), saves addresses
+  // (fetch-addresses jobs), or marks the Listing ENDED (delist jobs).
   // On FAILED: marks the Listing as FAILED and refunds the deducted credit (publish jobs only).
   fastify.patch("/jobs/:id", { preHandler: [requireAuth] }, async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -235,6 +237,16 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           data: { metadata: { ...existingMeta, addresses: body.addresses } as any },
         });
       }
+    }
+
+    // A delist job must never run the publish path below — that would mark the listing ACTIVE,
+    // which is exactly backwards for a listing we just removed from Mercari.
+    if (payloadObj.type === "delist" && existing.listingId && isTerminal) {
+      await completeExtensionDelist(fastify.prisma, existing.listingId, {
+        ok: body.status === "COMPLETED",
+        errorMessage: body.errorMessage,
+      });
+      return reply.send({ success: true, data: job });
     }
 
     if (existing.listingId && isTerminal) {

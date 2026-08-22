@@ -187,9 +187,15 @@ export default function ListingsPage(): import("react").JSX.Element {
 
   const delistMutation = useMutation({
     mutationFn: listingsApi.delist,
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
-      toast.success("Delisted");
+      // Mercari and Poshmark delists run in the browser extension — the listing only turns
+      // ENDED once the extension confirms, so don't claim it already has.
+      toast.success(
+        result?.data?.delistQueued
+          ? "Delist queued — the ReList extension is removing it now"
+          : "Delisted"
+      );
     },
     onError: (err: Error) => toast.error(err.message),
   });
