@@ -503,27 +503,49 @@ of one entry:
 
 ## Delisting (taking a live post off sale)
 
-**INFERENCE — not captured from live traffic.** Implemented in `background.js` as
+**CONFIRMED via live testing (2026-08-23).** Implemented in `background.js` as
 `delistPoshmarkPost()`.
 
+**History — the original inference was wrong.** The first version of this call was
+`PUT /vm-rest/posts/{postId}/status/not_for_sale`, byte-for-byte the CONFIRMED publish call
+(`PUT .../status/published`) with only the target status swapped. It failed in production with
+an embedded `{"errorType":"InternalError","statusCode":404}`. Root cause, found by driving the
+real "Availability" dropdown on `/edit-listing/{id}` (For Sale / Not For Sale) while reading the
+post back via GET: that PUT endpoint sets the top-level `post.status` field (the same field the
+CONFIRMED `.../status/published` call sets), and `not_for_sale` is **not** a valid value for
+`post.status` — it only ever appears one level down, on `post.inventory.status`. `post.status`
+stays `"published"` forever once a post is live (see "Sold-item detection" above); it is
+`post.inventory.status` that actually toggles between `"available"` and `"not_for_sale"`.
+
+The real mechanism is the same listing-save endpoint used to persist fields onto a draft (step 3
+of the create flow above), with `inventory.status` set directly:
+
 ```
-PUT https://poshmark.com/vm-rest/posts/{postId}/status/not_for_sale?app_version=2.55&pm_version=2026.33.00
+POST https://poshmark.com/vm-rest/posts/{postId}?pm_version=2026.33.00
 ```
 
-Body `{}`, `x-xsrf-token` header, `credentials: "include"` — i.e. byte-for-byte the CONFIRMED
-publish call (`PUT .../status/published`, step 4 of the listing-creation flow) with only the target
-status swapped. `not_for_sale` is not a guessed name: it is the value Poshmark's own
-`GET /vm-rest/posts/{id}` response uses for a post the seller has taken off sale.
+```json
+{ "post": { "inventory": { "status": "not_for_sale" } } }
+```
 
-`not_for_sale` is deliberately preferred over deleting the post — it is reversible, so a
-mis-detected sale costs nothing permanent. (Deleting has no known API at all; the only confirmed
-route is the UI flow noted above: `/edit-listing/{id}` → "Delete Listing" → "Yes".)
+`x-xsrf-token` header, `credentials: "include"`, same as every other `vm-rest` call. Verified
+round-trip both directions (`not_for_sale` → `available` → `not_for_sale`) against a real listing
+in the closet, confirmed each time via a follow-up `GET /vm-rest/posts/{postId}` — a clean
+`{"trace_id": ...}` response is not itself evidence of anything (see "Silent failures" above), the
+GET is what actually proves the transition. The GET response also carries `inventory.nfs_reason`
+(observed value `"s"`, presumably seller-initiated) alongside `inventory.status` once a post is
+off sale.
 
-Because this is unconfirmed, and because **`vm-rest` lies about failures** (see "Silent failures"
-above — HTTP 200 with an embedded error, and status transitions that are accepted and then quietly
-ignored), the delist ALWAYS reads the post back through the confirmed
-`GET /vm-rest/posts/{postId}` afterwards and fails the job if the post is still `published`. A 404
-on the PUT is treated as success — the post is already gone, which is the outcome we wanted.
+`not_for_sale` is deliberately preferred over deleting the post — it is reversible (confirmed live:
+setting `inventory.status` back to `"available"` relists it), so a mis-detected sale costs nothing
+permanent. (Deleting has no known API at all; the only confirmed route is the UI flow noted above:
+`/edit-listing/{id}` → "Delete Listing" → "Yes".)
+
+Because **`vm-rest` lies about failures** (see "Silent failures" above — HTTP 200 with an embedded
+error, and status transitions that are accepted and then quietly ignored), the delist ALWAYS reads
+the post back through the confirmed `GET /vm-rest/posts/{postId}` afterwards and fails the job if
+the post is still `published`. A 404 on the POST is treated as success — the post is already gone,
+which is the outcome we wanted.
 
 When a delist runs: the hourly sold-detection sweep reports a sale to
 `POST /api/poshmark/status-check/:pollRunId/complete`; the server marks that listing SOLD and

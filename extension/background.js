@@ -2364,29 +2364,42 @@ const runMercariStatusCheck = (opts) => runStatusCheck(MERCARI_SWEEP, opts);
 // comes off Mercari and Poshmark automatically instead of staying buyable after it is gone.
 
 /**
- * Poshmark status to move a live post to when delisting.
+ * Poshmark inventory status to move a live post to when delisting.
  *
- * INFERENCE — unlike the publish flow (every field confirmed against live traffic, see
- * POSHMARK.md), this transition was not observed on the wire. It mirrors the CONFIRMED publish
- * call exactly — `PUT /vm-rest/posts/{id}/status/published` — with the target status swapped for
- * `not_for_sale`, which is the value Poshmark's own GET response uses for a post the seller has
- * taken off sale. `not_for_sale` is chosen over deleting the post because it is reversible: the
- * listing can be relisted, and a wrong sold-detection therefore costs nothing permanent.
+ * CONFIRMED via live testing (2026-08-23) — the previous `PUT /vm-rest/posts/{id}/status/
+ * not_for_sale` call documented below was an INFERENCE that turned out wrong, and was failing
+ * in production with an embedded `{"errorType":"InternalError","statusCode":404}`. Root cause:
+ * that PUT endpoint sets the top-level `post.status` field (CONFIRMED for `.../status/published`
+ * in the publish flow), and `not_for_sale` is not a valid value for `post.status` — it only ever
+ * appears one level down, on `post.inventory.status`. The two fields are unrelated: `post.status`
+ * stays `"published"` forever once a post is live (until deleted), while `post.inventory.status`
+ * is what actually toggles between `"available"` and `"not_for_sale"`.
+ *
+ * The real mechanism, found by driving the "Availability" dropdown (For Sale / Not For Sale) on
+ * Poshmark's own `/edit-listing/{id}` page and reading the post back via GET, is the same
+ * listing-save endpoint used to persist fields onto a draft (step 3 of the create flow, see
+ * `savePoshmarkDraft` / POSHMARK.md) — just with `inventory.status` set directly:
+ *
+ *   POST /vm-rest/posts/{id}?pm_version={PM_VERSION}
+ *   body: { post: { inventory: { status: "not_for_sale" } } }
+ *
+ * Verified round-trip both directions (not_for_sale → available → not_for_sale) against a real
+ * listing, confirmed each time via a follow-up GET. `not_for_sale` is still preferred over
+ * deleting the post — it is reversible, so a mis-detected sale costs nothing permanent.
  */
 const POSHMARK_DELIST_STATUS = "not_for_sale";
 
 /**
  * Take one Poshmark post off sale, then read it back to confirm the transition actually happened.
  *
- * The read-back is not optional: Poshmark's status endpoints return HTTP 200 with an
- * empty-looking body even when they silently refuse the transition (CONFIRMED on the publish
- * side, see verifyPoshmarkPublished) — so "the PUT succeeded" is not evidence the post moved.
+ * The read-back is not optional: Poshmark's `vm-rest` endpoints return HTTP 200 with a clean
+ * `{"trace_id": ...}` body even when they silently no-op (CONFIRMED on the publish side, see
+ * verifyPoshmarkPublished) — so a clean response is not evidence the post actually moved.
  */
 async function delistPoshmarkPost(tabId, postId, csrfToken) {
-  const url =
-    `${POSHMARK_BASE}/vm-rest/posts/${postId}/status/${POSHMARK_DELIST_STATUS}` +
-    `?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
-  const response = await poshmarkTabFetchJson(tabId, url, "PUT", {}, csrfToken);
+  const url = `${POSHMARK_BASE}/vm-rest/posts/${postId}?pm_version=${POSHMARK_PM_VERSION}`;
+  const body = { post: { inventory: { status: POSHMARK_DELIST_STATUS } } };
+  const response = await poshmarkTabFetchJson(tabId, url, "POST", body, csrfToken);
 
   // A 404 means the post is already gone from Poshmark — the outcome we wanted, so not an error.
   if (response?.status === 404) return { status: "removed", raw: { httpStatus: 404 } };
