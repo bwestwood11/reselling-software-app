@@ -5,15 +5,15 @@ import { completeExtensionDelist } from "../services/extension-delist.service";
 import { markInventoryItemListed } from "../services/listing-state";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
 import {
-  PoshmarkStatusService,
-  type PoshmarkStatusResult,
-} from "../services/poshmark-status.service";
+  MarketplaceStatusService,
+  type MarketplaceStatusResult,
+} from "../services/marketplace-status.service";
 
 /** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
 const POLL_TICK_MS = 750;
 
 export async function poshmarkRoutes(fastify: FastifyInstance) {
-  const statusService = new PoshmarkStatusService(fastify.prisma);
+  const statusService = new MarketplaceStatusService(fastify.prisma, "POSHMARK");
 
   // POST /api/poshmark/jobs — enqueue a new Poshmark crosslisting job
   fastify.post("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
@@ -211,7 +211,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const { pollRunId } = request.params as { pollRunId: string };
-      const body = request.body as { results?: PoshmarkStatusResult[] };
+      const body = request.body as { results?: MarketplaceStatusResult[] };
 
       if (!Array.isArray(body?.results)) {
         return reply.status(400).send({ success: false, error: "results[] is required" });
@@ -236,16 +236,9 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
       const { pollRunId } = request.params as { pollRunId: string };
       const body = (request.body ?? {}) as { errorMessage?: string };
 
-      const { count } = await fastify.prisma.marketplacePollRun.updateMany({
-        where: { id: pollRunId, userId: request.user!.id, status: "RUNNING" },
-        data: {
-          status: "FAILED",
-          finishedAt: new Date(),
-          errorMessage: body.errorMessage ?? "Status check failed in the extension",
-        },
-      });
+      const closed = await statusService.fail(request.user!.id, pollRunId, body.errorMessage);
 
-      if (count === 0) {
+      if (!closed) {
         return reply.status(404).send({ success: false, error: "Poll run not found" });
       }
       return reply.send({ success: true });

@@ -880,9 +880,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Manual "check Poshmark for sales now" — bypasses the once-an-hour server-side interval.
+  // Manual "check for sales now" — bypasses the once-an-hour server-side interval.
   if (msg.type === "POSHMARK_STATUS_CHECK_NOW") {
     runPoshmarkStatusCheck({ force: true })
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
+  if (msg.type === "MERCARI_STATUS_CHECK_NOW") {
+    runMercariStatusCheck({ force: true })
       .then((result) => sendResponse({ ok: true, result }))
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true;
@@ -1985,13 +1992,15 @@ async function getPoshmarkStatus() {
 // Endpoint is the same GET the publish flow uses for its step-5 verification (see POSHMARK.md):
 //   GET /vm-rest/posts/{postId}?app_version=X&pm_version=X → { data: { status, inventory, ... } }
 
-/** Alarm name for the hourly sweep. 60 minutes matches the server-side poll interval. */
+/** Alarm names for the hourly sweeps. 60 minutes matches the server-side poll interval. */
 const POSHMARK_STATUS_ALARM = "poshmark-status-check";
-const POSHMARK_STATUS_PERIOD_MINUTES = 60;
-/** Pause between per-listing reads so a large closet doesn't hammer Poshmark in a burst. */
-const POSHMARK_STATUS_GAP_MS = 400;
+const MERCARI_STATUS_ALARM = "mercari-status-check";
+const STATUS_PERIOD_MINUTES = 60;
+/** Pause between per-listing reads so a large closet doesn't hammer the marketplace in a burst. */
+const STATUS_CHECK_GAP_MS = 400;
 
-let poshmarkStatusCheckRunning = false;
+/** One in-flight guard per marketplace — the two sweeps use separate tabs and never contend. */
+const statusCheckRunning = { POSHMARK: false, MERCARI: false };
 
 // chrome.notifications requires an iconUrl for "basic" notifications and the extension ships no
 // icon files (icons/ holds only a README), so a packaged 32x32 solid-green square is inlined here
@@ -2056,8 +2065,123 @@ async function fetchPoshmarkPostStatus(tabId, postId, csrfToken) {
 }
 
 /**
+ * Read one Mercari listing back and classify it.
+ *
+ * INFERENCE WARNING — unlike Mercari publishing (whose GraphQL persisted-query hashes were
+ * captured from live DevTools traffic), no sold-detection query hash exists, and Mercari's
+ * gateway answers an unregistered persisted query with PersistedQueryNotFound rather than
+ * running it. There is therefore no honest API path here. What this does instead is fetch the
+ * item's own public page from inside the logged-in tab and read the status out of the
+ * `__NEXT_DATA__` payload Mercari's Next.js app already embeds in it — the same data the page
+ * itself renders from, so it needs no DOM guessing and no navigation.
+ *
+ * `raw` is reported to the API for every check so a misclassification can be diagnosed from
+ * stored data rather than re-guessed. Signals used, in order:
+ *   • the item object's `status` in __NEXT_DATA__ — on_sale while live, sold_out once bought,
+ *     trading while a purchase is in progress, stop/cancel when the seller pulled it
+ *   • failing that, narrowly-quoted JSON markers in the raw HTML ("soldOut":true and friends).
+ *     Deliberately NOT a search for the word "Sold": every Mercari item page carries a carousel
+ *     of other sold items, so a loose text match would report almost everything as sold.
+ *
+ * A "trading" item counts as SOLD. Someone has bought it and it is no longer purchasable, which
+ * is exactly when the copies on other marketplaces need to come down.
+ */
+const MERCARI_ITEM_URL = (itemId) => `${MERCARI_BASE}/us/item/${itemId}/`;
+
+async function fetchMercariItemStatus(tabId, itemId) {
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (url, itemId) => {
+      let res;
+      try {
+        res = await fetch(url, { credentials: "include", redirect: "follow" });
+      } catch (err) {
+        return { status: "error", error: `Item page fetch failed: ${err.message}` };
+      }
+
+      if (res.status === 404) return { status: "removed", raw: { httpStatus: 404 } };
+      if (!res.ok) {
+        return { status: "error", error: `Item page returned HTTP ${res.status}` };
+      }
+
+      const html = await res.text();
+
+      // Mercari serves the whole item as JSON inside the Next.js hydration payload.
+      const embedded = html.match(
+        /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/
+      );
+
+      let itemStatus = null;
+      let matchedById = false;
+      if (embedded) {
+        try {
+          const data = JSON.parse(embedded[1]);
+          // Walk for the item object itself (id matches what we asked for) before falling back
+          // to any status-bearing node — the page also embeds other sellers' items.
+          const STATUS_RE = /^(item_status_)?(on_sale|sold_out|trading|stop|cancel|deleted)$/i;
+          const visit = (node) => {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) {
+              for (const child of node) visit(child);
+              return;
+            }
+            const status = typeof node.status === "string" ? node.status : null;
+            if (status && STATUS_RE.test(status)) {
+              if (String(node.id) === String(itemId)) {
+                itemStatus = status;
+                matchedById = true;
+              } else if (!itemStatus) {
+                itemStatus = status;
+              }
+            }
+            if (matchedById) return;
+            for (const key of Object.keys(node)) visit(node[key]);
+          };
+          visit(data);
+        } catch {
+          // Malformed or restructured payload — fall through to the HTML markers below.
+        }
+      }
+
+      // Quoted JSON markers only, for the case where __NEXT_DATA__ is absent or reshaped.
+      const soldMarker =
+        /"(sold_?out|isSoldOut)"\s*:\s*true/i.test(html) ||
+        /"status"\s*:\s*"(item_status_)?(sold_out|trading)"/i.test(html);
+
+      const raw = {
+        itemStatus,
+        matchedById,
+        soldMarker,
+        hasNextData: Boolean(embedded),
+        finalUrl: res.url,
+      };
+
+      if (itemStatus) {
+        const normalized = itemStatus.toLowerCase().replace(/^item_status_/, "");
+        if (normalized === "sold_out" || normalized === "trading") return { status: "sold", raw };
+        if (normalized === "on_sale") return { status: "active", raw };
+        return { status: "removed", raw };
+      }
+      if (soldMarker) return { status: "sold", raw };
+
+      // Mercari redirects a deleted listing away from its item URL.
+      if (!res.url.includes(String(itemId))) return { status: "removed", raw };
+
+      return {
+        status: "error",
+        error: "Could not read a status from the Mercari item page",
+        raw,
+      };
+    },
+    args: [MERCARI_ITEM_URL(itemId), String(itemId)],
+  });
+
+  return injection?.result ?? { status: "error", error: "Mercari status read returned no result" };
+}
+
+/**
  * Called with the newly sold listings reported back by POST /status-check/:id/complete — sold on
- * Poshmark while we still had them listed, i.e. genuine new sales rather than ones already
+ * the marketplace while we still had them listed, i.e. genuine new sales rather than ones already
  * reconciled.
  *
  * The server has already marked each listing SOLD, written the SOLD sync event, delisted the
@@ -2068,14 +2192,14 @@ async function fetchPoshmarkPostStatus(tabId, postId, csrfToken) {
  *
  * What is left for this hook is the part only the browser can do: tell the user.
  */
-async function onSold(outcomes) {
+async function onSold(label, outcomes) {
   if (!outcomes?.length) return;
   const ids = outcomes.map((o) => o.listingId);
   const queuedDelists = outcomes.flatMap((o) =>
     (o.siblings ?? []).filter((s) => s.result === "queued_extension")
   );
   console.log(
-    `[relist:poshmark] ${ids.length} newly sold listing(s):`, ids,
+    `[relist:${label.toLowerCase()}] ${ids.length} newly sold listing(s):`, ids,
     queuedDelists.length ? `— ${queuedDelists.length} sibling delist job(s) queued` : ""
   );
 
@@ -2086,37 +2210,46 @@ async function onSold(outcomes) {
     await chrome.notifications?.create({
       type: "basic",
       iconUrl: SOLD_NOTIFICATION_ICON,
-      title: ids.length === 1 ? "Poshmark sale detected" : `${ids.length} Poshmark sales detected`,
+      title: ids.length === 1 ? `${label} sale detected` : `${ids.length} ${label} sales detected`,
       message:
         (ids.length === 1
-          ? "One listing sold on Poshmark — ReList has marked it sold."
-          : `${ids.length} listings sold on Poshmark — ReList has marked them sold.`) +
+          ? `One listing sold on ${label} — ReList has marked it sold.`
+          : `${ids.length} listings sold on ${label} — ReList has marked them sold.`) +
         (queuedDelists.length
           ? ` Delisting ${queuedDelists.length} copy/copies from other marketplaces.`
           : ""),
     });
   } catch (err) {
-    console.warn("[relist:poshmark] sold notification failed:", err.message);
+    console.warn(`[relist:${label.toLowerCase()}] sold notification failed:`, err.message);
   }
 }
 
 /**
- * One hourly sweep. Asks the server whether a poll is due, reads every listing it hands back,
- * reports the results, then runs onSold() for whatever came back newly sold.
+ * One hourly sweep, for whichever marketplace `sweep` describes. Asks the server whether a poll
+ * is due, reads every listing it hands back, reports the results, then runs onSold() for
+ * whatever came back newly sold.
+ *
+ * Mercari and Poshmark differ only in how a listing is read and which tab it is read in, so
+ * everything else — the claim, the pacing, the reporting, the failure close-out — lives here
+ * once. The SERVER owns the schedule: /status-check/claim answers `due: false` if the account
+ * was already swept within the hour, so a second browser or a repeatedly-woken service worker
+ * still polls once per hour in total.
  */
-async function runPoshmarkStatusCheck({ force = false } = {}) {
-  if (poshmarkStatusCheckRunning) return { skipped: "already_running" };
-  // A publish in flight owns the Poshmark tab; skipping means the sweep is not claimed, so the
-  // next alarm tick picks it up with the hour's slot still open.
-  if (activePoshmarkJobId) return { skipped: "publish_in_progress" };
+async function runStatusCheck(sweep, { force = false } = {}) {
+  const { key, label, apiBase, isBusy, readAll } = sweep;
+
+  if (statusCheckRunning[key]) return { skipped: "already_running" };
+  // A publish or delist in flight owns the marketplace tab; skipping means the sweep is not
+  // claimed, so the next alarm tick picks it up with the hour's slot still open.
+  if (isBusy()) return { skipped: "job_in_progress" };
   if (!(await getToken())) return { skipped: "not_authenticated" };
 
-  poshmarkStatusCheckRunning = true;
+  statusCheckRunning[key] = true;
   const started = Date.now();
   let claim;
 
   try {
-    claim = await apiFetch("/api/poshmark/status-check/claim", {
+    claim = await apiFetch(`${apiBase}/status-check/claim`, {
       method: "POST",
       body: JSON.stringify({ force }),
     });
@@ -2124,57 +2257,96 @@ async function runPoshmarkStatusCheck({ force = false } = {}) {
     if (!data.due) return { skipped: data.reason ?? "not_due" };
     if (!data.listings?.length) return { checked: 0, sold: 0 };
 
-    const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
-    const storedCsrfToken = sessionRes.data?.csrfToken ?? null;
+    const results = await readAll(data.listings);
 
-    const results = await withPoshmarkTab(async (tabId) => {
-      const csrfToken = await getLivePoshmarkCsrf(storedCsrfToken);
-      const out = [];
-      for (const listing of data.listings) {
-        try {
-          const result = await fetchPoshmarkPostStatus(tabId, listing.externalId, csrfToken);
-          out.push({ listingId: listing.listingId, externalId: listing.externalId, ...result });
-        } catch (err) {
-          out.push({
-            listingId: listing.listingId,
-            externalId: listing.externalId,
-            status: "error",
-            error: err.message ?? "Status check threw",
-          });
-        }
-        await sleep(POSHMARK_STATUS_GAP_MS);
-      }
-      return out;
-    });
-
-    const completed = await apiFetch(`/api/poshmark/status-check/${data.pollRunId}/complete`, {
-      method: "POST",
-      body: JSON.stringify({ results }),
-    });
+    const completed = await apiFetch(
+      `${apiBase}/status-check/${data.pollRunId}/complete`,
+      { method: "POST", body: JSON.stringify({ results }) }
+    );
 
     const newlySold = completed.data?.newlySold ?? [];
-    await onSold(newlySold);
+    await onSold(label, newlySold);
 
     console.log(
-      `[relist:poshmark] status check: ${results.length} listing(s) in ${Date.now() - started}ms, ` +
-      `${newlySold.length} newly sold`
+      `[relist:${key.toLowerCase()}] status check: ${results.length} listing(s) in ` +
+      `${Date.now() - started}ms, ${newlySold.length} newly sold`
     );
     return { checked: results.length, sold: newlySold.length };
   } catch (err) {
-    console.error("[relist:poshmark] status check failed:", err.message);
+    console.error(`[relist:${key.toLowerCase()}] status check failed:`, err.message);
     // Close the claimed run out so it isn't left RUNNING and reaped as a timeout later.
     const pollRunId = claim?.data?.pollRunId;
     if (pollRunId) {
-      await apiFetch(`/api/poshmark/status-check/${pollRunId}/fail`, {
+      await apiFetch(`${apiBase}/status-check/${pollRunId}/fail`, {
         method: "POST",
         body: JSON.stringify({ errorMessage: err.message ?? "Status check failed" }),
       }).catch(() => {});
     }
     return { error: err.message };
   } finally {
-    poshmarkStatusCheckRunning = false;
+    statusCheckRunning[key] = false;
   }
 }
+
+/**
+ * Read a batch of listings one at a time, turning a thrown read into an `error` result rather
+ * than losing the whole sweep. The gap between reads is what keeps a large closet from arriving
+ * at the marketplace as a burst.
+ */
+async function readListingsSequentially(listings, readOne) {
+  const out = [];
+  for (const listing of listings) {
+    try {
+      const result = await readOne(listing);
+      out.push({ listingId: listing.listingId, externalId: listing.externalId, ...result });
+    } catch (err) {
+      out.push({
+        listingId: listing.listingId,
+        externalId: listing.externalId,
+        status: "error",
+        error: err.message ?? "Status check threw",
+      });
+    }
+    await sleep(STATUS_CHECK_GAP_MS);
+  }
+  return out;
+}
+
+/** The Poshmark sweep — reads each post through the vm-rest GET the publish flow already uses. */
+const POSHMARK_SWEEP = {
+  key: "POSHMARK",
+  label: "Poshmark",
+  apiBase: "/api/poshmark",
+  isBusy: () => Boolean(activePoshmarkJobId),
+  readAll: async (listings) => {
+    const sessionRes = await apiFetch("/api/marketplaces/poshmark/session");
+    const storedCsrfToken = sessionRes.data?.csrfToken ?? null;
+
+    return withPoshmarkTab(async (tabId) => {
+      const csrfToken = await getLivePoshmarkCsrf(storedCsrfToken);
+      return readListingsSequentially(listings, (listing) =>
+        fetchPoshmarkPostStatus(tabId, listing.externalId, csrfToken)
+      );
+    });
+  },
+};
+
+/** The Mercari sweep — reads each item's own page from inside a logged-in mercari.com tab. */
+const MERCARI_SWEEP = {
+  key: "MERCARI",
+  label: "Mercari",
+  apiBase: "/api/mercari",
+  isBusy: () => Boolean(activeJobId),
+  readAll: (listings) =>
+    withMercariTab((tabId) =>
+      readListingsSequentially(listings, (listing) =>
+        fetchMercariItemStatus(tabId, listing.externalId)
+      )
+    ),
+};
+
+const runPoshmarkStatusCheck = (opts) => runStatusCheck(POSHMARK_SWEEP, opts);
+const runMercariStatusCheck = (opts) => runStatusCheck(MERCARI_SWEEP, opts);
 
 // ── Extension-driven delisting ────────────────────────────────────────────────
 //
@@ -2481,26 +2653,29 @@ function startPolling() {
   // Watchdog: restarts the loop if the service worker was evicted mid-wait. 1 minute is the
   // minimum period Chrome allows for MV3 alarms.
   chrome.alarms.create("relist-poll", { periodInMinutes: 1 });
-  // Hourly Poshmark sold-detection sweep. Chrome coalesces this with the watchdog tick; the
-  // server-side claim is what actually enforces "once an hour", so an early or repeated fire
-  // costs one cheap API call and nothing more.
-  chrome.alarms.create(POSHMARK_STATUS_ALARM, {
-    periodInMinutes: POSHMARK_STATUS_PERIOD_MINUTES,
-  });
+  // Hourly sold-detection sweeps, one per marketplace. Chrome coalesces these with the watchdog
+  // tick; the server-side claim is what actually enforces "once an hour", so an early or
+  // repeated fire costs one cheap API call and nothing more.
+  chrome.alarms.create(POSHMARK_STATUS_ALARM, { periodInMinutes: STATUS_PERIOD_MINUTES });
+  chrome.alarms.create(MERCARI_STATUS_ALARM, { periodInMinutes: STATUS_PERIOD_MINUTES });
   pollLoop();
   runPoshmarkStatusCheck();
+  runMercariStatusCheck();
 }
 
 function stopPolling() {
   stopRequested = true;
   chrome.alarms.clear("relist-poll");
   chrome.alarms.clear(POSHMARK_STATUS_ALARM);
+  chrome.alarms.clear(MERCARI_STATUS_ALARM);
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === POSHMARK_STATUS_ALARM) {
+  if (alarm.name === POSHMARK_STATUS_ALARM || alarm.name === MERCARI_STATUS_ALARM) {
+    const run =
+      alarm.name === POSHMARK_STATUS_ALARM ? runPoshmarkStatusCheck : runMercariStatusCheck;
     getToken().then((token) => {
-      if (token) runPoshmarkStatusCheck();
+      if (token) run();
     });
     return;
   }

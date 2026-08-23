@@ -2,6 +2,7 @@ import type { PrismaClient, Condition } from "@repo/db";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { EbayAdapter } from "./marketplace/ebay";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
+import { handleSold } from "./sold-detection.service";
 
 function mapEbayCondition(conditionId: number): Condition {
   if (conditionId <= 1500) return "NEW_WITH_TAGS";
@@ -135,23 +136,13 @@ export class SyncService {
       const updates: Record<string, unknown> = { lastSyncAt: new Date() };
 
       if (status.status === "sold" && listing.status !== "SOLD") {
-        updates.status = "SOLD";
-        updates.soldAt = new Date();
-
-        // Mark inventory as sold if no other active listings
-        const otherActive = await this.db.listing.count({
-          where: {
-            inventoryItemId: listing.inventoryItemId,
-            status: "ACTIVE",
-            id: { not: listing.id },
-          },
-        });
-        if (otherActive === 0) {
-          await this.db.inventoryItem.update({
-            where: { id: listing.inventoryItemId },
-            data: { status: "SOLD" },
-          });
-        }
+        // Everything a sale implies — SOLD status, the SOLD event, delisting the same item from
+        // every other marketplace, retiring the inventory item — is the shared handleSold(), so
+        // a sale found by this sync does exactly what one found by the hourly sweeps does.
+        // It writes the status itself, so `updates` must not also set it.
+        await handleSold(this.db, [
+          { listingId: listing.id, soldPrice: status.soldPrice, detectedBy: "a listing sync" },
+        ]);
       } else if (status.status === "ended" && listing.status === "ACTIVE") {
         updates.status = "ENDED";
         updates.endedAt = new Date();

@@ -20,6 +20,10 @@ import { getStaticShippingClasses } from "../services/mercari-shipping-static";
 import { requireAuth } from "../middleware/auth";
 import { completeExtensionDelist } from "../services/extension-delist.service";
 import {
+  MarketplaceStatusService,
+  type MarketplaceStatusResult,
+} from "../services/marketplace-status.service";
+import {
   getRootCategories,
   getChildCategories,
   searchCategories,
@@ -37,6 +41,8 @@ import { recordExtensionHeartbeat } from "../services/mercari-presence";
 const POLL_TICK_MS = 750;
 
 export async function mercariRoutes(fastify: FastifyInstance) {
+  const statusService = new MarketplaceStatusService(fastify.prisma, "MERCARI");
+
   // GET /api/mercari/categories — browse categories (served from in-memory JSON, no DB)
   // ?parentId=        direct children of this id (pass "root" for top-level)
   // ?search=          case-insensitive label search across all categories
@@ -295,6 +301,75 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, data: job });
+  });
+
+  // ─── Status checking (hourly sold detection) ────────────────────────────────
+  //
+  // Same shape as the Poshmark sweep (routes/poshmark.ts) and backed by the same service:
+  // Cloudflare blocks server-side reads of www.mercari.com, so the extension sweeps the user's
+  // active listings once an hour from a logged-in mercari.com tab. The server owns the schedule
+  // and the audit trail — it decides whether a sweep is due (so two browsers don't both poll),
+  // opens a MarketplacePollRun, and delists the siblings of whatever came back sold.
+
+  // POST /api/mercari/status-check/claim — extension asks whether a sweep is due.
+  // Returns { due: false, ... } when the last poll was under an hour ago, or the listings to
+  // read plus a pollRunId to report against. `force: true` skips the interval check.
+  fastify.post("/status-check/claim", { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = (request.body ?? {}) as { force?: boolean };
+
+    await recordExtensionHeartbeat(request.user!.id);
+
+    const result = await statusService.claim(request.user!.id, { force: body.force === true });
+    return reply.send({ success: true, data: result });
+  });
+
+  // POST /api/mercari/status-check/:pollRunId/complete — extension reports what it read.
+  // The server works out which listings are NEWLY sold (sold on Mercari, still ACTIVE for us)
+  // and runs the sold-item handling, including delisting the item elsewhere.
+  fastify.post(
+    "/status-check/:pollRunId/complete",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { pollRunId } = request.params as { pollRunId: string };
+      const body = request.body as { results?: MarketplaceStatusResult[] };
+
+      if (!Array.isArray(body?.results)) {
+        return reply.status(400).send({ success: false, error: "results[] is required" });
+      }
+
+      try {
+        const result = await statusService.complete(request.user!.id, pollRunId, body.results);
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to record status check";
+        return reply.status(400).send({ success: false, error: message });
+      }
+    }
+  );
+
+  // POST /api/mercari/status-check/:pollRunId/fail — extension could not run the sweep
+  // (no Mercari tab, session expired, ...). Closes the run out so it isn't left RUNNING.
+  fastify.post(
+    "/status-check/:pollRunId/fail",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const { pollRunId } = request.params as { pollRunId: string };
+      const body = (request.body ?? {}) as { errorMessage?: string };
+
+      const closed = await statusService.fail(request.user!.id, pollRunId, body.errorMessage);
+      if (!closed) {
+        return reply.status(404).send({ success: false, error: "Poll run not found" });
+      }
+      return reply.send({ success: true });
+    }
+  );
+
+  // GET /api/mercari/status-check/runs — recent sweeps, newest first.
+  fastify.get("/status-check/runs", { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = request.query as { limit?: string };
+    const limit = Math.min(Number.parseInt(query.limit ?? "20", 10) || 20, 100);
+    const runs = await statusService.listRuns(request.user!.id, limit);
+    return reply.send({ success: true, data: runs });
   });
 
   // POST /api/mercari/shipping/carriers — returns static shipping carriers filtered by weight/volume
