@@ -41,6 +41,12 @@ export default function RegisterPage(): import("react").JSX.Element {
       return;
     }
 
+    if (!result.data?.token) {
+      // Email verification required — a code was just emailed to them.
+      router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+      return;
+    }
+
     router.push("/dashboard");
   }
 

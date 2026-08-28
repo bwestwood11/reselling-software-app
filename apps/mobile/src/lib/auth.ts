@@ -24,7 +24,7 @@ async function clearToken(): Promise<void> {
 
 // ─── Auth API helpers ─────────────────────────────────────────────────────────
 
-type AuthUser = {
+export type AuthUser = {
   id: string;
   name: string;
   email: string;
@@ -56,6 +56,15 @@ function getTokenFromCallbackUrl(url: string): string | null {
   }
 }
 
+export class AuthApiError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 async function authRequest<T>(
   path: string,
   body?: Record<string, unknown>,
@@ -82,11 +91,10 @@ async function authRequest<T>(
   }
 
   if (!res.ok) {
-    const message =
-      typeof data === "object" && data !== null && "message" in data
-        ? String((data as Record<string, unknown>)["message"])
-        : raw || "Request failed";
-    throw new Error(`${message} (status ${res.status})`);
+    const record = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+    const message = "message" in record ? String(record["message"]) : raw || "Request failed";
+    const code = "code" in record ? String(record["code"]) : undefined;
+    throw new AuthApiError(`${message} (status ${res.status})`, code);
   }
 
   return data as T;
@@ -147,18 +155,45 @@ export async function signInWithGoogle(): Promise<AuthUser> {
   return user;
 }
 
+export type SignUpResult = {
+  user: AuthUser;
+  // true when the account still needs to confirm the emailed verification code
+  // before it has an active session (emailAndPassword.requireEmailVerification).
+  requiresVerification: boolean;
+};
+
 export async function signUp(
   name: string,
   email: string,
   password: string,
-): Promise<AuthUser> {
-  const data = await authRequest<SessionData & { token?: string }>(
+): Promise<SignUpResult> {
+  const data = await authRequest<SessionData & { token?: string | null }>(
     "/sign-up/email",
     { name, email, password },
   );
 
   const token = data.token ?? data.session?.token;
   if (token) await storeToken(token);
+
+  return { user: data.user, requiresVerification: !token };
+}
+
+// ─── Email verification (OTP) ──────────────────────────────────────────────────
+
+export async function sendVerificationOtp(email: string): Promise<void> {
+  await authRequest<{ success: boolean }>("/email-otp/send-verification-otp", {
+    email,
+    type: "email-verification",
+  });
+}
+
+export async function verifyEmailOtp(email: string, otp: string): Promise<AuthUser> {
+  const data = await authRequest<{ status: boolean; token: string | null; user: AuthUser }>(
+    "/email-otp/verify-email",
+    { email, otp },
+  );
+
+  if (data.token) await storeToken(data.token);
 
   return data.user;
 }

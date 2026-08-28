@@ -134,8 +134,10 @@ Trusted origins: `localhost:3000`, `127.0.0.1:3000`, `relist://` (mobile scheme)
 
 **New user hook:** `databaseHooks.user.create.after` creates an INACTIVE `Subscription` placeholder (plan FREE, no credits). There is no perpetual free tier — the user starts a 7-day trial (card required) from the billing page, and credits are provisioned via the Stripe webhook.
 
+**Email verification:** `emailAndPassword.requireEmailVerification` is `true` — a new account cannot log in until it confirms a 6-digit code. The `emailOTP` plugin (`better-auth/plugins`) generates the code and is configured with `overrideDefaultEmailVerification: true`, so both sign-up and an unverified sign-in attempt (`emailVerification.sendOnSignIn: true`) route through it instead of Better Auth's default verification-link email. Codes expire after 10 minutes (`emailOTP({ expiresIn: 60 * 10 })`). `sendVerificationOTP` in `packages/auth/src/index.ts` delegates to `sendVerificationOtpEmail` in `packages/auth/src/email.ts`, which sends via AWS SES (`@aws-sdk/client-sesv2`), reusing the S3 AWS credentials plus `EMAIL_FROM` (verified SES sender identity) and optional `AWS_SES_REGION`. Client-side, `emailOTPClient()` is registered in `packages/auth/src/client.ts`, exposing `authClient.emailOtp.sendVerificationOtp({ email, type: "email-verification" })` (resend) and `authClient.emailOtp.verifyEmail({ email, otp })` (confirm — returns a session token on success, `autoSignInAfterVerification: true`). Web has a `/verify-email` page for this; mobile's `src/lib/auth.ts` calls the same `/api/auth/email-otp/*` endpoints directly. A sign-up/sign-in response with `token: null` means verification is pending.
+
 Exports from `packages/auth/src/index.ts`: `auth`, `Auth` (type), `Session` (type).
-Exports from `packages/auth/src/client.ts`: `authClient`, `signIn`, `signOut`, `signUp`, `useSession`, `getSession`.
+Exports from `packages/auth/src/client.ts`: `authClient`, `signIn`, `signOut`, `signUp`, `useSession`, `getSession`, `emailOtp`.
 
 ### Database (`packages/db`)
 

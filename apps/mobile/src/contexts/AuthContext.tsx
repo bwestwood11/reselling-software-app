@@ -8,25 +8,24 @@ import {
 } from "react";
 import {
   getSession,
+  sendVerificationOtp as authSendVerificationOtp,
   signIn as authSignIn,
   signInWithGoogle as authSignInWithGoogle,
   signOut as authSignOut,
   signUp as authSignUp,
+  verifyEmailOtp as authVerifyEmailOtp,
+  type AuthUser,
 } from "../lib/auth";
-
-type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  image?: string | null;
-};
 
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  // Resolves to true if the account still needs email verification before it can sign in.
+  signUp: (name: string, email: string, password: string) => Promise<boolean>;
+  verifyEmail: (email: string, otp: string) => Promise<void>;
+  resendVerificationOtp: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -50,11 +49,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
-      const authUser = await authSignUp(name, email, password);
-      setUser(authUser);
+      const { user: authUser, requiresVerification } = await authSignUp(name, email, password);
+      if (!requiresVerification) setUser(authUser);
+      return requiresVerification;
     },
     [],
   );
+
+  const verifyEmail = useCallback(async (email: string, otp: string) => {
+    const authUser = await authVerifyEmailOtp(email, otp);
+    setUser(authUser);
+  }, []);
+
+  const resendVerificationOtp = useCallback(async (email: string) => {
+    await authSendVerificationOtp(email);
+  }, []);
 
   const signOut = useCallback(async () => {
     await authSignOut();
@@ -68,7 +77,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, signIn, signInWithGoogle, signUp, signOut }}
+      value={{
+        user,
+        isLoading,
+        signIn,
+        signInWithGoogle,
+        signUp,
+        verifyEmail,
+        resendVerificationOtp,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

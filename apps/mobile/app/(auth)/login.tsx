@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../../src/contexts/AuthContext";
+import { AuthApiError } from "../../src/lib/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -46,6 +47,11 @@ export default function LoginScreen() {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
     } catch (err) {
+      if (err instanceof AuthApiError && err.code === "EMAIL_NOT_VERIFIED") {
+        // A fresh code was just emailed (emailVerification.sendOnSignIn).
+        router.push({ pathname: "/(auth)/verify-email", params: { email: email.trim() } });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Sign in failed. Please try again.");
     } finally {
       setIsLoading(false);

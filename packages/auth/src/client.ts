@@ -1,13 +1,13 @@
 import { createAuthClient } from "better-auth/react";
+import { emailOTPClient } from "better-auth/client/plugins";
 
 const authBaseUrl =
   process.env.NEXT_PUBLIC_AUTH_URL ??
   (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
-type AuthClient = ReturnType<typeof createAuthClient>;
-
-export const authClient: AuthClient = createAuthClient({
+export const authClient = createAuthClient({
   baseURL: authBaseUrl,
+  plugins: [emailOTPClient()],
 });
 
 export const {
@@ -16,4 +16,5 @@ export const {
   signUp,
   useSession,
   getSession,
+  emailOtp,
 } = authClient;

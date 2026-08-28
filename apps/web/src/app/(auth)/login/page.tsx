@@ -35,6 +35,11 @@ export default function LoginPage(): import("react").JSX.Element {
     });
 
     if (result.error) {
+      if (result.error.code === "EMAIL_NOT_VERIFIED") {
+        // A fresh code was just emailed (emailVerification.sendOnSignIn).
+        router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+        return;
+      }
       setError(result.error.message ?? "Sign in failed");
       return;
     }

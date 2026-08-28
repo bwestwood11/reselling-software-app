@@ -51,7 +51,11 @@ export default function RegisterScreen() {
     setIsLoading(true);
 
     try {
-      await signUp(name.trim(), email.trim(), password);
+      const requiresVerification = await signUp(name.trim(), email.trim(), password);
+      if (requiresVerification) {
+        router.push({ pathname: "/(auth)/verify-email", params: { email: email.trim() } });
+        return;
+      }
       // AuthContext update triggers root layout redirect to (tabs)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");

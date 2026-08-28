@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "better-auth": "^1.2.7",
+    "@aws-sdk/client-sesv2": "^3.1029.0",
     "@repo/db": "workspace:*"
   },
   "devDependencies": {

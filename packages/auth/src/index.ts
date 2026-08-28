@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { bearer } from "better-auth/plugins";
+import { bearer, emailOTP } from "better-auth/plugins";
 import { prisma } from "@repo/db";
+import { sendVerificationOtpEmail } from "./email";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -41,7 +42,11 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false, // set to true in production with email provider
+    requireEmailVerification: true, // must verify the emailed code before login is allowed
+  },
+  emailVerification: {
+    sendOnSignIn: true, // resend a code if an unverified user tries to log in
+    autoSignInAfterVerification: true,
   },
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? "http://localhost:3001",
   ...(socialProviders ? { socialProviders } : {}),
@@ -64,7 +69,19 @@ export const auth = betterAuth({
         },
       }
     : {}),
-  plugins: [bearer()],
+  plugins: [
+    bearer(),
+    emailOTP({
+      otpLength: 6,
+      expiresIn: 60 * 10, // 10 minutes
+      overrideDefaultEmailVerification: true, // route sign-up/sign-in verification through the OTP code below instead of a link
+      async sendVerificationOTP({ email, otp, type }) {
+        if (type === "email-verification") {
+          await sendVerificationOtpEmail(email, otp);
+        }
+      },
+    }),
+  ],
   databaseHooks: {
     user: {
       create: {
