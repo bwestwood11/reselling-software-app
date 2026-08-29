@@ -66,7 +66,7 @@ const MARKETPLACES: MarketplaceMeta[] = [
     iconText: "text-red-500",
     borderHover: "hover:border-red-300",
     initial: "D",
-    api: "full",
+    api: "coming_soon",
     categories: ["Fashion", "Vintage", "Streetwear"],
   },
   {

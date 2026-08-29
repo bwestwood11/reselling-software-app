@@ -133,7 +133,7 @@ const SUPPORTED_MARKETPLACES: {
   supportsApi: boolean;
 }[] = [
   { key: "EBAY", description: "Sell on the world's largest online marketplace", supportsApi: true },
-  { key: "DEPOP", description: "Fashion-focused reselling platform", supportsApi: true },
+  { key: "DEPOP", description: "Fashion-focused reselling platform", supportsApi: false },
   { key: "FACEBOOK_MARKETPLACE", description: "Local and nationwide marketplace", supportsApi: false },
   { key: "MERCARI", description: "Simple and fast selling app", supportsApi: false },
   { key: "POSHMARK", description: "Fashion, home, beauty and more", supportsApi: false },

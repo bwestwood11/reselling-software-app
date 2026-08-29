@@ -2,10 +2,6 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { FastifyInstance } from "fastify";
 import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { refreshConnectionIfNeeded } from "../services/marketplace/token-refresh";
-import {
-  loginWithGoogleToken,
-  loginWithEmail,
-} from "../services/marketplace/mercari-auth.service";
 import { ImportService } from "../services/marketplace/import.service";
 import { scheduleMercariZenRowsFallback } from "../jobs/mercari-zenrows.worker";
 import { MercariZenRowsService } from "../services/marketplace/mercari-zenrows.service";
@@ -399,115 +395,6 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
           returnPolicies: (returnPol.returnPolicies as unknown[]) ?? [],
         },
       });
-    }
-  );
-
-  // POST /api/marketplaces/mercari/google-login — sign in with a Google ID token
-  // The frontend obtains the token via Google Identity Services with Mercari's client ID.
-  fastify.post(
-    "/mercari/google-login",
-    { preHandler: [requireAuth, requireActiveSubscription] },
-    async (request, reply) => {
-      const { idToken } = request.body as { idToken?: string };
-
-      if (!idToken) {
-        return reply.status(400).send({ success: false, error: "idToken is required" });
-      }
-
-      try {
-        const tokens = await loginWithGoogleToken(idToken);
-
-        await fastify.prisma.marketplaceConnection.upsert({
-          where: {
-            userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
-          },
-          update: {
-            accessToken: tokens.accessToken,
-            refreshToken: null,
-            accountId: tokens.accountId ?? null,
-            accountName: tokens.accountName ?? null,
-            isActive: true,
-            expiresAt: null,
-          },
-          create: {
-            userId: request.user!.id,
-            marketplace: "MERCARI",
-            accessToken: tokens.accessToken,
-            refreshToken: null,
-            accountId: tokens.accountId ?? null,
-            accountName: tokens.accountName ?? null,
-          },
-        });
-
-        return reply.send({ success: true, data: { connected: true, accountName: tokens.accountName } });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Google login failed";
-        return reply.status(400).send({ success: false, error: message });
-      }
-    }
-  );
-
-  // POST /api/marketplaces/mercari/login — email + password login (confirmed endpoint)
-  // recaptchaEnterpriseToken is generated client-side using Mercari's reCAPTCHA site key
-  // and forwarded here — it is NOT generated server-side.
-  fastify.post(
-    "/mercari/login",
-    { preHandler: [requireAuth, requireActiveSubscription] },
-    async (request, reply) => {
-      const { email, password, recaptchaEnterpriseToken } = request.body as {
-        email?: string;
-        password?: string;
-        recaptchaEnterpriseToken?: string;
-      };
-
-      if (!email?.trim() || !password) {
-        return reply
-          .status(400)
-          .send({ success: false, error: "email and password are required" });
-      }
-      if (!recaptchaEnterpriseToken) {
-        return reply
-          .status(400)
-          .send({ success: false, error: "recaptchaEnterpriseToken is required" });
-      }
-
-      try {
-        const tokens = await loginWithEmail(
-          email.trim(),
-          password,
-          recaptchaEnterpriseToken
-        );
-
-        await fastify.prisma.marketplaceConnection.upsert({
-          where: {
-            userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" },
-          },
-          update: {
-            accessToken: tokens.accessToken,
-            refreshToken: null,
-            accountId: tokens.accountId ?? null,
-            accountName: tokens.accountName ?? null,
-            isActive: true,
-            expiresAt: null,
-          },
-          create: {
-            userId: request.user!.id,
-            marketplace: "MERCARI",
-            accessToken: tokens.accessToken,
-            refreshToken: null,
-            accountId: tokens.accountId ?? null,
-            accountName: tokens.accountName ?? null,
-          },
-        });
-
-        return reply.send({
-          success: true,
-          data: { connected: true, accountName: tokens.accountName },
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Login failed";
-        return reply.status(400).send({ success: false, error: message });
-      }
     }
   );
 

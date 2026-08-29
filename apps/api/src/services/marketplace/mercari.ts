@@ -4,7 +4,8 @@
 
 import { BaseMarketplaceAdapter, type ListingPayload } from "./base";
 
-// Auth confirmed at https://www.mercari.com/v1 (see mercari-auth.service.ts).
+// Auth is handled by the Chrome extension (captured session cookies/token, not a
+// direct-login flow) — see /api/marketplaces/mercari/connect-token.
 // Sell API inferred from same host — verify endpoints against live network traffic.
 const MERCARI_API_BASE = "https://www.mercari.com/v1";
 

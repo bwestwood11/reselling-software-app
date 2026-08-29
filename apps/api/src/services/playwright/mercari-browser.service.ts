@@ -20,15 +20,17 @@ interface MercariProfileResponse {
 
 /**
  * Reference implementation of `BaseMarketplaceBrowserService` for Mercari — drives
- * the real login form in a headless browser (so Mercari's own reCAPTCHA challenge
- * runs and resolves itself, unlike the direct-fetch flow in `mercari-auth.service.ts`
- * which requires a client-supplied token) and demonstrates `runFetch`/`fetchJson`
- * for hitting Mercari's API from inside the authenticated page context.
+ * the real login form in a headless browser so Mercari's own reCAPTCHA challenge
+ * runs and resolves itself, and demonstrates `runFetch`/`fetchJson` for hitting
+ * Mercari's API from inside the authenticated page context.
  *
- * Other marketplaces (Facebook Marketplace, Poshmark, Etsy) that don't expose a
- * public API follow the same shape: set `marketplace`/`baseUrl`, implement
- * `performLogin` and `assertLoggedIn`, then add whatever site actions you need
- * using `this.runFetch(page, ...)` or plain Playwright calls on `page`.
+ * Unused: real Mercari (and Poshmark) account connection goes through the ReList
+ * Chrome extension exclusively — see /api/marketplaces/mercari/connect-token and
+ * /api/marketplaces/poshmark/connect-token. Kept only as a pattern reference for
+ * other marketplaces (Facebook Marketplace, Etsy) that don't expose a public API:
+ * set `marketplace`/`baseUrl`, implement `performLogin` and `assertLoggedIn`, then
+ * add whatever site actions you need using `this.runFetch(page, ...)` or plain
+ * Playwright calls on `page`.
  */
 export class MercariBrowserService extends BaseMarketplaceBrowserService {
   protected readonly marketplace: MarketplaceType = "MERCARI";

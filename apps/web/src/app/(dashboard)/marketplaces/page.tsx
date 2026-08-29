@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Image from "next/image";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +69,7 @@ const MARKETPLACES: MarketplaceMeta[] = [
     iconText: "text-red-500",
     borderHover: "hover:border-red-300",
     initial: "D",
-    api: "full",
+    api: "coming_soon",
     categories: ["Fashion", "Vintage", "Streetwear"],
   },
   {
@@ -612,40 +612,11 @@ function MarketplaceCard({
 }
 
 // ─── Mercari connect modal ─────────────────────────────────────────────────────
-// Mercari has no public OAuth API. The only reliable connection path on web is
-// via the ReList Chrome extension, which opens mercari.com/login in a real
-// browser tab (bypassing CORS + Cloudflare Bot Management), waits for the user
-// to log in, then reads the auth token from the page's localStorage/cookies and
-// POSTs it to /api/marketplaces/mercari/connect-token.
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (cfg: {
-            client_id: string;
-            callback: (resp: { credential: string }) => void;
-            nonce?: string;
-          }) => void;
-          renderButton: (
-            el: HTMLElement,
-            cfg: { theme: string; size: string; width: number; text?: string }
-          ) => void;
-        };
-      };
-    };
-    grecaptcha?: {
-      enterprise: {
-        ready: (cb: () => void) => void;
-        execute: (siteKey: string, options: { action: string }) => Promise<string>;
-      };
-    };
-  }
-}
-
-const MERCARI_GOOGLE_CLIENT_ID =
-  "900288721633-70umose0g8lcfh663hhjpj8q3rk9tud4.apps.googleusercontent.com";
+// Mercari has no public OAuth API. The only supported connection path is via the
+// ReList Chrome extension, which opens mercari.com/login in a real browser tab
+// (bypassing CORS + Cloudflare Bot Management), waits for the user to log in,
+// then reads the auth token from the page's localStorage/cookies and POSTs it
+// to /api/marketplaces/mercari/connect-token.
 
 const EXTENSION_STEPS = [
   "Install the ReList Chrome Extension from the Chrome Web Store.",
@@ -663,70 +634,6 @@ function MercariConnectModal({
 }) {
   const qc = useQueryClient();
   const [checking, setChecking] = useState(false);
-  const [showFallback, setShowFallback] = useState(false);
-
-  // Fallback direct-login state (experimental). Google Sign-In only — Mercari email/password
-  // login has been removed: it drove an automated server-side browser session that Mercari's
-  // reCAPTCHA Enterprise blocked, and it required users to hand us their marketplace password.
-  // The API routes still exist but are unused (see apps/api/src/routes/mercari.ts).
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [gsiReady, setGsiReady] = useState(false);
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-
-  // GSI script (only loaded when the fallback section is open)
-  useEffect(() => {
-    if (!showFallback) return;
-    if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
-      setGsiReady(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.onload = () => setGsiReady(true);
-    document.head.appendChild(script);
-  }, [showFallback]);
-
-  // Render Google Sign-In button inside the fallback section
-  useEffect(() => {
-    if (!showFallback || !gsiReady || !googleBtnRef.current || !window.google) return;
-    window.google.accounts.id.initialize({
-      client_id: MERCARI_GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        setLoading(true);
-        setError("");
-        try {
-          const res = await fetch("https://www.mercari.com/v1/login_google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ idToken: response.credential }),
-          });
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error((body as any).message ?? `Mercari login failed (${res.status})`);
-          const { accessToken } = body as { accessToken: string };
-          const user = ((body as any).user ?? {}) as Record<string, unknown>;
-          await marketplacesApi.connectMercariToken(
-            accessToken,
-            user.userId != null ? String(user.userId) : undefined,
-            ((user.name as string) || (user.username as string)) || undefined
-          );
-          qc.invalidateQueries({ queryKey: ["marketplace-connections"] });
-          onConnected();
-        } catch (err: any) {
-          setError(err?.message ?? "Google sign-in failed. This may be a CORS issue — use the extension instead.");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-    window.google.accounts.id.renderButton(googleBtnRef.current, {
-      theme: "outline",
-      size: "large",
-      width: googleBtnRef.current.offsetWidth || 280,
-      text: "signin_with",
-    });
-  }, [showFallback, gsiReady, onConnected, qc]);
 
   async function verifyConnection() {
     setChecking(true);
@@ -806,48 +713,6 @@ function MercariConnectModal({
             )}
             {checking ? "Checking…" : "I've connected — verify"}
           </button>
-
-          {/* Experimental fallback */}
-          <div className="border-t border-zinc-100 pt-3">
-            <button
-              type="button"
-              onClick={() => { setShowFallback(!showFallback); setError(""); }}
-              className="text-[11px] text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline"
-            >
-              {showFallback ? "Hide" : "Alternative: direct browser login (experimental)"}
-            </button>
-
-            {showFallback && (
-              <div className="mt-3 space-y-3">
-                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                  <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
-                  <p className="text-[11px] text-amber-800">
-                    This calls Mercari&apos;s API from your browser. May fail due to CORS
-                    restrictions. Use the extension for reliable connection.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div
-                    ref={googleBtnRef}
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-zinc-50"
-                  >
-                    {!gsiReady && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
-                  </div>
-                  {loading && (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" />
-                      <span className="text-xs text-zinc-500">Connecting…</span>
-                    </div>
-                  )}
-                </div>
-
-                {error && (
-                  <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
