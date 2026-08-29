@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import { photoEditCreditCost } from "../config/plans";
 
@@ -73,7 +73,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
   // (e.g. ghost mannequin + background removal = 5 credits, not 6).
   fastify.post(
     "/",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       if (!BUCKET) {
         return reply

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import {
   ListingService,
   PublishRetryLimitError,
@@ -50,7 +50,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // GET /api/listings
   fastify.get(
     "/",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const query = request.query as {
         page?: string;
@@ -75,7 +75,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // GET /api/listings/:id
   fastify.get(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const listing = await svc.findById(id, request.user!.id);
@@ -91,7 +91,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings
   fastify.post(
     "/",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const body = createListingSchema.parse(request.body);
       const listing = await svc.create(request.user!.id, body);
@@ -102,7 +102,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings/crosslist
   fastify.post(
     "/crosslist",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const body = crosslistSchema.parse(request.body);
       const results = await svc.crosslist(request.user!.id, body);
@@ -113,7 +113,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // PUT /api/listings/:id
   fastify.put(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = createListingSchema.partial().parse(request.body);
@@ -130,7 +130,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // DELETE /api/listings/:id
   fastify.delete(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       await svc.delete(id, request.user!.id);
@@ -141,7 +141,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings/:id/publish — also used to retry a FAILED listing
   fastify.post(
     "/:id/publish",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
@@ -167,7 +167,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings/:id/delist
   fastify.post(
     "/:id/delist",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = await svc.delist(id, request.user!.id);
@@ -178,7 +178,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings/:id/record-published  (Mercari WebView flow)
   fastify.post(
     "/:id/record-published",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const { externalId } = request.body as { externalId?: string };
@@ -195,7 +195,7 @@ export async function listingsRoutes(fastify: FastifyInstance) {
   // POST /api/listings/:id/mark-sold
   fastify.post(
     "/:id/mark-sold",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = markSoldSchema.parse(request.body ?? {});

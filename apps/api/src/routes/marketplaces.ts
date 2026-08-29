@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { FastifyInstance } from "fastify";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { refreshConnectionIfNeeded } from "../services/marketplace/token-refresh";
 import {
   loginWithGoogleToken,
@@ -109,7 +109,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/connections
   fastify.get(
     "/connections",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connections = await fastify.prisma.marketplaceConnection.findMany({
         where: { userId: request.user!.id, isActive: true },
@@ -132,7 +132,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // Soft-delete: sets isActive=false so linked listings (FK) are preserved.
   fastify.delete(
     "/connections/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       await fastify.prisma.marketplaceConnection.updateMany({
@@ -146,7 +146,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // POST /api/marketplaces/ebay/setup-policies
   fastify.post(
     "/ebay/setup-policies",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: {
@@ -343,7 +343,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/ebay/policies
   fastify.get(
     "/ebay/policies",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: {
@@ -406,7 +406,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // The frontend obtains the token via Google Identity Services with Mercari's client ID.
   fastify.post(
     "/mercari/google-login",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { idToken } = request.body as { idToken?: string };
 
@@ -452,7 +452,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // and forwarded here — it is NOT generated server-side.
   fastify.post(
     "/mercari/login",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { email, password, recaptchaEnterpriseToken } = request.body as {
         email?: string;
@@ -514,7 +514,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/mercari/token — returns the stored access token for the WebView publish flow
   fastify.get(
     "/mercari/token",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
@@ -533,7 +533,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // cookie jar captured by the extension after the user logs in.
   fastify.post(
     "/mercari/connect-token",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { accessToken, accountId, accountName, cookies, csrfToken, addresses } = request.body as {
         accessToken?: string;
@@ -595,7 +595,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // re-inject into a mercari.com tab before making API calls.
   fastify.get(
     "/mercari/session",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
@@ -624,7 +624,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/mercari/addresses — returns delivery addresses stored in metadata
   fastify.get(
     "/mercari/addresses",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "MERCARI" } },
@@ -650,7 +650,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // default new Mercari listings to, chosen from the account's synced address list.
   fastify.patch(
     "/mercari/preferred-address",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { addressId } = (request.body ?? {}) as { addressId?: number };
       if (typeof addressId !== "number") {
@@ -687,7 +687,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // or item weight already implies one.
   fastify.patch(
     "/mercari/preferred-shipping-method",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { method } = (request.body ?? {}) as { method?: string };
       if (method !== "SOYO" && method !== "PREPAID") {
@@ -718,7 +718,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // - Without body: creates a fetch-addresses job for the browser extension to execute.
   fastify.post(
     "/mercari/refresh-addresses",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { addresses } = ((request.body ?? {}) as { addresses?: unknown[] });
 
@@ -782,7 +782,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // the extension after the user logs in via poshmark.com/login.
   fastify.post(
     "/poshmark/connect-token",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { accessToken, accountId, accountName, cookies, csrfToken } = request.body as {
         accessToken?: string;
@@ -841,7 +841,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // re-inject them into a poshmark.com tab before making API calls.
   fastify.get(
     "/poshmark/session",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const connection = await fastify.prisma.marketplaceConnection.findUnique({
         where: { userId_marketplace: { userId: request.user!.id, marketplace: "POSHMARK" } },
@@ -870,7 +870,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/ebay/category-suggestions?q=
   fastify.get(
     "/ebay/category-suggestions",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { q } = request.query as { q?: string };
       if (!q?.trim()) {
@@ -935,7 +935,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/ebay/category-aspects?categoryId=
   fastify.get(
     "/ebay/category-aspects",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { categoryId } = request.query as { categoryId?: string };
       if (!categoryId?.trim()) {
@@ -1020,7 +1020,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/ebay/importable-listings
   fastify.get(
     "/ebay/importable-listings",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const {
         status = "active",
@@ -1055,7 +1055,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // POST /api/marketplaces/ebay/import
   fastify.post(
     "/ebay/import",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { ebayItemIds } = request.body as { ebayItemIds?: unknown };
 
@@ -1085,7 +1085,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
   // GET /api/marketplaces/oauth/:marketplace/authorize
   fastify.get(
     "/oauth/:marketplace/authorize",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { marketplace } = request.params as { marketplace: string };
       try {

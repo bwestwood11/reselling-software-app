@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { SourceService } from "../services/source.service";
 
 const createSchema = z.object({
@@ -17,19 +17,19 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   const svc = new SourceService(fastify.prisma);
 
   // GET /api/sources
-  fastify.get("/", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const sources = await svc.list(request.user!.id);
     return reply.send({ success: true, data: sources });
   });
 
   // GET /api/sources/stats
-  fastify.get("/stats", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/stats", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const stats = await svc.getStats(request.user!.id);
     return reply.send({ success: true, data: stats });
   });
 
   // GET /api/sources/:id
-  fastify.get("/:id", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/:id", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const source = await svc.findById(id, request.user!.id);
     if (!source) return reply.status(404).send({ success: false, error: "Source not found" });
@@ -37,7 +37,7 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/sources
-  fastify.post("/", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.post("/", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { name, parentId } = createSchema.parse(request.body);
     try {
       const source = await svc.create(request.user!.id, name, parentId);
@@ -48,7 +48,7 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   });
 
   // PUT /api/sources/:id
-  fastify.put("/:id", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.put("/:id", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = updateSchema.parse(request.body);
     try {
@@ -61,7 +61,7 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   });
 
   // DELETE /api/sources/:id
-  fastify.delete("/:id", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.delete("/:id", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     await svc.delete(id, request.user!.id);
     return reply.send({ success: true, message: "Source deleted" });

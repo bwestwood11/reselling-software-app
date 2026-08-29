@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { completeExtensionDelist } from "../services/extension-delist.service";
 import { markInventoryItemListed } from "../services/listing-state";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
@@ -16,7 +16,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   const statusService = new MarketplaceStatusService(fastify.prisma, "POSHMARK");
 
   // POST /api/poshmark/jobs — enqueue a new Poshmark crosslisting job
-  fastify.post("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.post("/jobs", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const body = request.body as {
       listingId?: string;
       payload: Prisma.InputJsonValue;
@@ -44,7 +44,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // a job appears (or the window elapses) instead of returning an empty list immediately, which
   // drops publish pickup latency to ~POLL_TICK_MS. `wait` is clamped so a client cannot pin a
   // connection open indefinitely, and the loop aborts as soon as the client disconnects.
-  fastify.get("/jobs/pending", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/jobs/pending", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const query = request.query as { wait?: string };
     const waitSeconds = Math.min(Math.max(Number.parseInt(query.wait ?? "0", 10) || 0, 0), 30);
     const deadline = Date.now() + waitSeconds * 1000;
@@ -70,7 +70,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/poshmark/jobs/:jobId — fetch a single job (used for status polling)
-  fastify.get("/jobs/:jobId", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/jobs/:jobId", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { jobId } = request.params as { jobId: string };
     const job = await fastify.prisma.poshmarkJob.findFirst({
       where: { id: jobId, userId: request.user!.id },
@@ -80,7 +80,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/poshmark/jobs — list all jobs with optional status filter
-  fastify.get("/jobs", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/jobs", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const query = request.query as { status?: string; limit?: string };
     const limit = Math.min(parseInt(query.limit ?? "50", 10), 100);
 
@@ -100,7 +100,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // On COMPLETED: marks the linked Listing ACTIVE and the inventory item as listed.
   // On FAILED: marks the Listing FAILED. No credit refund — cross-listing is never charged.
   // Delist jobs (payload.type === "delist") take a separate path — see extension-delist.service.
-  fastify.patch("/jobs/:id", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.patch("/jobs/:id", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
       status: "PROCESSING" | "COMPLETED" | "FAILED";
@@ -194,7 +194,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // POST /api/poshmark/status-check/claim — extension asks whether a sweep is due.
   // Returns { due: false, ... } when the last poll was under an hour ago, or the listings to
   // read plus a pollRunId to report against. `force: true` skips the interval check.
-  fastify.post("/status-check/claim", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.post("/status-check/claim", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const body = (request.body ?? {}) as { force?: boolean };
 
     await recordExtensionHeartbeat(request.user!.id);
@@ -208,7 +208,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // and runs the sold-item handling, including delisting the item elsewhere.
   fastify.post(
     "/status-check/:pollRunId/complete",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { pollRunId } = request.params as { pollRunId: string };
       const body = request.body as { results?: MarketplaceStatusResult[] };
@@ -231,7 +231,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   // (no Poshmark tab, session expired, ...). Closes the run out so it isn't left RUNNING.
   fastify.post(
     "/status-check/:pollRunId/fail",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { pollRunId } = request.params as { pollRunId: string };
       const body = (request.body ?? {}) as { errorMessage?: string };
@@ -246,7 +246,7 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
   );
 
   // GET /api/poshmark/status-check/runs — recent sweeps, newest first.
-  fastify.get("/status-check/runs", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/status-check/runs", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const query = request.query as { limit?: string };
     const limit = Math.min(Number.parseInt(query.limit ?? "20", 10) || 20, 100);
     const runs = await statusService.listRuns(request.user!.id, limit);

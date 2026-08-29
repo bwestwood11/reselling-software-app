@@ -8,6 +8,7 @@ import {
   getStripePriceId,
   getPlanByStripePriceId,
   isPaidPlan,
+  isEntitled,
   type PlanKey,
   type BillingInterval,
 } from "../config/plans";
@@ -16,10 +17,6 @@ function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
   return new Stripe(key);
-}
-
-function isEntitled(status: string): boolean {
-  return status === "ACTIVE" || status === "TRIALING";
 }
 
 export class SubscriptionService {

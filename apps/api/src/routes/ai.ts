@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth.js";
 import { AIService } from "../services/ai/ai.service.js";
 import { SubscriptionService } from "../services/subscription.service.js";
 import { AI_CREDIT_COSTS } from "../config/plans.js";
@@ -24,7 +24,7 @@ export async function aiRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     "/generate",
-    { preHandler: [requireAuth], schema: { body: generateBodySchema } },
+    { preHandler: [requireAuth, requireActiveSubscription], schema: { body: generateBodySchema } },
     async (request, reply) => {
       const userId = request.user!.id;
       const { imageUrls, title } = request.body as { imageUrls: string[]; title?: string };

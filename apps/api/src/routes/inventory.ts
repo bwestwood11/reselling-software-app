@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { InventoryService } from "../services/inventory.service";
 import { SubscriptionService } from "../services/subscription.service";
 import { getPrefillProvider } from "../services/prefill/factory.js";
@@ -59,7 +59,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // GET /api/inventory
   fastify.get(
     "/",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const query = request.query as {
         page?: string;
@@ -92,7 +92,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // GET /api/inventory/:id
   fastify.get(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const item = await svc.findById(id, request.user!.id);
@@ -108,7 +108,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // POST /api/inventory
   fastify.post(
     "/",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       try {
         await subSvc.assertCanAddInventory(request.user!.id);
@@ -126,7 +126,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // PUT /api/inventory/:id
   fastify.put(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = createItemSchema.partial().parse(request.body);
@@ -143,7 +143,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // DELETE /api/inventory/:id
   fastify.delete(
     "/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       await svc.delete(id, request.user!.id);
@@ -154,7 +154,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // PATCH /api/inventory/:id/status
   fastify.patch(
     "/:id/status",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const { status } = request.body as { status: string };
@@ -166,7 +166,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // POST /api/inventory/:id/mark-sold
   fastify.post(
     "/:id/mark-sold",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = markSoldSchema.parse(request.body);
@@ -186,7 +186,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
   // GET /api/inventory/:id/prefill?marketplace=MERCARI
   fastify.get(
     "/:id/prefill",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const { marketplace } = request.query as { marketplace?: string };

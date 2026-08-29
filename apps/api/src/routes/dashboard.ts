@@ -1,11 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { startOfMonth } from "@repo/utils";
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/stats",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const userId = request.user!.id;
       const monthStart = startOfMonth();

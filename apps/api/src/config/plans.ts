@@ -120,6 +120,11 @@ export function isPaidPlan(plan: PlanKey): boolean {
   return plan !== "FREE";
 }
 
+/** True if a subscription in this status grants access to the app (paid or trialing). */
+export function isEntitled(status: string | null | undefined): boolean {
+  return status === "ACTIVE" || status === "TRIALING";
+}
+
 /** The Stripe recurring price ID for a plan + interval, or "" if not configured. */
 export function getStripePriceId(plan: PlanKey, interval: BillingInterval): string {
   const cfg = PLANS[plan];

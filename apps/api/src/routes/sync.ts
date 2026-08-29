@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { SyncService } from "../services/sync.service";
 import { EbayStatusService } from "../services/ebay-status.service";
 
@@ -10,7 +10,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   // POST /api/sync/import-ebay — import active eBay listings into inventory
   fastify.post(
     "/import-ebay",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const result = await svc.importFromEbay(request.user!.id);
       return reply.send({ success: true, data: result });
@@ -20,7 +20,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   // POST /api/sync/all — trigger sync for all active listings
   fastify.post(
     "/all",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const result = await svc.syncAll(request.user!.id);
       return reply.send({ success: true, data: result });
@@ -30,7 +30,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   // POST /api/sync/listing/:id — sync a specific listing
   fastify.post(
     "/listing/:id",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = await svc.syncListing(id, request.user!.id);
@@ -46,7 +46,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   // delisted automatically. The hourly cron in jobs/sync.job.ts calls the same sweep.
 
   // POST /api/sync/ebay/status-check — sweep now. `force: true` skips the once-an-hour interval.
-  fastify.post("/ebay/status-check", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.post("/ebay/status-check", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const body = (request.body ?? {}) as { force?: boolean };
     try {
       const result = await ebayStatus.sweep(request.user!.id, { force: body.force === true });
@@ -58,7 +58,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/sync/ebay/status-check/runs — recent eBay sweeps, newest first.
-  fastify.get("/ebay/status-check/runs", { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.get("/ebay/status-check/runs", { preHandler: [requireAuth, requireActiveSubscription] }, async (request, reply) => {
     const query = request.query as { limit?: string };
     const limit = Math.min(Number.parseInt(query.limit ?? "20", 10) || 20, 100);
     const runs = await ebayStatus.listRuns(request.user!.id, limit);
@@ -68,7 +68,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
   // GET /api/sync/events — recent sync events for the user
   fastify.get(
     "/events",
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const query = request.query as { page?: string; limit?: string };
       const page = parseInt(query.page ?? "1");
