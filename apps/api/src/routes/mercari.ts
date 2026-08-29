@@ -261,7 +261,7 @@ export async function mercariRoutes(fastify: FastifyInstance) {
           data: {
             status: "ACTIVE",
             externalId: body.externalId ?? null,
-            externalUrl: body.externalId ? `https://www.mercari.com/item/${body.externalId}/` : null,
+            externalUrl: body.externalId ? `https://www.mercari.com/us/item/${body.externalId}/` : null,
             listedAt: now,
             lastSyncAt: now,
             syncError: null,

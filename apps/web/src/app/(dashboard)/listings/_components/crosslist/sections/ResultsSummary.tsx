@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-react";
 import { Badge } from "@repo/ui";
 import { getMarketplaceLabel } from "@repo/utils";
 import type { CrosslistResult } from "@repo/types";
@@ -18,10 +18,21 @@ function StatusRow({ result }: { result: CrosslistResult }) {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-zinc-900">{label}</p>
           <p className="text-xs text-emerald-700">Published</p>
         </div>
+        {result.externalUrl && (
+          <a
+            href={result.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-0.5 flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700 underline-offset-2 hover:underline"
+          >
+            View listing
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
       </div>
     );
   }
@@ -39,17 +50,17 @@ function StatusRow({ result }: { result: CrosslistResult }) {
   }
 
   if (result.status === "NEEDS_WEBVIEW") {
-    // Both marketplaces publish out-of-band, but not the same way: Poshmark's job is already
-    // queued for the Chrome extension, while Mercari still needs the mobile app to finish it.
+    // Mercari and Poshmark both publish the same way: the job is already queued for the Chrome
+    // extension, which posts it from a real logged-in tab. This row live-updates (see
+    // pollExtensionPublish) once that job resolves — no need to leave and come back.
     return (
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-        <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-amber-600" />
         <div>
           <p className="text-sm font-semibold text-zinc-900">{label}</p>
           <p className="text-xs text-amber-700">
-            {result.marketplace === "POSHMARK"
-              ? "Queued — the ReList extension is posting it now. This page updates once it lands."
-              : "Draft created — finish publishing to Mercari from the ReList mobile app. Mercari can't publish from the web yet."}
+            Posting now — the ReList extension is publishing it. This updates automatically once it
+            lands (usually under 30s).
           </p>
         </div>
       </div>
@@ -69,16 +80,21 @@ function StatusRow({ result }: { result: CrosslistResult }) {
 
 export function ResultsSummary({ results, onCreateAnother }: Props) {
   const failedCount = results.filter((r) => r.status === "error").length;
+  const pendingCount = results.filter((r) => r.status === "NEEDS_WEBVIEW").length;
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
       <div className="mb-4 flex items-center gap-2">
         {failedCount > 0 ? (
           <AlertTriangle className="h-4 w-4 text-amber-500" />
+        ) : pendingCount > 0 ? (
+          <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
         ) : (
           <CheckCircle2 className="h-4 w-4 text-emerald-500" />
         )}
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Results</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
+          {pendingCount > 0 ? "Publishing…" : "Results"}
+        </h2>
       </div>
 
       <div className="space-y-2.5">

@@ -489,8 +489,13 @@ export class ListingService {
           // publish() only queues a PoshmarkJob and leaves the listing PENDING. Report
           // NEEDS_WEBVIEW rather than ACTIVE: the extension has not posted it yet, and the
           // caller uses this status to keep its background-publishing progress card open.
-          await this.publish(listing.id, userId);
-          results.push({ marketplace: "POSHMARK", listingId: listing.id, status: "NEEDS_WEBVIEW" });
+          const publishResult = await this.publish(listing.id, userId);
+          results.push({
+            marketplace: "POSHMARK",
+            listingId: listing.id,
+            status: "NEEDS_WEBVIEW",
+            ...("jobId" in publishResult ? { jobId: (publishResult as { jobId: string }).jobId } : {}),
+          });
         } else {
           await this.publish(listing.id, userId);
           results.push({ marketplace: connection.marketplace, listingId: listing.id, status: "ACTIVE" });
@@ -515,7 +520,7 @@ export class ListingService {
       data: {
         status: "ACTIVE",
         externalId,
-        externalUrl: `https://www.mercari.com/item/${externalId}/`,
+        externalUrl: `https://www.mercari.com/us/item/${externalId}/`,
         listedAt: new Date(),
         lastSyncAt: new Date(),
         syncError: null,

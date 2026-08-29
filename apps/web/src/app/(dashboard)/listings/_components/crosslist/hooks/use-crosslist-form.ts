@@ -3,12 +3,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CrosslistResult } from "@repo/types";
 import type { SubscriptionInfo } from "@repo/types";
 import { getMarketplaceLabel } from "@repo/utils";
-import { marketplacesApi, uploadApi, subscriptionApi, aiApi, inventoryApi } from "@/lib/api";
+import {
+  marketplacesApi,
+  uploadApi,
+  subscriptionApi,
+  aiApi,
+  inventoryApi,
+  listingsApi,
+  mercariApi,
+  poshmarkApi,
+} from "@/lib/api";
 import { useInventory, useInventoryItem, useCreateInventoryItem } from "@/hooks/use-inventory";
 import { useCrosslistListings } from "@/hooks/use-listings";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
@@ -50,6 +59,7 @@ const EXTENSION_PUBLISH_ESTIMATE_MS = 26_000;
 const EXTENSION_PUBLISHED = new Set(["MERCARI", "POSHMARK"]);
 
 export function useCrosslistForm({ onClose }: CrosslistFormProps) {
+  const queryClient = useQueryClient();
   const createItemMutation = useCreateInventoryItem();
   const crosslistMutation = useCrosslistListings();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -794,34 +804,68 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     return true;
   }
 
+  /** Patches one row of the results summary in place by marketplace + listingId. */
+  function patchResult(marketplace: string, listingId: string | undefined, patch: Partial<CrosslistResult>) {
+    setResults((prev) =>
+      prev?.map((r) =>
+        r.marketplace === marketplace && r.listingId === listingId ? { ...r, ...patch } : r
+      ) ?? prev
+    );
+  }
+
   /**
-   * The crosslist response only confirms a Mercari job was queued for the extension — Mercari
-   * cannot be published server-side (Cloudflare blocks it), so anything Mercari itself rejects
-   * (bad category, missing zip, etc.) only shows up once the extension actually calls Mercari's
-   * API. This polls the job the response reported and turns its eventual COMPLETED/FAILED into
-   * the toast the immediate response couldn't give.
+   * The crosslist response only confirms a Mercari/Poshmark job was queued for the extension —
+   * neither can be published server-side (Cloudflare blocks Mercari; Poshmark has no public API),
+   * so anything the marketplace itself rejects (bad category, missing zip, etc.) only shows up
+   * once the extension actually calls the site's own API. This polls the job the response
+   * reported and turns its eventual COMPLETED/FAILED into the toast — and the live results-summary
+   * row update — the immediate response couldn't give. On COMPLETED it also re-fetches the listing
+   * so the row can link straight to it (externalUrl is only known once the job resolves), and
+   * invalidates the listings/inventory caches so anyone who lands on those pages next sees the
+   * real state, not the pre-publish snapshot.
    */
-  async function pollMercariPublish(jobId: string) {
-    const { mercariApi } = await import("@/lib/api");
+  async function pollExtensionPublish(
+    jobId: string,
+    marketplace: "MERCARI" | "POSHMARK",
+    listingId: string | undefined
+  ) {
+    const label = marketplace === "MERCARI" ? "Mercari" : "Poshmark";
+    const jobApi = marketplace === "MERCARI" ? mercariApi : poshmarkApi;
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 3_000));
       try {
-        const jobRes = await mercariApi.getJob(jobId);
+        const jobRes = await jobApi.getJob(jobId);
         const status: string = jobRes?.data?.status ?? "PENDING";
         if (status === "COMPLETED") {
-          toast.success("Published to Mercari");
+          toast.success(`Published to ${label}`);
+          queryClient.invalidateQueries({ queryKey: ["listings"] });
+          queryClient.invalidateQueries({ queryKey: ["inventory"] });
+          if (listingId) {
+            try {
+              const listingRes = await listingsApi.get(listingId);
+              patchResult(marketplace, listingId, {
+                status: "ACTIVE",
+                externalUrl: listingRes?.data?.externalUrl ?? undefined,
+              });
+            } catch {
+              patchResult(marketplace, listingId, { status: "ACTIVE" });
+            }
+          }
           return;
         }
         if (status === "FAILED") {
-          toast.error(jobRes?.data?.errorMessage ?? "Mercari rejected the listing");
+          const message = jobRes?.data?.errorMessage ?? `${label} rejected the listing`;
+          toast.error(message);
+          queryClient.invalidateQueries({ queryKey: ["listings"] });
+          patchResult(marketplace, listingId, { status: "error", error: message });
           return;
         }
       } catch {
         // transient network hiccup — keep polling until the deadline
       }
     }
-    toast.error("Mercari hasn't confirmed the listing yet — check the Listings page.");
+    toast.error(`${label} hasn't confirmed the listing yet — check the Listings page.`);
   }
 
   function validateEbayFields(values: CrosslistFormValues): boolean {
@@ -920,12 +964,13 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
       const resultList: CrosslistResult[] = res?.data ?? [];
       setResults(resultList);
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
-      // Each queued Mercari job is polled independently for its real COMPLETED/FAILED outcome —
-      // see pollMercariPublish for why the crosslist response alone can't tell us that.
+      // Each queued Mercari/Poshmark job is polled independently for its real COMPLETED/FAILED
+      // outcome — see pollExtensionPublish for why the crosslist response alone can't tell us that.
       for (const r of resultList) {
-        if (r.marketplace === "MERCARI" && r.status !== "error" && r.jobId) {
-          void pollMercariPublish(r.jobId);
+        if (EXTENSION_PUBLISHED.has(r.marketplace) && r.status !== "error" && r.jobId) {
+          void pollExtensionPublish(r.jobId, r.marketplace as "MERCARI" | "POSHMARK", r.listingId);
         }
       }
 

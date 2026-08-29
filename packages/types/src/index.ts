@@ -153,8 +153,13 @@ export interface CrosslistResult {
   listingId?: string;
   status: "DRAFT" | "ACTIVE" | "NEEDS_WEBVIEW" | "error";
   error?: string;
-  /** Set for NEEDS_WEBVIEW results (Mercari) — poll GET /api/mercari/jobs/:jobId for the outcome. */
+  /**
+   * Set for NEEDS_WEBVIEW results (Mercari, Poshmark) — poll GET /api/mercari/jobs/:jobId or
+   * GET /api/poshmark/jobs/:jobId (per `marketplace`) for the real outcome.
+   */
   jobId?: string;
+  /** Set once a NEEDS_WEBVIEW result resolves to ACTIVE — link to the live marketplace listing. */
+  externalUrl?: string;
 }
 
 // ─── Marketplace Connection Types ─────────────────────────────────────────────
