@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
+import { slugify } from "@repo/utils";
 import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { completeExtensionDelist } from "../services/extension-delist.service";
 import { markInventoryItemListed } from "../services/listing-state";
@@ -8,6 +9,17 @@ import {
   MarketplaceStatusService,
   type MarketplaceStatusResult,
 } from "../services/marketplace-status.service";
+
+/**
+ * Poshmark listing URLs are `/listing/{title-slug}-{postId}` — the slug is
+ * decorative (Poshmark resolves by the trailing id) but real URLs always have
+ * one, so a placeholder keeps the dash-separated shape intact when the title
+ * doesn't slugify to anything (e.g. all punctuation/emoji).
+ */
+function buildPoshmarkListingUrl(postId: string, title: string | undefined): string {
+  const slug = (title && slugify(title)) || "listing";
+  return `https://poshmark.com/listing/${slug}-${postId}`;
+}
 
 /** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
 const POLL_TICK_MS = 750;
@@ -147,6 +159,9 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
           data: {
             status: "ACTIVE",
             externalId: body.externalId ?? null,
+            externalUrl: body.externalId
+              ? buildPoshmarkListingUrl(body.externalId, payloadObj.title as string | undefined)
+              : null,
             listedAt: now,
             lastSyncAt: now,
             syncError: null,
