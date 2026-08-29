@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { syncApi } from "@/lib/api";
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
@@ -18,6 +19,7 @@ type ImportResult = { total: number; imported: number; skipped: number; errors: 
 
 export default function SyncPage(): import("react").JSX.Element {
   const qc = useQueryClient();
+  const router = useRouter();
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -44,9 +46,12 @@ export default function SyncPage(): import("react").JSX.Element {
       setImportResult(res.data);
       qc.invalidateQueries({ queryKey: ["sync-events"] });
       qc.invalidateQueries({ queryKey: ["listings"] });
+      // Mark the inventory list stale so the next mount (below, or a manual visit)
+      // refetches instead of showing a cached pre-import snapshot.
       qc.invalidateQueries({ queryKey: ["inventory"] });
       if (res.data.imported > 0) {
         toast.success(`Imported ${res.data.imported} listing${res.data.imported !== 1 ? "s" : ""} from eBay`);
+        router.push("/inventory");
       } else if (res.data.total === 0) {
         toast.info("No active eBay listings found");
       } else {
