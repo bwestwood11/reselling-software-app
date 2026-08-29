@@ -10,12 +10,12 @@ interface Props {
   selectedItem: any;
   isMercari: boolean;
   isEbay: boolean;
+  isPoshmark: boolean;
   price: number;
   mercariShip: MercariShipState;
   busy: boolean;
   isPublishing: boolean;
   isSubmitting: boolean;
-  isPending: boolean;
   selectedConnectionId: string;
   onSaveDraft: () => void;
   onSaveAndPublish: () => void;
@@ -26,17 +26,25 @@ export function PreviewPanel({
   selectedItem,
   isMercari,
   isEbay,
+  isPoshmark,
   price,
   mercariShip,
   busy,
   isPublishing,
   isSubmitting,
-  isPending,
   selectedConnectionId,
   onSaveDraft,
   onSaveAndPublish,
   onClose,
 }: Props) {
+  const primaryLabel = isEbay
+    ? "Save & Publish to eBay"
+    : isMercari
+      ? "Publish to Mercari"
+      : isPoshmark
+        ? "Publish to Poshmark"
+        : "Publish Listing";
+
   return (
     <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
       {/* Item preview */}
@@ -128,7 +136,7 @@ export function PreviewPanel({
       {isPublishing && (
         <PublishProgress
           active
-          marketplaces={isMercari ? ["MERCARI"] : isEbay ? ["EBAY"] : []}
+          marketplaces={isMercari ? ["MERCARI"] : isPoshmark ? ["POSHMARK"] : isEbay ? ["EBAY"] : []}
         />
       )}
 
@@ -140,28 +148,15 @@ export function PreviewPanel({
       >
         <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">Actions</p>
         <div className="space-y-2">
-          {isEbay ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onSaveAndPublish}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
-            >
-              {isPublishing && <Loader2 className="h-4 w-4 animate-spin" />}
-              <Tag className="h-4 w-4" />
-              Save &amp; Publish to eBay
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={busy || !selectedConnectionId}
-              onClick={onSaveDraft}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
-            >
-              {(isSubmitting || isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create Listing
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={busy || !selectedConnectionId}
+            onClick={onSaveAndPublish}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
+            {busy ? "Publishing…" : primaryLabel}
+          </button>
 
           <button
             type="button"

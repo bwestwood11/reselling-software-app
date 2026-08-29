@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getMarketplaceLabel } from "@repo/utils";
-import { listingsApi, marketplacesApi, mercariApi, inventoryApi } from "@/lib/api";
+import { listingsApi, marketplacesApi, mercariApi, poshmarkApi, inventoryApi } from "@/lib/api";
 import { useInventory, useInventoryItem } from "@/hooks/use-inventory";
 import { useCreateListing } from "@/hooks/use-listings";
 import {
@@ -516,27 +516,30 @@ export function useListingForm({
   }
 
   /**
-   * listingsApi.publish() only confirms the job was queued for the extension — Mercari cannot be
-   * published server-side (Cloudflare blocks it), so the extension calls Mercari's API on its own
-   * schedule afterward. Any validation Mercari itself rejects (bad category, missing zip, etc.)
-   * only shows up in that later step, so a queued-then-forgotten flow would report success and
-   * never mention the failure. This polls the job the publish call reported and turns its
-   * eventual COMPLETED/FAILED into the toast the immediate publish response couldn't give.
+   * listingsApi.publish() only confirms the job was queued for the extension — Mercari and
+   * Poshmark can't be published server-side (no public API / Cloudflare blocks it), so the
+   * extension calls the marketplace's own site on its own schedule afterward. Any validation
+   * the marketplace itself rejects (bad category, missing zip, etc.) only shows up in that
+   * later step, so a queued-then-forgotten flow would report success and never mention the
+   * failure. This polls the job the publish call reported and turns its eventual
+   * COMPLETED/FAILED into the toast the immediate publish response couldn't give.
    */
-  async function pollMercariPublish(jobId: string) {
+  async function pollExtensionPublish(jobId: string, marketplace: "MERCARI" | "POSHMARK") {
+    const label = marketplace === "MERCARI" ? "Mercari" : "Poshmark";
+    const jobApi = marketplace === "MERCARI" ? mercariApi : poshmarkApi;
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 3_000));
       try {
-        const jobRes = await mercariApi.getJob(jobId);
+        const jobRes = await jobApi.getJob(jobId);
         const status: string = jobRes?.data?.status ?? "PENDING";
         if (status === "COMPLETED") {
-          toast.success("Published to Mercari");
+          toast.success(`Published to ${label}`);
           queryClient.invalidateQueries({ queryKey: ["listings"] });
           return;
         }
         if (status === "FAILED") {
-          toast.error(jobRes?.data?.errorMessage ?? "Mercari rejected the listing");
+          toast.error(jobRes?.data?.errorMessage ?? `${label} rejected the listing`);
           queryClient.invalidateQueries({ queryKey: ["listings"] });
           return;
         }
@@ -544,7 +547,7 @@ export function useListingForm({
         // transient network hiccup — keep polling until the deadline
       }
     }
-    toast.error("Mercari hasn't confirmed the listing yet — check the Listings page.");
+    toast.error(`${label} hasn't confirmed the listing yet — check the Listings page.`);
   }
 
   async function onSaveDraft(values: FormValues) {
@@ -582,11 +585,12 @@ export function useListingForm({
       if (!listingId) throw new Error("Could not retrieve listing ID after creation");
       const publishRes = await listingsApi.publish(listingId);
 
-      if (isMercari) {
+      if (isMercari || isPoshmark) {
+        const marketplace = isMercari ? "MERCARI" : "POSHMARK";
         const jobId: string | undefined = publishRes?.data?.jobId;
-        toast.success("Queued — Mercari is posting the listing now");
+        toast.success(`Queued — ${isMercari ? "Mercari" : "Poshmark"} is posting the listing now`);
         onClose();
-        if (jobId) void pollMercariPublish(jobId);
+        if (jobId) void pollExtensionPublish(jobId, marketplace);
       } else {
         toast.success("Listing published!");
         onClose();

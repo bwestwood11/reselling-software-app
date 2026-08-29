@@ -88,12 +88,12 @@ export function CreateListingForm(props: CreateListingFormProps) {
           selectedItem={lf.selectedItem}
           isMercari={lf.isMercari}
           isEbay={lf.isEbay}
+          isPoshmark={lf.isPoshmark}
           price={Number(form.watch("price")) || 0}
           mercariShip={lf.mercariShip}
           busy={lf.busy}
           isPublishing={lf.isPublishing}
           isSubmitting={isSubmitting}
-          isPending={false}
           selectedConnectionId={lf.selectedConnectionId}
           onSaveDraft={handleSubmit(lf.onSaveDraft)}
           onSaveAndPublish={handleSubmit(lf.onSaveAndPublish)}

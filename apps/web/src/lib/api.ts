@@ -219,6 +219,12 @@ export const mercariApi = {
   // required users to hand over their marketplace password. Connect via the extension instead.
 };
 
+// ─── Poshmark jobs ────────────────────────────────────────────────────────────
+
+export const poshmarkApi = {
+  getJob: (jobId: string) => request<any>(`/api/poshmark/jobs/${jobId}`),
+};
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
