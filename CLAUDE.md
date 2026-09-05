@@ -38,10 +38,10 @@ Each app needs its own `.env` file. Copy `apps/api/.env.example` → `apps/api/.
 Stripe env vars required in `apps/api/.env`:
 - `STRIPE_SECRET_KEY` — Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
-- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle monthly ($39.99/mo)
-- `STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID` — recurring price ID for Side Hustle yearly ($34.99/mo billed annually)
-- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time monthly ($64.99/mo)
-- `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($59.99/mo billed annually)
+- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle monthly ($24.99/mo)
+- `STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID` — recurring price ID for Side Hustle yearly ($19.99/mo billed annually)
+- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time monthly ($44.00/mo)
+- `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($39.99/mo billed annually)
 - `STRIPE_AI_CREDITS_PRICE_ID` — one-time price ID for the smart AI credit top-up (100 credits/pack)
 
 Enterprise is contact-sales (no self-serve price ID). Every new subscription starts with a 7-day free trial (card required; charged when the trial ends unless cancelled).
@@ -120,7 +120,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 - `createPortalSession(userId)` — creates a Stripe Customer Portal session
 - `handleWebhookEvent(event)` — handles `checkout.session.completed`, `customer.subscription.updated`/`deleted`, `invoice.payment_succeeded` (monthly AI-credit replenish), and `invoice.payment_failed` (→ PAST_DUE)
 
-**Credit model:** A single "smart AI credit" pool powers every AI feature. Monthly allotment (`aiCredits`) is reset each billing cycle; purchased top-ups (`bonusAiCredits`) never expire and are drawn only after the monthly balance is used up. Costs: SEO description = 1, background removal = 1, iron/flat-lay/ghost-mannequin = 5. Combined PhotoRoom effects run in one API call and are charged once at the highest applicable tier (see `photoEditCreditCost` in `config/plans.ts`). Inventory is a hard per-plan item cap (FREE/trial 50, Side Hustle 1,500, Full-Time 3,000), enforced by counting `InventoryItem` rows — cross-listing to multiple marketplaces is unlimited and never charged.
+**Credit model:** A single "smart AI credit" pool powers every AI feature. Monthly allotment (`aiCredits`) is reset each billing cycle; purchased top-ups (`bonusAiCredits`) never expire and are drawn only after the monthly balance is used up. Costs: SEO description = 1, background removal = 1, iron/flat-lay/ghost-mannequin = 10. Combined PhotoRoom effects run in one API call and are charged once at the highest applicable tier (see `photoEditCreditCost` in `config/plans.ts`). Inventory is a hard per-plan item cap (FREE/trial 50, Side Hustle 1,500, Full-Time 3,000), enforced by counting `InventoryItem` rows — cross-listing to multiple marketplaces is unlimited and never charged.
 
 ### Authentication (`packages/auth`)
 

@@ -45,8 +45,8 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     description: "For casual sellers ready to scale up",
     inventoryLimit: 1500,
     aiCredits: 500,
-    priceMonthly: 3999, // $39.99/month
-    priceYearlyPerMonth: 3499, // $34.99/month billed yearly
+    priceMonthly: 2499, // $24.99/month
+    priceYearlyPerMonth: 1999, // $19.99/month billed yearly
     stripePriceIdMonthly: process.env.STRIPE_SIDE_HUSTLE_PRICE_ID ?? "",
     stripePriceIdYearly: process.env.STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID ?? "",
     selfServe: true,
@@ -56,8 +56,8 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     description: "For serious resellers growing their business",
     inventoryLimit: 3000,
     aiCredits: 750,
-    priceMonthly: 6499, // $64.99/month
-    priceYearlyPerMonth: 5999, // $59.99/month billed yearly
+    priceMonthly: 4400, // $44.00/month
+    priceYearlyPerMonth: 3999, // $39.99/month billed yearly
     stripePriceIdMonthly: process.env.STRIPE_FULL_TIME_PRICE_ID ?? "",
     stripePriceIdYearly: process.env.STRIPE_FULL_TIME_YEARLY_PRICE_ID ?? "",
     selfServe: true,
@@ -80,9 +80,9 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
 export const AI_CREDIT_COSTS = {
   seoDescription: 1,
   backgroundRemoval: 1,
-  ironTool: 5,
-  flatLay: 5,
-  ghostMannequin: 5,
+  ironTool: 10,
+  flatLay: 10,
+  ghostMannequin: 10,
 } as const;
 
 export interface PhotoEditOptions {
@@ -95,10 +95,10 @@ export interface PhotoEditOptions {
 /**
  * Cost of a single PhotoRoom edit request. Multiple effects run in one API call,
  * so the user is charged once at the highest applicable tier — e.g. ghost
- * mannequin + background removal = 5 credits (not 6), not 5 + 1.
+ * mannequin + background removal = 10 credits (not 11), not 10 + 1.
  */
 export function photoEditCreditCost(o: PhotoEditOptions): number {
-  if (o.flatLay || o.ironing || o.ghostMannequin) return AI_CREDIT_COSTS.ironTool; // 5
+  if (o.flatLay || o.ironing || o.ghostMannequin) return AI_CREDIT_COSTS.ironTool; // 10
   if (o.removeBackground) return AI_CREDIT_COSTS.backgroundRemoval; // 1
   return 0;
 }

@@ -66,11 +66,11 @@ export async function uploadRoutes(fastify: FastifyInstance) {
   // POST /api/upload
   // Optional PhotoRoom v2 editing via query params, billed from the smart AI credit pool:
   //   ?removeBackground=true  — background removal (1 credit)
-  //   ?flatLay=true           — flat lay generation (5 credits)
-  //   ?ironing=true           — wrinkle removal (5 credits)
-  //   ?ghostMannequin=true    — mannequin removal (5 credits)
+  //   ?flatLay=true           — flat lay generation (10 credits)
+  //   ?ironing=true           — wrinkle removal (10 credits)
+  //   ?ghostMannequin=true    — mannequin removal (10 credits)
   // Combined effects run in one PhotoRoom call and cost the highest single tier
-  // (e.g. ghost mannequin + background removal = 5 credits, not 6).
+  // (e.g. ghost mannequin + background removal = 10 credits, not 11).
   fastify.post(
     "/",
     { preHandler: [requireAuth, requireActiveSubscription] },

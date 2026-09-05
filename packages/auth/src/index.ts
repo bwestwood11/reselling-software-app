@@ -48,6 +48,11 @@ export const auth = betterAuth({
     sendOnSignIn: true, // resend a code if an unverified user tries to log in
     autoSignInAfterVerification: true,
   },
+  user: {
+    deleteUser: {
+      enabled: true, // lets a signed-in user delete their own account (settings/profile page)
+    },
+  },
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? "http://localhost:3001",
   ...(socialProviders ? { socialProviders } : {}),
   session: {

@@ -179,6 +179,31 @@ export interface DashboardStats {
   totalRevenue: number;
   recentSyncEvents: SyncEventSummary[];
   listingsByMarketplace: MarketplaceCount[];
+  /** Inventory item counts grouped by status — a part-to-whole breakdown of the catalog. */
+  inventoryByStatus: InventoryStatusCount[];
+}
+
+/** Date-range presets for `GET /api/dashboard/trend`. */
+export type TrendPreset = "today" | "7d" | "14d" | "30d" | "custom";
+
+export interface SalesTrendPoint {
+  /** ISO date (YYYY-MM-DD) for day granularity, or ISO hour (YYYY-MM-DDTHH) for hour granularity. */
+  date: string;
+  revenue: number;
+  unitsSold: number;
+  /** Listings published (listedAt) in this bucket, across all marketplaces. */
+  listingsCreated: number;
+}
+
+export interface DashboardTrend {
+  /** "hour" only for the "today" preset — every other preset buckets by day. */
+  granularity: "hour" | "day";
+  points: SalesTrendPoint[];
+}
+
+export interface InventoryStatusCount {
+  status: InventoryStatus;
+  count: number;
 }
 
 export interface SyncEventSummary {

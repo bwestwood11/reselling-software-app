@@ -174,6 +174,10 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
 
       const results: Record<string, unknown> = {};
       const errors: string[] = [];
+      // Tracks whether eBay is rejecting the access token itself (401), as opposed to a
+      // legitimate business error (e.g. a duplicate policy name). Used below to tell the
+      // user to reconnect instead of showing them a wall of raw API error text.
+      let authFailure = false;
 
       // ── Opt in to SELLING_POLICY_MANAGEMENT ──────────────────────
       // Required before business policies (fulfillment/payment/return) can be used.
@@ -195,6 +199,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
             results.optIn = "already opted in";
           } else {
             results.optIn = `opt-in warning: ${detail}`;
+            if (optInRes.status === 401) authFailure = true;
             fastify.log.warn({ status: optInRes.status, body }, "eBay opt-in returned non-200");
           }
         }
@@ -232,8 +237,10 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         if (!res.ok) {
           const firstError = (json.errors as Array<{ message?: string; longMessage?: string }>)?.[0];
           const detail = firstError?.longMessage ?? firstError?.message ?? JSON.stringify(json);
-          fastify.log.error({ path, responseBody: json }, "eBay policy creation failed");
-          throw new Error(detail);
+          fastify.log.error({ path, status: res.status, responseBody: json }, "eBay policy creation failed");
+          const err = new Error(detail) as Error & { status?: number };
+          err.status = res.status;
+          throw err;
         }
         return json;
       };
@@ -270,6 +277,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
             results.fulfillmentPolicyStatus = "created";
           } catch (createErr) {
             const msg = createErr instanceof Error ? createErr.message : String(createErr);
+            if ((createErr as { status?: number })?.status === 401) authFailure = true;
             // If name conflict, the policy already exists — fetch and return it
             if (msg.toLowerCase().includes("already exists")) {
               const retry = await getExisting("/sell/account/v1/fulfillment_policy");
@@ -286,6 +294,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        if ((err as { status?: number })?.status === 401) authFailure = true;
         errors.push(`Fulfillment policy: ${msg}`);
       }
 
@@ -306,6 +315,7 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        if ((err as { status?: number })?.status === 401) authFailure = true;
         errors.push(`Payment policy: ${msg}`);
       }
 
@@ -329,7 +339,21 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        if ((err as { status?: number })?.status === 401) authFailure = true;
         errors.push(`Return policy: ${msg}`);
+      }
+
+      // eBay rejected the access token on every call — the stored token is stale, revoked, or
+      // was issued under a different sandbox/production environment than we're currently
+      // configured for. Surface this distinctly so the UI can point the user at "Reconnect"
+      // instead of a wall of raw per-policy API error text.
+      if (authFailure) {
+        return reply.status(401).send({
+          success: false,
+          error:
+            "eBay rejected the connection's access token. Please reconnect your eBay account from Marketplace Connections, then try again.",
+          errors,
+        });
       }
 
       return reply.send({ success: true, data: results, errors });

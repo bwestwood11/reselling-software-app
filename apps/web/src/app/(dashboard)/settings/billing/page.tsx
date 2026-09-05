@@ -54,8 +54,8 @@ const PLAN_DISPLAY: Record<PlanType, PlanDisplay> = {
   },
   SIDE_HUSTLE: {
     name: "Side Hustle",
-    priceMonthly: 39.99,
-    priceYearlyPerMonth: 34.99,
+    priceMonthly: 24.99,
+    priceYearlyPerMonth: 19.99,
     description: "For casual sellers ready to scale up",
     Icon: Briefcase,
     features: [
@@ -71,8 +71,8 @@ const PLAN_DISPLAY: Record<PlanType, PlanDisplay> = {
   },
   FULL_TIME: {
     name: "Full-Time",
-    priceMonthly: 64.99,
-    priceYearlyPerMonth: 59.99,
+    priceMonthly: 44.0,
+    priceYearlyPerMonth: 39.99,
     description: "For serious resellers growing their business",
     Icon: Star,
     features: [
@@ -592,7 +592,7 @@ function BillingContent() {
           <h2 className="text-base font-semibold text-zinc-900">Buy more smart AI credits</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Need more than your monthly allotment? Top up anytime — purchased credits never expire.
-            BG removal costs 1 credit; iron, flat lay & ghost mannequin cost 5 each.
+            BG removal costs 1 credit; iron, flat lay & ghost mannequin cost 10 each.
           </p>
         </div>
         <div className="max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">

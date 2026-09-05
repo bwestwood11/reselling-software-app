@@ -43,7 +43,7 @@ const TOOLS: ToolConfig[] = [
     key: "ironing",
     label: "Iron Tool",
     sublabel: "Remove wrinkles",
-    cost: 5,
+    cost: 10,
     Icon: Sparkles,
     activeIconBg: "bg-amber-500",
     activeTextColor: "text-amber-700",
@@ -55,7 +55,7 @@ const TOOLS: ToolConfig[] = [
     key: "flatLay",
     label: "Flat Lay",
     sublabel: "Generate flat lay shots",
-    cost: 5,
+    cost: 10,
     Icon: Layers,
     activeIconBg: "bg-violet-500",
     activeTextColor: "text-violet-700",
@@ -67,7 +67,7 @@ const TOOLS: ToolConfig[] = [
     key: "ghostMannequin",
     label: "Ghost Mannequin",
     sublabel: "Remove mannequins",
-    cost: 5,
+    cost: 10,
     Icon: Ghost,
     activeIconBg: "bg-teal-500",
     activeTextColor: "text-teal-700",
@@ -206,13 +206,13 @@ export function PhotoToolbar({ subscription, editOptions, onToggle }: Props) {
       </div>
 
       {/* Bottom hint */}
-      {subscription && balance < 5 && (
+      {subscription && balance < 10 && (
         <p className="text-[10px] text-zinc-400">
           Running low —{" "}
           <Link href="/settings/billing" className="font-medium text-orange-500 hover:underline">
             {entitled ? "top up your AI credits" : "start your free trial"}
           </Link>
-          . BG removal costs 1 credit; other tools cost 5.
+          . BG removal costs 1 credit; other tools cost 10.
         </p>
       )}
     </div>

@@ -229,6 +229,12 @@ export const poshmarkApi = {
 
 export const dashboardApi = {
   getStats: () => request<any>("/api/dashboard/stats"),
+  getTrend: (params: { preset: string; startDate?: string; endDate?: string }) => {
+    const qs = new URLSearchParams({ preset: params.preset });
+    if (params.startDate) qs.set("startDate", params.startDate);
+    if (params.endDate) qs.set("endDate", params.endDate);
+    return request<any>(`/api/dashboard/trend?${qs.toString()}`);
+  },
 };
 
 // ─── Sync ─────────────────────────────────────────────────────────────────────

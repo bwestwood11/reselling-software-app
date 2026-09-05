@@ -122,7 +122,7 @@ export default function DashboardScreen() {
                 ? "Start your free trial to unlock crossposting & AI tools"
                 : totalCredits === 0
                   ? "No AI credits left — buy a top-up to keep using AI tools"
-                  : "Smart AI credits — BG removal costs 1, other tools cost 5"}
+                  : "Smart AI credits — BG removal costs 1, other tools cost 10"}
             </Text>
           </View>
         ) : null}
