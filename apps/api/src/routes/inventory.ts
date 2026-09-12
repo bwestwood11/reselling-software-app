@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { InventoryService } from "../services/inventory.service";
 import { SubscriptionService } from "../services/subscription.service";
+import { ListingService } from "../services/listing.service";
 import { getPrefillProvider } from "../services/prefill/factory.js";
 
 const imageSchema = z.object({
@@ -50,11 +51,15 @@ const markSoldSchema = z.object({
   soldVia: z.string().max(255).nullable().optional(),
   soldNote: z.string().max(2000).nullable().optional(),
   soldAt: z.string().datetime().optional(),
+  // Listing ids the user explicitly chose to delist from other marketplaces —
+  // selling one place doesn't imply the others should go dark automatically.
+  delistListingIds: z.array(z.string()).optional(),
 });
 
 export async function inventoryRoutes(fastify: FastifyInstance) {
   const svc = new InventoryService(fastify.prisma);
   const subSvc = new SubscriptionService(fastify.prisma);
+  const listingSvc = new ListingService(fastify.prisma);
 
   // GET /api/inventory
   fastify.get(
@@ -179,7 +184,29 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
       if (!item) {
         return reply.status(404).send({ success: false, error: "Item not found" });
       }
-      return reply.send({ success: true, data: item });
+
+      // Delist only the listings the user explicitly picked — never assumed.
+      // Each is best-effort so one marketplace failing doesn't block the sale
+      // from being recorded; failures are reported back instead.
+      let delistResults: Array<{ id: string; success: boolean; error?: string }> | undefined;
+      if (body.delistListingIds?.length) {
+        delistResults = await Promise.all(
+          body.delistListingIds.map(async (listingId) => {
+            try {
+              await listingSvc.delist(listingId, request.user!.id);
+              return { id: listingId, success: true };
+            } catch (err) {
+              return {
+                id: listingId,
+                success: false,
+                error: err instanceof Error ? err.message : "Delist failed",
+              };
+            }
+          })
+        );
+      }
+
+      return reply.send({ success: true, data: item, delistResults });
     }
   );
 

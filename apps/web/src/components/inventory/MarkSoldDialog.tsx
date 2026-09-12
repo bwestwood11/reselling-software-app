@@ -3,12 +3,21 @@
 import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@repo/ui";
 import { Textarea } from "@/components/ui/textarea";
-import { X, DollarSign } from "lucide-react";
+import { getMarketplaceLabel } from "@repo/utils";
+import type { MarketplaceType } from "@repo/types";
+import { X, DollarSign, Store } from "lucide-react";
 
 export interface MarkSoldValues {
   soldPrice: number;
   soldVia?: string | null;
   soldNote?: string | null;
+  /** Listing ids the user explicitly chose to delist from their marketplace. */
+  delistListingIds?: string[];
+}
+
+export interface ActiveListingOption {
+  id: string;
+  marketplace: MarketplaceType | string;
 }
 
 interface MarkSoldDialogProps {
@@ -25,6 +34,8 @@ interface MarkSoldDialogProps {
   defaultNote?: string | null;
   /** Hide the channel field (e.g. when the channel is fixed to a marketplace). */
   hideChannel?: boolean;
+  /** Other still-active listings for this item — offered as an explicit delist choice, never assumed. */
+  activeListings?: ActiveListingOption[];
 }
 
 export function MarkSoldDialog({
@@ -37,23 +48,39 @@ export function MarkSoldDialog({
   defaultChannel,
   defaultNote,
   hideChannel,
+  activeListings = [],
 }: MarkSoldDialogProps) {
   const [price, setPrice] = useState("");
   const [channel, setChannel] = useState("");
   const [note, setNote] = useState("");
+  const [delistIds, setDelistIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (open) {
       setPrice(defaultPrice != null ? String(defaultPrice) : "");
       setChannel(defaultChannel ?? "");
       setNote(defaultNote ?? "");
+      // Default to delisting everywhere — selling one place rarely means the
+      // rest should stay live — but every box stays a conscious, uncheckable choice.
+      setDelistIds(new Set(activeListings.map((l) => l.id)));
     }
+    // activeListings is derived from the item on every render; only reset off `open`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultPrice, defaultChannel, defaultNote]);
 
   if (!open) return null;
 
   const parsedPrice = parseFloat(price);
   const priceValid = price.trim() !== "" && !Number.isNaN(parsedPrice) && parsedPrice >= 0;
+
+  function toggleDelist(id: string) {
+    setDelistIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +89,7 @@ export function MarkSoldDialog({
       soldPrice: parsedPrice,
       soldVia: hideChannel ? undefined : channel.trim() || null,
       soldNote: note.trim() || null,
+      delistListingIds: activeListings.length ? Array.from(delistIds) : undefined,
     });
   }
 
@@ -131,15 +159,39 @@ export function MarkSoldDialog({
             />
           </div>
 
+          {activeListings.length > 0 && (
+            <div className="space-y-1.5 rounded-lg border border-orange-200 bg-orange-50/60 p-3">
+              <Label className="flex items-center gap-1.5 text-zinc-800">
+                <Store className="h-3.5 w-3.5" />
+                Still live on {activeListings.length} platform{activeListings.length > 1 ? "s" : ""}
+              </Label>
+              <p className="text-xs text-zinc-500">
+                Choose which listings to take down now, so it can't sell twice.
+              </p>
+              <div className="mt-1.5 space-y-1.5">
+                {activeListings.map((listing) => (
+                  <label
+                    key={listing.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm text-zinc-700 hover:bg-white/70"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={delistIds.has(listing.id)}
+                      onChange={() => toggleDelist(listing.id)}
+                      className="h-4 w-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-400"
+                    />
+                    Delist from {getMarketplaceLabel(listing.marketplace as MarketplaceType)}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!priceValid || isPending}
-              className="bg-emerald-600 text-white hover:bg-emerald-500"
-            >
+            <Button type="submit" disabled={!priceValid || isPending}>
               {isPending ? "Saving…" : "Mark sold"}
             </Button>
           </div>

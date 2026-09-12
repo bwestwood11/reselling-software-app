@@ -59,11 +59,31 @@ export function useMarkInventorySold() {
       soldVia?: string | null;
       soldNote?: string | null;
       soldAt?: string;
+      delistListingIds?: string[];
     }) => inventoryApi.markSold(id, body),
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["sources"] });
-      toast.success("Marked as sold");
+
+      const results = res?.delistResults as
+        | Array<{ id: string; success: boolean; error?: string }>
+        | undefined;
+      if (results?.length) {
+        const failed = results.filter((r) => !r.success);
+        if (failed.length === 0) {
+          toast.success(
+            results.length === 1 ? "Marked as sold and delisted" : `Marked as sold and delisted from ${results.length} platforms`
+          );
+        } else if (failed.length === results.length) {
+          toast.warning("Marked as sold, but delisting failed everywhere — delist manually from the listing.");
+        } else {
+          toast.warning(
+            `Marked as sold. ${results.length - failed.length} platform(s) delisted, ${failed.length} failed — delist those manually.`
+          );
+        }
+      } else {
+        toast.success("Marked as sold");
+      }
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "Failed to mark as sold");

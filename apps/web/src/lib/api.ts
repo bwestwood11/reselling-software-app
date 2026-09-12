@@ -68,7 +68,14 @@ export const inventoryApi = {
     }),
   markSold: (
     id: string,
-    body: { soldPrice: number; soldVia?: string | null; soldNote?: string | null; soldAt?: string }
+    body: {
+      soldPrice: number;
+      soldVia?: string | null;
+      soldNote?: string | null;
+      soldAt?: string;
+      /** Listing ids explicitly chosen to also delist from their marketplace. */
+      delistListingIds?: string[];
+    }
   ) =>
     request<any>(`/api/inventory/${id}/mark-sold`, {
       method: "POST",
