@@ -25,18 +25,29 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         activeListings,
         soldThisMonth,
         revenueResult,
+        soldCostRows,
         recentSyncEvents,
         listingsByMarketplace,
         inventoryStatusCounts,
       ] = await Promise.all([
         fastify.prisma.inventoryItem.count({ where: { userId } }),
         fastify.prisma.listing.count({ where: { userId, status: "ACTIVE" } }),
-        fastify.prisma.listing.count({
+        // Sold-ness lives on the inventory item, not the listing — a sale recorded
+        // manually (cash, an unconnected marketplace) has no Listing row at all, and
+        // one made through a tracked listing cascades onto the item too (see
+        // ListingService.markSold), so the item is the single source of truth here.
+        fastify.prisma.inventoryItem.count({
           where: { userId, status: "SOLD", soldAt: { gte: monthStart } },
         }),
-        fastify.prisma.listing.aggregate({
+        fastify.prisma.inventoryItem.aggregate({
           where: { userId, status: "SOLD" },
-          _sum: { price: true },
+          _sum: { soldPrice: true },
+        }),
+        // Cost of goods sold — costPrice × quantity can't be summed in one aggregate
+        // query, so pull the rows and multiply in JS (same approach as SourceService).
+        fastify.prisma.inventoryItem.findMany({
+          where: { userId, status: "SOLD" },
+          select: { costPrice: true, quantity: true },
         }),
         fastify.prisma.syncEvent.findMany({
           where: { listing: { userId } },
@@ -60,6 +71,12 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         status: row.status,
         count: row._count.id,
       }));
+
+      const totalRevenue = Number(revenueResult._sum.soldPrice ?? 0);
+      const totalCost = soldCostRows.reduce(
+        (sum, item) => sum + Number(item.costPrice ?? 0) * item.quantity,
+        0
+      );
 
       // Reshape marketplace counts
       const marketplaceMap: Record<
@@ -86,7 +103,9 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           totalInventory,
           activeListings,
           soldThisMonth,
-          totalRevenue: Number(revenueResult._sum.price ?? 0),
+          totalRevenue,
+          totalCost,
+          totalProfit: totalRevenue - totalCost,
           recentSyncEvents: recentSyncEvents.map((e) => ({
             id: e.id,
             listingId: e.listingId,
@@ -155,10 +174,13 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         rangeStart.setDate(rangeStart.getDate() - days);
       }
 
-      const [soldListings, createdListings] = await Promise.all([
-        fastify.prisma.listing.findMany({
+      const [soldItems, createdListings] = await Promise.all([
+        // Same reasoning as /stats: the inventory item is the canonical sold
+        // record, whether the sale came through a tracked listing or was logged
+        // manually with no listing at all.
+        fastify.prisma.inventoryItem.findMany({
           where: { userId, status: "SOLD", soldAt: { gte: rangeStart, lt: rangeEndExclusive } },
-          select: { price: true, soldAt: true },
+          select: { soldPrice: true, soldAt: true, quantity: true },
         }),
         fastify.prisma.listing.findMany({
           where: { userId, listedAt: { gte: rangeStart, lt: rangeEndExclusive } },
@@ -184,12 +206,12 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         }
       }
 
-      for (const listing of soldListings) {
-        if (!listing.soldAt) continue;
-        const bucket = bucketMap.get(keyOf(listing.soldAt));
+      for (const item of soldItems) {
+        if (!item.soldAt) continue;
+        const bucket = bucketMap.get(keyOf(item.soldAt));
         if (bucket) {
-          bucket.revenue += Number(listing.price);
-          bucket.unitsSold += 1;
+          bucket.revenue += Number(item.soldPrice ?? 0);
+          bucket.unitsSold += item.quantity ?? 1;
         }
       }
       for (const listing of createdListings) {

@@ -65,10 +65,14 @@ export class SourceService {
       }),
     ]);
 
-    type FlatStats = { totalCost: number; totalRevenue: number; directItemCount: number };
+    // `totalRevenue` is money actually collected (sold items only) — kept accurate
+    // as-is. `profit` blends that with the *potential* margin on unsold stock
+    // (target price − cost), so a folder full of not-yet-sold items reads as its
+    // projected margin instead of a loss equal to everything spent sourcing it.
+    type FlatStats = { totalCost: number; totalRevenue: number; projectedValue: number; directItemCount: number };
     const statsMap = new Map<string, FlatStats>();
     for (const src of sources) {
-      statsMap.set(src.id, { totalCost: 0, totalRevenue: 0, directItemCount: 0 });
+      statsMap.set(src.id, { totalCost: 0, totalRevenue: 0, projectedValue: 0, directItemCount: 0 });
     }
 
     for (const item of items) {
@@ -79,37 +83,49 @@ export class SourceService {
       if (item.status === "SOLD") {
         // Prefer the actual sale price (total received for the item). Fall back to
         // the target price for legacy sold items recorded before soldPrice existed.
-        if (item.soldPrice != null) {
-          s.totalRevenue += Number(item.soldPrice);
-        } else if (item.targetPrice) {
-          s.totalRevenue += Number(item.targetPrice) * item.quantity;
-        }
+        const revenue =
+          item.soldPrice != null
+            ? Number(item.soldPrice)
+            : item.targetPrice
+              ? Number(item.targetPrice) * item.quantity
+              : 0;
+        s.totalRevenue += revenue;
+        s.projectedValue += revenue;
+      } else if (item.targetPrice) {
+        s.projectedValue += Number(item.targetPrice) * item.quantity;
       }
     }
 
-    const buildTree = (parentId: string | null): SourceStats[] => {
+    // Each recursive call carries its subtree's projected value alongside the
+    // public SourceStats shape, so parents can roll it up without leaking an
+    // internal field into the API response.
+    const buildTree = (parentId: string | null): Array<{ stats: SourceStats; projectedValue: number }> => {
       return sources
         .filter((s) => s.parentId === parentId)
         .map((s) => {
-          const children = buildTree(s.id);
+          const childNodes = buildTree(s.id);
           const direct = statsMap.get(s.id)!;
-          const totalCost = direct.totalCost + children.reduce((a, c) => a + c.totalCost, 0);
-          const totalRevenue = direct.totalRevenue + children.reduce((a, c) => a + c.totalRevenue, 0);
-          const itemCount = direct.directItemCount + children.reduce((a, c) => a + c.itemCount, 0);
+          const totalCost = direct.totalCost + childNodes.reduce((a, c) => a + c.stats.totalCost, 0);
+          const totalRevenue = direct.totalRevenue + childNodes.reduce((a, c) => a + c.stats.totalRevenue, 0);
+          const projectedValue = direct.projectedValue + childNodes.reduce((a, c) => a + c.projectedValue, 0);
+          const itemCount = direct.directItemCount + childNodes.reduce((a, c) => a + c.stats.itemCount, 0);
           return {
-            id: s.id,
-            name: s.name,
-            parentId: s.parentId,
-            itemCount,
-            totalCost,
-            totalRevenue,
-            profit: totalRevenue - totalCost,
-            children,
+            stats: {
+              id: s.id,
+              name: s.name,
+              parentId: s.parentId,
+              itemCount,
+              totalCost,
+              totalRevenue,
+              profit: projectedValue - totalCost,
+              children: childNodes.map((c) => c.stats),
+            },
+            projectedValue,
           };
         });
     };
 
-    return buildTree(null);
+    return buildTree(null).map((n) => n.stats);
   }
 
   private async _isDescendant(candidateId: string, ancestorId: string, userId: string): Promise<boolean> {

@@ -177,6 +177,10 @@ export interface DashboardStats {
   activeListings: number;
   soldThisMonth: number;
   totalRevenue: number;
+  /** Cost of goods sold (sum of costPrice × quantity across all-time SOLD items). */
+  totalCost: number;
+  /** totalRevenue − totalCost, all-time, across all SOLD items. */
+  totalProfit: number;
   recentSyncEvents: SyncEventSummary[];
   listingsByMarketplace: MarketplaceCount[];
   /** Inventory item counts grouped by status — a part-to-whole breakdown of the catalog. */
