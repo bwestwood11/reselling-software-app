@@ -280,6 +280,27 @@ export const uploadApi = {
 
     return (data as { data: { url: string; key: string } }).data;
   },
+
+  /** Re-runs an AI photo tool on an image that's already been uploaded (e.g. an existing inventory photo). */
+  reprocessImage: async (
+    url: string,
+    options: { removeBackground?: boolean; flatLay?: boolean; ironing?: boolean; ghostMannequin?: boolean }
+  ): Promise<{ url: string; key: string }> => {
+    const res = await fetch(`${API_BASE}/api/upload/reprocess`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, options }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new ApiError(res.status, data.error ?? "AI edit failed", data);
+    }
+
+    return (data as { data: { url: string; key: string } }).data;
+  },
 };
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────

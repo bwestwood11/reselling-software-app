@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 import { SourceSelect } from "@/components/ui/source-select";
-import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
+import { PhotoToolbar, PhotoAIMenu } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
 
@@ -67,10 +67,13 @@ interface ImageSlot {
   key?: string;
   uploading: boolean;
   error?: string;
+  /** True while an AI photo tool is being applied to this already-uploaded image. */
+  processing?: boolean;
 }
 
 export default function NewInventoryItemPage(): import("react").JSX.Element {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const createMutation = useCreateInventoryItem();
 
   const { data: subData } = useQuery<{ data: SubscriptionInfo }>({
@@ -183,6 +186,40 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     );
   }
 
+  /** Runs a single AI photo tool on an already-uploaded image, replacing it in place. */
+  async function applyAiToolToImage(index: number, key: keyof EditOptions) {
+    const slot = images[index];
+    if (!slot?.url || slot.uploading || slot.processing) return;
+
+    setImages((prev) => {
+      const next = [...prev];
+      const existing = next[index];
+      if (existing) next[index] = { ...existing, processing: true, error: undefined };
+      return next;
+    });
+
+    try {
+      const { url, key: s3Key } = await uploadApi.reprocessImage(slot.url, { [key]: true });
+      setImages((prev) => {
+        const next = [...prev];
+        const existing = next[index];
+        if (existing) next[index] = { ...existing, preview: url, url, key: s3Key, processing: false };
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      toast.success("Photo updated");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "AI edit failed";
+      setImages((prev) => {
+        const next = [...prev];
+        const existing = next[index];
+        if (existing) next[index] = { ...existing, processing: false };
+        return next;
+      });
+      toast.error(message);
+    }
+  }
+
   async function downloadImage(url: string, index: number) {
     try {
       const res = await fetch(url);
@@ -256,6 +293,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
   }
 
   const uploading = images.some((s) => s?.uploading);
+  const processingPhoto = images.some((s) => s?.processing);
 
   async function onSubmit(values: FormValues) {
     const payload = {
@@ -275,7 +313,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
     router.push("/inventory");
   }
 
-  const busy = isSubmitting || createMutation.isPending || uploading;
+  const busy = isSubmitting || createMutation.isPending || uploading || processingPhoto;
   const filledCount = images.filter((s) => s?.url).length;
 
   return (
@@ -564,6 +602,12 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                             <Loader2 className="h-5 w-5 animate-spin text-white" />
                           </div>
                         )}
+                        {slot.processing && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-black/50">
+                            <Loader2 className="h-5 w-5 animate-spin text-white" />
+                            <span className="text-[10px] font-medium text-white">Applying AI edit…</span>
+                          </div>
+                        )}
                         {slot.error && (
                           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60 p-1">
                             <span className="text-center text-[10px] leading-tight text-white">{slot.error}</span>
@@ -591,6 +635,15 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        {slot.url && !slot.uploading && !slot.error && (
+                          <span className="absolute left-1.5 top-1.5">
+                            <PhotoAIMenu
+                              subscription={subscription}
+                              applying={!!slot.processing}
+                              onSelect={(key) => void applyAiToolToImage(i, key)}
+                            />
+                          </span>
+                        )}
                         {slot.url && !slot.uploading && !slot.error && (
                           <button
                             type="button"
@@ -637,7 +690,8 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                 </PhotoProvider>
 
                 <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                  Drag to reorder · click a slot to add photos · ★ to make primary.
+                  Drag to reorder · click a slot to add photos · ★ to make primary · hover a photo and tap
+                  the wand to edit it with AI.
                 </p>
               </section>
 
@@ -649,7 +703,7 @@ export default function NewInventoryItemPage(): import("react").JSX.Element {
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {uploading ? "Uploading photos…" : "Save item"}
+                  {uploading || processingPhoto ? "Processing photos…" : "Save item"}
                 </button>
                 <Link
                   href="/inventory"

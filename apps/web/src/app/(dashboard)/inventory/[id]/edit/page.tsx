@@ -3,7 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,13 +18,14 @@ import {
   Button,
 } from "@repo/ui";
 import { ArrowLeft, Camera, Download, Loader2, Plus, Star, X, Package } from "lucide-react";
+import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useInventoryItem, useUpdateInventoryItem } from "@/hooks/use-inventory";
 import { uploadApi, subscriptionApi } from "@/lib/api";
 import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 import { SourceSelect } from "@/components/ui/source-select";
-import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
+import { PhotoToolbar, PhotoAIMenu } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
 
@@ -64,6 +65,8 @@ interface ImageSlot {
   s3Url?: string;
   uploading: boolean;
   error?: string;
+  /** True while an AI photo tool is being applied to this already-uploaded image. */
+  processing?: boolean;
 }
 
 async function compressImage(file: File): Promise<string> {
@@ -104,6 +107,7 @@ export default function EditInventoryItemPage({
 }): import("react").JSX.Element {
   const { id } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useInventoryItem(id);
   const updateMutation = useUpdateInventoryItem(id);
 
@@ -279,6 +283,40 @@ export default function EditInventoryItemPage({
     }
   }
 
+  /** Runs a single AI photo tool on an already-uploaded image, replacing it in place. */
+  async function applyAiToolToImage(index: number, key: keyof EditOptions) {
+    const slot = images[index];
+    const sourceUrl = slot?.s3Url;
+    if (!slot || !sourceUrl || slot.uploading || slot.processing) return;
+
+    setImages((prev) => {
+      const next = [...prev];
+      const existing = next[index];
+      if (existing) next[index] = { ...existing, processing: true, error: undefined };
+      return next;
+    });
+
+    try {
+      const { url } = await uploadApi.reprocessImage(sourceUrl, { [key]: true });
+      setImages((prev) => {
+        const next = [...prev];
+        next[index] = { src: url, s3Url: url, uploading: false, processing: false };
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      toast.success("Photo updated");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "AI edit failed";
+      setImages((prev) => {
+        const next = [...prev];
+        const existing = next[index];
+        if (existing) next[index] = { ...existing, processing: false };
+        return next;
+      });
+      toast.error(message);
+    }
+  }
+
   async function downloadImage(url: string, index: number) {
     try {
       const res = await fetch(url);
@@ -359,7 +397,8 @@ export default function EditInventoryItemPage({
   }
 
   const uploading = images.some((s) => s?.uploading);
-  const busy = isSubmitting || updateMutation.isPending || uploading;
+  const processingPhoto = images.some((s) => s?.processing);
+  const busy = isSubmitting || updateMutation.isPending || uploading || processingPhoto;
   const filledCount = images.filter((s) => s && !s.uploading).length;
 
   return (
@@ -577,6 +616,12 @@ export default function EditInventoryItemPage({
                             <Loader2 className="h-5 w-5 animate-spin text-white" />
                           </div>
                         )}
+                        {slot.processing && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-black/50">
+                            <Loader2 className="h-5 w-5 animate-spin text-white" />
+                            <span className="text-[10px] font-medium text-white">Applying AI edit…</span>
+                          </div>
+                        )}
                         {slot.error && (
                           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60 p-1">
                             <span className="text-center text-[10px] leading-tight text-white">{slot.error}</span>
@@ -604,6 +649,15 @@ export default function EditInventoryItemPage({
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        {slot.s3Url && !slot.uploading && !slot.error && (
+                          <span className="absolute left-1.5 top-1.5">
+                            <PhotoAIMenu
+                              subscription={subscription}
+                              applying={!!slot.processing}
+                              onSelect={(key) => void applyAiToolToImage(i, key)}
+                            />
+                          </span>
+                        )}
                         {!slot.uploading && !slot.error && !slot.src.startsWith("blob:") && (
                           <button
                             type="button"
@@ -647,7 +701,8 @@ export default function EditInventoryItemPage({
                 </div>
 
                 <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                  Drag to reorder · click a slot to add photos · ★ to make primary.
+                  Drag to reorder · click a slot to add photos · ★ to make primary · hover a photo and tap
+                  the wand to edit it with AI.
                 </p>
               </section>
 
@@ -658,7 +713,7 @@ export default function EditInventoryItemPage({
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {uploading ? "Processing photos…" : "Save changes"}
+                  {uploading || processingPhoto ? "Processing photos…" : "Save changes"}
                 </button>
                 <Link
                   href={`/inventory/${id}`}

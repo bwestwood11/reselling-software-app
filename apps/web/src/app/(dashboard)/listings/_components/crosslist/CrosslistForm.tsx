@@ -56,6 +56,7 @@ export function CrosslistForm(props: CrosslistFormProps) {
             onFilesSelected={cf.onFilesSelected}
             removeImage={cf.removeImage}
             addImageSlot={cf.addImageSlot}
+            onApplyAiTool={cf.applyAiToolToImage}
             handleDragStart={cf.handleDragStart}
             handleDragOver={cf.handleDragOver}
             handleDrop={cf.handleDrop}
@@ -63,6 +64,7 @@ export function CrosslistForm(props: CrosslistFormProps) {
             makePrimary={cf.makePrimary}
             filledImageCount={cf.filledImageCount}
             uploadingImages={cf.uploadingImages}
+            processingImages={cf.processingImages}
             isGeneratingDescription={cf.isGeneratingDescription}
             handleGenerateDescription={cf.handleGenerateDescription}
             MAX_IMAGES={cf.MAX_IMAGES}

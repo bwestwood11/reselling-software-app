@@ -182,4 +182,119 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       return reply.status(201).send({ success: true, data: { url, key } });
     }
   );
+
+  // POST /api/upload/reprocess
+  // Applies PhotoRoom v2 edits to an image the user has already uploaded
+  // (e.g. an existing inventory photo), instead of a freshly-picked file.
+  // Body: { url: string, options: { removeBackground?, flatLay?, ironing?, ghostMannequin? } }
+  // Billed the same as a fresh upload — see photoEditCreditCost.
+  fastify.post(
+    "/reprocess",
+    { preHandler: [requireAuth, requireActiveSubscription] },
+    async (request, reply) => {
+      if (!BUCKET) {
+        return reply
+          .status(500)
+          .send({ success: false, error: "S3 is not configured on this server." });
+      }
+
+      const userId = request.user!.id;
+      const payload = request.body as {
+        url?: string;
+        options?: Partial<PhotoroomEditOptions>;
+      };
+
+      const sourceUrl = payload?.url;
+      if (!sourceUrl || typeof sourceUrl !== "string") {
+        return reply.status(400).send({ success: false, error: "No image url provided." });
+      }
+
+      // Only allow reprocessing images this user already owns in our bucket.
+      const allowedPrefix = `https://${BUCKET}.s3.${REGION}.amazonaws.com/inventory/${userId}/`;
+      if (!sourceUrl.startsWith(allowedPrefix)) {
+        return reply
+          .status(403)
+          .send({ success: false, error: "You can only edit your own photos." });
+      }
+
+      const editOptions: PhotoroomEditOptions = {
+        removeBackground: payload.options?.removeBackground === true,
+        flatLay: payload.options?.flatLay === true,
+        ironing: payload.options?.ironing === true,
+        ghostMannequin: payload.options?.ghostMannequin === true,
+      };
+      const usePhotoroom =
+        editOptions.removeBackground || editOptions.flatLay || editOptions.ironing || editOptions.ghostMannequin;
+
+      if (!usePhotoroom) {
+        return reply.status(400).send({ success: false, error: "Select at least one AI photo tool." });
+      }
+
+      // ── Credit pre-check ──────────────────────────────────────────────────────
+      const creditCost = photoEditCreditCost(editOptions);
+      const subSvc = new SubscriptionService(fastify.prisma);
+      if (creditCost > 0) {
+        const ok = await subSvc.checkAiCredits(userId, creditCost);
+        if (!ok) {
+          return reply.status(403).send({
+            success: false,
+            error:
+              "You don't have enough smart AI credits for this edit. Upgrade your plan or buy a top-up.",
+          });
+        }
+      }
+
+      // ── Fetch the existing image ──────────────────────────────────────────────
+      let sourceBuffer: Buffer;
+      let sourceMimeType: string;
+      try {
+        const res = await fetch(sourceUrl);
+        if (!res.ok) throw new Error(`Could not load the source image (${res.status}).`);
+        sourceMimeType = res.headers.get("content-type") ?? "image/jpeg";
+        sourceBuffer = Buffer.from(await res.arrayBuffer());
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not load the source image.";
+        return reply.status(400).send({ success: false, error: message });
+      }
+
+      // ── Call PhotoRoom ────────────────────────────────────────────────────────
+      let processed: Buffer;
+      try {
+        processed = await callPhotoroomV2(sourceBuffer, sourceMimeType, editOptions);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "PhotoRoom processing failed";
+        return reply.status(502).send({ success: false, error: message });
+      }
+
+      if (creditCost > 0) {
+        const effects = [
+          editOptions.removeBackground && "background removal",
+          editOptions.ghostMannequin && "ghost mannequin",
+          editOptions.flatLay && "flat lay",
+          editOptions.ironing && "iron tool",
+        ].filter(Boolean);
+        try {
+          await subSvc.deductAiCredits(userId, creditCost, `AI photo edit — ${effects.join(", ")}`);
+        } catch (err) {
+          fastify.log.error({ err }, "[upload/reprocess] Credit deduction failed after PhotoRoom success");
+          // Non-fatal: image was processed successfully, don't fail the request
+        }
+      }
+
+      // ── Upload the edited result as a new object ──────────────────────────────
+      const key = `inventory/${userId}/${randomUUID()}.png`;
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: key,
+          Body: processed,
+          ContentType: "image/png",
+        })
+      );
+
+      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+      return reply.status(201).send({ success: true, data: { url, key } });
+    }
+  );
 }

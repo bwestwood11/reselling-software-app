@@ -8,7 +8,7 @@ import { MercariBrandCombobox } from "@/components/ui/mercari-brand-combobox";
 import { MercariCategoryCombobox } from "@/components/ui/mercari-category-combobox";
 import { SourceSelect } from "@/components/ui/source-select";
 import { Textarea } from "@/components/ui/textarea";
-import { PhotoToolbar } from "@/components/inventory/PhotoToolbar";
+import { PhotoToolbar, PhotoAIMenu } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
 import type { CrosslistFormValues, CrosslistFormInput } from "../crosslist-form-schema";
@@ -21,6 +21,8 @@ interface ImageSlot {
   key?: string;
   uploading: boolean;
   error?: string;
+  /** True while an AI photo tool is being applied to this already-uploaded image. */
+  processing?: boolean;
 }
 
 interface Props {
@@ -35,6 +37,7 @@ interface Props {
   onFilesSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
   removeImage: (index: number) => void;
   addImageSlot: () => void;
+  onApplyAiTool: (index: number, key: keyof EditOptions) => void;
   handleDragStart: (e: React.DragEvent, index: number) => void;
   handleDragOver: (e: React.DragEvent, index: number) => void;
   handleDrop: (e: React.DragEvent, index: number) => void;
@@ -42,6 +45,7 @@ interface Props {
   makePrimary: (index: number) => void;
   filledImageCount: number;
   uploadingImages: boolean;
+  processingImages: boolean;
   isGeneratingDescription: boolean;
   handleGenerateDescription: () => void;
   MAX_IMAGES: number;
@@ -74,6 +78,7 @@ export function NewItemFields({
   onFilesSelected,
   removeImage,
   addImageSlot,
+  onApplyAiTool,
   handleDragStart,
   handleDragOver,
   handleDrop,
@@ -81,6 +86,7 @@ export function NewItemFields({
   makePrimary,
   filledImageCount,
   uploadingImages,
+  processingImages,
   isGeneratingDescription,
   handleGenerateDescription,
   MAX_IMAGES,
@@ -297,6 +303,12 @@ export function NewItemFields({
                       <Loader2 className="h-5 w-5 animate-spin text-white" />
                     </div>
                   )}
+                  {slot.processing && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-black/50">
+                      <Loader2 className="h-5 w-5 animate-spin text-white" />
+                      <span className="text-[10px] font-medium text-white">Applying AI edit…</span>
+                    </div>
+                  )}
                   {slot.error && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60 p-1">
                       <span className="text-center text-[10px] leading-tight text-white">{slot.error}</span>
@@ -324,6 +336,15 @@ export function NewItemFields({
                   >
                     <X className="h-3 w-3" />
                   </button>
+                  {slot.url && !slot.uploading && !slot.error && (
+                    <span className="absolute left-1.5 top-1.5">
+                      <PhotoAIMenu
+                        subscription={subscription}
+                        applying={!!slot.processing}
+                        onSelect={(key) => onApplyAiTool(i, key)}
+                      />
+                    </span>
+                  )}
                   {slot.url && !slot.uploading && !slot.error && (
                     <button
                       type="button"
@@ -368,8 +389,10 @@ export function NewItemFields({
         </PhotoProvider>
 
         <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-          Drag to reorder · click a slot to add photos · ★ to make primary.
+          Drag to reorder · click a slot to add photos · ★ to make primary · hover a photo and tap the
+          wand to edit it with AI.
           {uploadingImages && " Uploading…"}
+          {processingImages && " Applying AI edit…"}
         </p>
       </section>
     </>

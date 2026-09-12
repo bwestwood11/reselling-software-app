@@ -44,6 +44,8 @@ interface ImageSlot {
   key?: string;
   uploading: boolean;
   error?: string;
+  /** True while an AI photo tool is being applied to this already-uploaded image. */
+  processing?: boolean;
 }
 
 const ELIGIBLE_MARKETPLACES = new Set(["EBAY", "MERCARI", "POSHMARK"]);
@@ -607,6 +609,40 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     setImages((prev) => [...prev, undefined]);
   }
 
+  /** Runs a single AI photo tool on an already-uploaded image, replacing it in place. */
+  async function applyAiToolToImage(index: number, toolKey: keyof EditOptions) {
+    const slot = images[index];
+    if (!slot?.url || slot.uploading || slot.processing) return;
+
+    setImages((prev) => {
+      const next = [...prev];
+      const existing = next[index];
+      if (existing) next[index] = { ...existing, processing: true, error: undefined };
+      return next;
+    });
+
+    try {
+      const { url, key: s3Key } = await uploadApi.reprocessImage(slot.url, { [toolKey]: true });
+      setImages((prev) => {
+        const next = [...prev];
+        const existing = next[index];
+        if (existing) next[index] = { ...existing, preview: url, url, key: s3Key, processing: false };
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      toast.success("Photo updated");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "AI edit failed";
+      setImages((prev) => {
+        const next = [...prev];
+        const existing = next[index];
+        if (existing) next[index] = { ...existing, processing: false };
+        return next;
+      });
+      toast.error(message);
+    }
+  }
+
   function handleDragStart(e: React.DragEvent, index: number) {
     draggedIndexRef.current = index;
     e.dataTransfer.effectAllowed = "move";
@@ -646,6 +682,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
   const filledImageCount = images.filter((s) => s?.url).length;
   const uploadingImages = images.some((s) => s?.uploading);
+  const processingImages = images.some((s) => s?.processing);
 
   async function handleGenerateDescription() {
     const urls = images.filter((s) => s?.url).map((s) => s!.url!);
@@ -1003,7 +1040,11 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
   }
 
   const busy =
-    formState.isSubmitting || createItemMutation.isPending || crosslistMutation.isPending || isPublishing;
+    formState.isSubmitting ||
+    createItemMutation.isPending ||
+    crosslistMutation.isPending ||
+    isPublishing ||
+    processingImages;
 
   return {
     // Form
@@ -1055,6 +1096,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     onFilesSelected,
     removeImage,
     addImageSlot,
+    applyAiToolToImage,
     handleDragStart,
     handleDragOver,
     handleDrop,
@@ -1062,6 +1104,7 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
     makePrimary,
     filledImageCount,
     uploadingImages,
+    processingImages,
     isGeneratingDescription,
     handleGenerateDescription,
     MAX_IMAGES,
