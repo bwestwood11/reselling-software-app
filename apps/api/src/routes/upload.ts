@@ -5,17 +5,36 @@ import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import { photoEditCreditCost } from "../config/plans";
 
+// Optional S3-compatible endpoint override (e.g. a local MinIO instance for dev) —
+// unset in production, where the real AWS endpoint + virtual-hosted-style URLs are used.
+const S3_ENDPOINT = process.env.AWS_S3_ENDPOINT || undefined;
+
 const s3 = new S3Client({
   region: process.env.AWS_REGION ?? "us-east-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
   },
+  ...(S3_ENDPOINT ? { endpoint: S3_ENDPOINT, forcePathStyle: true } : {}),
 });
 
 const BUCKET = process.env.AWS_S3_BUCKET ?? "";
 const REGION = process.env.AWS_REGION ?? "us-east-1";
 const PHOTOROOM_V2_URL = "https://image-api.photoroom.com/v2/edit";
+
+// Public base URL objects are served from. Defaults to the standard AWS
+// virtual-hosted-style URL; overridable for a local/MinIO S3-compatible setup via
+// AWS_S3_PUBLIC_URL (e.g. http://localhost:9000/relist-inventory), which also covers
+// the path-style layout MinIO uses.
+const PUBLIC_BASE_URL =
+  process.env.AWS_S3_PUBLIC_URL?.replace(/\/$/, "") ||
+  (S3_ENDPOINT
+    ? `${S3_ENDPOINT.replace(/\/$/, "")}/${BUCKET}`
+    : `https://${BUCKET}.s3.${REGION}.amazonaws.com`);
+
+function publicUrlFor(key: string): string {
+  return `${PUBLIC_BASE_URL}/${key}`;
+}
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -178,7 +197,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         })
       );
 
-      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+      const url = publicUrlFor(key);
       return reply.status(201).send({ success: true, data: { url, key } });
     }
   );
@@ -210,7 +229,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       }
 
       // Only allow reprocessing images this user already owns in our bucket.
-      const allowedPrefix = `https://${BUCKET}.s3.${REGION}.amazonaws.com/inventory/${userId}/`;
+      const allowedPrefix = `${PUBLIC_BASE_URL}/inventory/${userId}/`;
       if (!sourceUrl.startsWith(allowedPrefix)) {
         return reply
           .status(403)
@@ -293,7 +312,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         })
       );
 
-      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+      const url = publicUrlFor(key);
       return reply.status(201).send({ success: true, data: { url, key } });
     }
   );
