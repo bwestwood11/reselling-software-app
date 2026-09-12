@@ -1,26 +1,37 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { dashboardApi } from "@/lib/api";
 import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 import { useSession } from "@repo/auth/client";
-import { Card, CardContent, CardHeader, CardTitle, Badge } from "@repo/ui";
+import { Card, CardContent, Badge } from "@repo/ui";
 import {
   Package,
   Tag,
-  DollarSign,
-  TrendingUp,
   RefreshCw,
-  Boxes,
   Plus,
   Store,
   ChevronRight,
   BarChart3,
-  Layers,
 } from "lucide-react";
 import type { DashboardStats, DashboardTrend, InventoryStatus, TrendPreset } from "@repo/types";
+
+/** A section's only chrome: a small orange mark, a sentence-case name, one hairline —
+ * no icon, no gradient band. Reused everywhere below the hero so the page reads as
+ * one ruled sheet instead of a stack of identically-decorated cards. */
+function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-6 py-4">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
+        {title}
+      </h2>
+      {action}
+    </div>
+  );
+}
 
 export default function DashboardPage(): import("react").JSX.Element {
   const { data: sessionData } = useSession();
@@ -79,35 +90,17 @@ export default function DashboardPage(): import("react").JSX.Element {
         </div>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Inventory"
-          value={stats?.totalInventory ?? 0}
-          caption="In your catalog"
-          Icon={Package}
-          color="orange"
-        />
-        <StatCard
-          title="Active Listings"
-          value={stats?.activeListings ?? 0}
-          caption="Currently live"
-          Icon={Tag}
-          color="amber"
-        />
-        <StatCard
-          title="Sold This Month"
-          value={stats?.soldThisMonth ?? 0}
-          caption="Since the 1st"
-          Icon={TrendingUp}
-          color="gold"
-        />
-        <StatCard
-          title="Total Revenue"
+      {/* Stat strip — one ruled row instead of four identically-decorated cards */}
+      <div className="grid grid-cols-2 gap-y-6 rounded-2xl border border-zinc-200/80 bg-white px-6 py-6 shadow-sm sm:grid-cols-4 sm:gap-y-0 sm:divide-x sm:divide-zinc-200">
+        <LedgerStat label="Total inventory" value={String(stats?.totalInventory ?? 0)} caption="In your catalog" />
+        <LedgerStat label="Active listings" value={String(stats?.activeListings ?? 0)} caption="Currently live" />
+        <LedgerStat label="Sold this month" value={String(stats?.soldThisMonth ?? 0)} caption="Since the 1st" />
+        <LedgerStat
+          label="Total revenue"
           value={formatCurrency(stats?.totalRevenue ?? 0)}
           caption="All-time"
-          Icon={DollarSign}
-          color="orange"
+          accent
+          tooltip={<RevenueTooltip stats={stats} />}
         />
       </div>
 
@@ -118,12 +111,7 @@ export default function DashboardPage(): import("react").JSX.Element {
         <div className="space-y-6">
           {/* Listings by marketplace */}
           <Card className="overflow-hidden border-zinc-200/80 bg-white shadow-sm">
-            <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 to-amber-50/70">
-              <CardTitle className="flex items-center gap-2 text-base text-zinc-900">
-                <Boxes className="h-4 w-4 text-orange-700" />
-                Listings by Marketplace
-              </CardTitle>
-            </CardHeader>
+            <SectionHeader title="Listings by marketplace" />
             <CardContent className="pt-5">
               <MarketplaceBarChart data={stats?.listingsByMarketplace ?? []} />
             </CardContent>
@@ -131,12 +119,7 @@ export default function DashboardPage(): import("react").JSX.Element {
 
           {/* Inventory pipeline */}
           <Card className="overflow-hidden border-zinc-200/80 bg-white shadow-sm">
-            <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 to-amber-50/70">
-              <CardTitle className="flex items-center gap-2 text-base text-zinc-900">
-                <Layers className="h-4 w-4 text-orange-700" />
-                Inventory Pipeline
-              </CardTitle>
-            </CardHeader>
+            <SectionHeader title="Inventory pipeline" />
             <CardContent className="pt-5">
               <InventoryPipelineChart data={stats?.inventoryByStatus ?? []} />
             </CardContent>
@@ -145,12 +128,7 @@ export default function DashboardPage(): import("react").JSX.Element {
 
         {/* Quick actions */}
         <Card className="overflow-hidden border-zinc-200/80 bg-white shadow-sm">
-          <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 to-amber-50/70">
-            <CardTitle className="flex items-center gap-2 text-base text-zinc-900">
-              <Plus className="h-4 w-4 text-orange-700" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
+          <SectionHeader title="Quick actions" />
           <CardContent className="space-y-2.5 pt-5">
             <QuickAction
               href="/inventory/new"
@@ -215,52 +193,74 @@ function QuickAction({
 
 // ─── Stat card ──────────────────────────────────────────────────────────────────
 
-function StatCard({
-  title,
+function LedgerStat({
+  label,
   value,
   caption,
-  Icon,
-  color,
+  accent,
+  tooltip,
 }: {
-  title: string;
-  value: string | number;
+  label: string;
+  value: string;
   caption: string;
-  Icon: React.ElementType;
-  color: "orange" | "amber" | "gold";
+  accent?: boolean;
+  /** Extra detail revealed on hover — e.g. cost/profit behind a revenue total — instead of a permanent breakdown. */
+  tooltip?: ReactNode;
 }) {
-  const colorMap = {
-    orange: {
-      icon: "bg-orange-100 text-orange-700",
-      glow: "from-orange-500/20 to-amber-500/15",
-    },
-    amber: {
-      icon: "bg-amber-100 text-amber-700",
-      glow: "from-amber-500/20 to-orange-500/12",
-    },
-    gold: {
-      icon: "bg-yellow-100 text-yellow-700",
-      glow: "from-yellow-400/22 to-orange-500/14",
-    },
-  };
+  return (
+    <div className={`relative px-1 first:pl-0 sm:px-6 ${tooltip ? "group cursor-default" : ""}`}>
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className={`mt-1.5 font-mono text-2xl font-semibold tracking-tight ${accent ? "text-orange-600" : "text-zinc-900"}`}>
+        {value}
+      </p>
+      <p className="mt-1 text-xs text-zinc-400">{caption}</p>
+
+      {tooltip && (
+        <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-60 rounded-xl border border-zinc-200 bg-white p-3 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+          {tooltip}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Cost / profit / margin behind the revenue total — see LedgerStat's tooltip. */
+function RevenueTooltip({ stats }: { stats: DashboardStats | undefined }) {
+  const revenue = stats?.totalRevenue ?? 0;
+  const cost = stats?.totalCost ?? 0;
+  const profit = stats?.totalProfit ?? revenue - cost;
+  const isLoss = profit < 0;
+
+  if (revenue <= 0 && cost <= 0) {
+    return <p className="text-xs text-zinc-500">Nothing sold yet.</p>;
+  }
 
   return (
-    <Card className="relative overflow-hidden border-zinc-200/80 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div
-        className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${colorMap[color].glow}`}
-      />
-      <CardContent className="relative pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{title}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">{value}</p>
-            <p className="mt-1 text-xs text-zinc-500">{caption}</p>
-          </div>
-          <div className={`rounded-xl p-3 ${colorMap[color].icon}`}>
-            <Icon className="h-6 w-6" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="flex items-center gap-1.5 text-zinc-500">
+          <span className="h-2 w-2 shrink-0 rounded-sm bg-zinc-400" />
+          Cost
+        </span>
+        <span className="font-mono font-semibold text-zinc-900">{formatCurrency(cost)}</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="flex items-center gap-1.5 text-zinc-500">
+          <span className={`h-2 w-2 shrink-0 rounded-sm ${isLoss ? "bg-red-500" : "bg-emerald-500"}`} />
+          {isLoss ? "Loss" : "Profit"}
+        </span>
+        <span className={`font-mono font-semibold ${isLoss ? "text-red-600" : "text-zinc-900"}`}>
+          {isLoss ? "−" : ""}
+          {formatCurrency(Math.abs(profit))}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2 text-xs">
+        <span className="text-zinc-500">Margin</span>
+        <span className={`font-mono font-semibold ${isLoss ? "text-red-600" : "text-zinc-900"}`}>
+          {revenue > 0 ? `${Math.round((profit / revenue) * 100)}%` : "—"}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -468,13 +468,13 @@ function SalesTrendCard() {
 
   return (
     <Card className="overflow-hidden border-zinc-200/80 bg-white shadow-sm">
-      <CardHeader className="space-y-3 border-b border-orange-100 bg-gradient-to-r from-orange-50/90 to-amber-50/70">
+      <div className="space-y-3 border-b border-zinc-200 px-6 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="flex items-center gap-2 text-base text-zinc-900">
-            <BarChart3 className="h-4 w-4 text-orange-700" />
-            {isSales ? "Sales Trend" : "Listings Trend"}
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
+            {isSales ? "Sales trend" : "Listings trend"}
             <span className="text-xs font-normal text-zinc-500">{rangeLabel}</span>
-          </CardTitle>
+          </h2>
 
           <div className="flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4">
             {/* Metric toggle */}
@@ -491,9 +491,9 @@ function SalesTrendCard() {
                     setMetric(opt.value);
                     setHoverIndex(null);
                   }}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                     metric === opt.value
-                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
+                      ? "bg-orange-600 text-white"
                       : "text-zinc-600 hover:bg-zinc-50"
                   }`}
                 >
@@ -503,29 +503,29 @@ function SalesTrendCard() {
             </div>
 
             {/* Summary stats for the active metric */}
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 font-mono text-sm">
               {isSales ? (
                 <>
                   <div>
                     <span className="font-semibold text-zinc-900">{formatCurrency(totalRevenue)}</span>
-                    <span className="ml-1 text-xs text-zinc-500">revenue</span>
+                    <span className="ml-1 font-sans text-xs text-zinc-500">revenue</span>
                   </div>
-                  <div className="h-4 w-px bg-orange-200" />
+                  <div className="h-4 w-px bg-zinc-200" />
                   <div>
                     <span className="font-semibold text-zinc-900">{totalUnits}</span>
-                    <span className="ml-1 text-xs text-zinc-500">sold</span>
+                    <span className="ml-1 font-sans text-xs text-zinc-500">sold</span>
                   </div>
                 </>
               ) : (
                 <>
                   <div>
                     <span className="font-semibold text-zinc-900">{totalListings}</span>
-                    <span className="ml-1 text-xs text-zinc-500">listed</span>
+                    <span className="ml-1 font-sans text-xs text-zinc-500">listed</span>
                   </div>
-                  <div className="h-4 w-px bg-orange-200" />
+                  <div className="h-4 w-px bg-zinc-200" />
                   <div>
                     <span className="font-semibold text-zinc-900">{avgPerBucket.toFixed(1)}</span>
-                    <span className="ml-1 text-xs text-zinc-500">
+                    <span className="ml-1 font-sans text-xs text-zinc-500">
                       avg/{granularity === "hour" ? "hr" : "day"}
                     </span>
                   </div>
@@ -568,7 +568,7 @@ function SalesTrendCard() {
               : "Custom"}
           </button>
         </div>
-      </CardHeader>
+      </div>
 
       <CardContent className="pt-5">
         {/* Fixed-aspect box: identical height across loading, empty, and every range/granularity —
@@ -608,7 +608,7 @@ function SalesTrendCard() {
                         stroke="#e1e0d9"
                         strokeWidth={1}
                       />
-                      <text x={padding.left - 8} y={ty + 3} textAnchor="end" fontSize={10} fill="#898781">
+                      <text x={padding.left - 8} y={ty + 3} textAnchor="end" fontSize={10} fill="#898781" className="font-mono">
                         {isSales ? fmtAxisCurrency(t) : Math.round(t).toLocaleString()}
                       </text>
                     </g>
