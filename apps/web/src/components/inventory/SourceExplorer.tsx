@@ -129,13 +129,17 @@ function ItemRow({
   onMove: () => void;
 }) {
   const cost = Number(item.costPrice ?? 0) * (item.quantity ?? 1);
-  const revenue =
-    item.status === "SOLD"
-      ? item.soldPrice != null
-        ? Number(item.soldPrice)
-        : Number(item.targetPrice ?? 0) * (item.quantity ?? 1)
-      : 0;
-  const profit = revenue - cost;
+  const isSold = item.status === "SOLD";
+  const revenue = isSold
+    ? item.soldPrice != null
+      ? Number(item.soldPrice)
+      : Number(item.targetPrice ?? 0) * (item.quantity ?? 1)
+    : 0;
+  // Profit reflects realized profit once sold, but *projected* margin (target
+  // price − cost) beforehand — so unsold stock reads as its expected margin,
+  // not a loss equal to its full cost (revenue is correctly $0 until it sells).
+  const projectedValue = isSold ? revenue : Number(item.targetPrice ?? 0) * (item.quantity ?? 1);
+  const profit = projectedValue - cost;
 
   return (
     <div
@@ -703,9 +707,12 @@ function AssignItemsModal({
 
 interface SourceExplorerProps {
   currentId: string | null;
+  /** Shared with the grid view's toolbar so filtering works the same in both views. */
+  search?: string;
+  status?: string;
 }
 
-export function SourceExplorer({ currentId }: SourceExplorerProps) {
+export function SourceExplorer({ currentId, search, status }: SourceExplorerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -743,8 +750,12 @@ export function SourceExplorer({ currentId }: SourceExplorerProps) {
     } else {
       p.unassigned = "true";
     }
+    // Shared with the grid view so search/status filtering behaves the same
+    // no matter which view is active — a folder just narrows it further.
+    if (search) p.search = search;
+    if (status) p.status = status;
     return p;
-  }, [currentId, itemPage]);
+  }, [currentId, itemPage, search, status]);
 
   const { data: itemsData, isLoading: itemsLoading } = useInventory(inventoryParams);
 
