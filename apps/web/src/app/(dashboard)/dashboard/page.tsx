@@ -15,6 +15,7 @@ import {
   Store,
   ChevronRight,
   BarChart3,
+  Layers,
 } from "lucide-react";
 import type { DashboardStats, DashboardTrend, InventoryStatus, TrendPreset } from "@repo/types";
 
