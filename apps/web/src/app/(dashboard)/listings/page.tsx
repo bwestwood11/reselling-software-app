@@ -128,6 +128,10 @@ export default function ListingsPage(): import("react").JSX.Element {
     setDialogInventoryItemId(undefined);
     setDialogMarketplace(undefined);
     setDialogConnectionId(undefined);
+    // The dialog's own create/publish mutation only invalidates ["listings"], which this
+    // table doesn't use — refetch on close so a just-created listing (and its "getting
+    // listed" progress) shows up immediately instead of waiting for the next poll.
+    qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
   }
 
   const params: Record<string, string> = {
@@ -220,7 +224,6 @@ export default function ListingsPage(): import("react").JSX.Element {
   // The 5s floor covers the gap before the first refetch lands; the 2min ceiling makes sure a
   // job the extension never picks up can't pin the overlay open forever.
   useEffect(() => {
-    if (!awaitingPublish) return;
     const pending = new Set<string>(
       items.flatMap((item: any) =>
         (item.listings ?? [])
@@ -228,15 +231,28 @@ export default function ListingsPage(): import("react").JSX.Element {
           .map((l: any) => l.id as string)
       )
     );
+    if (pending.size === 0 && Object.keys(publishStartedAt).length === 0) return;
     setPublishStartedAt((prev) => {
       const next: Record<string, number> = {};
       for (const [id, at] of Object.entries(prev)) {
         const age = Date.now() - at;
         if (age < 5_000 || (pending.has(id) && age < 120_000)) next[id] = at;
       }
-      return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+      // Pick up a listing that's PENDING but not yet animating — e.g. one queued
+      // straight from the "Create Listing" dialog rather than a retry on this page —
+      // so its cell gets the same "getting listed" progress overlay.
+      for (const id of pending) {
+        if (!(id in next)) next[id] = Date.now();
+      }
+      const prevKeys = Object.keys(prev).sort();
+      const nextKeys = Object.keys(next).sort();
+      const unchanged =
+        prevKeys.length === nextKeys.length &&
+        prevKeys.every((k, i) => k === nextKeys[i] && prev[k] === next[k]);
+      return unchanged ? prev : next;
     });
-  }, [items, awaitingPublish]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const connections: any[] = connectionsData?.data ?? [];
   const connectedSet = new Set<string>(
@@ -559,7 +575,9 @@ export default function ListingsPage(): import("react").JSX.Element {
                         );
 
                         const showPublishProgress =
-                          isPublishing(listing.id) || publishStartedAt[listing.id] != null;
+                          isPublishing(listing.id) ||
+                          publishStartedAt[listing.id] != null ||
+                          listing.status === "PENDING";
 
                         return (
                           <td key={mp.key} className="p-2 align-top">
