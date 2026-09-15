@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Expand,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -112,16 +113,18 @@ export default function ListingsPage(): import("react").JSX.Element {
   const [dialogInventoryItemId, setDialogInventoryItemId] = useState<string | undefined>();
   const [dialogMarketplace, setDialogMarketplace] = useState<string | undefined>();
   const [dialogConnectionId, setDialogConnectionId] = useState<string | undefined>();
+  const [dialogEditListingId, setDialogEditListingId] = useState<string | undefined>();
   const [soldTarget, setSoldTarget] = useState<
     { id: string; price: number; marketplace: string; title?: string } | null
   >(null);
   const [lightbox, setLightbox] = useState<{ url: string; title: string } | null>(null);
 
-  function openListingDialog(inventoryItemId: string, marketplace: string) {
+  function openListingDialog(inventoryItemId: string, marketplace: string, editListingId?: string) {
     const conn = connections.find((c: any) => c.marketplace === marketplace && c.isActive);
     setDialogInventoryItemId(inventoryItemId);
     setDialogMarketplace(marketplace);
     setDialogConnectionId(conn?.id);
+    setDialogEditListingId(editListingId);
     setDialogOpen(true);
   }
 
@@ -130,6 +133,7 @@ export default function ListingsPage(): import("react").JSX.Element {
     setDialogInventoryItemId(undefined);
     setDialogMarketplace(undefined);
     setDialogConnectionId(undefined);
+    setDialogEditListingId(undefined);
     // The dialog's own create/publish mutation only invalidates ["listings"], which this
     // table doesn't use — refetch on close so a just-created listing (and its "getting
     // listed" progress) shows up immediately instead of waiting for the next poll.
@@ -350,7 +354,7 @@ export default function ListingsPage(): import("react").JSX.Element {
         >
           <DialogHeader className="shrink-0 border-b border-zinc-200 bg-white px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
-              Create Listing
+              {dialogEditListingId ? "Fix Listing" : "Create Listing"}
               {marketplaceLabel && (
                 <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
                   {marketplaceLabel}
@@ -359,7 +363,9 @@ export default function ListingsPage(): import("react").JSX.Element {
             </DialogTitle>
             {dialogInventoryItemId && (
               <DialogDescription className="text-xs text-zinc-400">
-                Pre-filled from your inventory
+                {dialogEditListingId
+                  ? "Fix what's missing, then republish"
+                  : "Pre-filled from your inventory"}
               </DialogDescription>
             )}
           </DialogHeader>
@@ -368,6 +374,7 @@ export default function ListingsPage(): import("react").JSX.Element {
               <CreateListingForm
                 defaultInventoryItemId={dialogInventoryItemId}
                 defaultConnectionId={dialogConnectionId}
+                editListingId={dialogEditListingId}
                 onClose={closeListingDialog}
               />
             )}
@@ -631,29 +638,33 @@ export default function ListingsPage(): import("react").JSX.Element {
                                       {listing.syncError ?? "Publishing failed"}
                                     </span>
                                   </div>
-                                  <div className="mt-auto">
-                                    {retriesLeft > 0 ? (
+                                  <div className="mt-auto flex gap-1">
+                                    {retriesLeft > 0 && (
                                       <button
                                         onClick={() => publishMutation.mutate(listing.id)}
                                         disabled={isPublishing(listing.id)}
-                                        className="flex w-full items-center justify-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                        className="flex flex-1 items-center justify-center gap-1 rounded-md border border-red-200 bg-white px-1.5 py-1 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                        title={`Retry with the same details (${retriesLeft} left)`}
                                       >
                                         <RotateCcw
                                           className={`h-3 w-3 ${isPublishing(listing.id) ? "animate-spin" : ""}`}
                                         />
-                                        {isPublishing(listing.id)
-                                          ? "Retrying…"
-                                          : `Retry (${retriesLeft} left)`}
+                                        {isPublishing(listing.id) ? "…" : "Retry"}
                                       </button>
-                                    ) : (
-                                      <Link
-                                        href={`/inventory/${item.id}`}
-                                        className="block rounded-md border border-red-200 bg-white px-2 py-1 text-center text-[11px] font-medium text-red-700 hover:bg-red-100"
-                                        title="No retries left — edit the listing to try again"
-                                      >
-                                        No retries left · Edit
-                                      </Link>
                                     )}
+                                    <button
+                                      onClick={() => openListingDialog(item.id, mp.key, listing.id)}
+                                      disabled={isPublishing(listing.id)}
+                                      className="flex flex-1 items-center justify-center gap-1 rounded-md border border-red-200 bg-white px-1.5 py-1 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                      title={
+                                        retriesLeft > 0
+                                          ? "Fix what's wrong, then republish"
+                                          : "No retries left — fix what's wrong to republish"
+                                      }
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      Edit
+                                    </button>
                                   </div>
                                 </div>
                               ) : (

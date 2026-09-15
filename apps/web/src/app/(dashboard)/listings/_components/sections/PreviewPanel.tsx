@@ -15,6 +15,7 @@ interface Props {
   mercariShip: MercariShipState;
   busy: boolean;
   isPublishing: boolean;
+  isEditing: boolean;
   isSubmitting: boolean;
   selectedConnectionId: string;
   onSaveDraft: () => void;
@@ -31,19 +32,15 @@ export function PreviewPanel({
   mercariShip,
   busy,
   isPublishing,
+  isEditing,
   isSubmitting,
   selectedConnectionId,
   onSaveDraft,
   onSaveAndPublish,
   onClose,
 }: Props) {
-  const primaryLabel = isEbay
-    ? "Save & Publish to eBay"
-    : isMercari
-      ? "Publish to Mercari"
-      : isPoshmark
-        ? "Publish to Poshmark"
-        : "Publish Listing";
+  const destination = isEbay ? "eBay" : isMercari ? "Mercari" : isPoshmark ? "Poshmark" : "the marketplace";
+  const primaryLabel = isEditing ? `Fix & Republish to ${destination}` : `Publish to ${destination}`;
 
   return (
     <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
@@ -167,7 +164,7 @@ export function PreviewPanel({
             {isSubmitting && !isPublishing && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Save as Draft
+            {isEditing ? "Save Changes Without Republishing" : "Save as Draft"}
           </button>
 
           <button

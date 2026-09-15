@@ -14,6 +14,8 @@ interface Props {
   inventoryItems: any[];
   crossFill: CrossFill | null;
   lastAppliedItemRef: React.MutableRefObject<string | null>;
+  /** Editing an existing listing — the item/marketplace it's tied to can't be changed here. */
+  locked?: boolean;
 }
 
 export function SourceDestination({
@@ -22,6 +24,7 @@ export function SourceDestination({
   inventoryItems,
   crossFill,
   lastAppliedItemRef,
+  locked,
 }: Props) {
   const { watch, setValue, formState: { errors } } = form;
 
@@ -33,6 +36,7 @@ export function SourceDestination({
         <Field label="Inventory Item *" error={errors.inventoryItemId?.message}>
           <Select
             value={watch("inventoryItemId") ?? ""}
+            disabled={locked}
             onValueChange={(val) => {
               // Reset the pre-fill guard so applyInventoryItem re-fires for the new item
               lastAppliedItemRef.current = null;
@@ -57,6 +61,7 @@ export function SourceDestination({
         <Field label="Marketplace *" error={errors.marketplaceConnectionId?.message}>
           <Select
             value={watch("marketplaceConnectionId") ?? ""}
+            disabled={locked}
             onValueChange={(val) => setValue("marketplaceConnectionId", val)}
           >
             <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-orange-400">
@@ -76,6 +81,12 @@ export function SourceDestination({
             </SelectContent>
           </Select>
         </Field>
+
+        {locked && (
+          <p className="text-xs text-zinc-400">
+            Fixing an existing listing — its item and marketplace can&apos;t be changed here.
+          </p>
+        )}
 
         {crossFill && (
           <p className="flex items-center gap-1.5 text-xs text-emerald-600">

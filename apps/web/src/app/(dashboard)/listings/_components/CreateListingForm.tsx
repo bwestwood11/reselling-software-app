@@ -51,6 +51,7 @@ export function CreateListingForm(props: CreateListingFormProps) {
             inventoryItems={lf.inventoryItems}
             crossFill={lf.crossFill}
             lastAppliedItemRef={lf.lastAppliedItemRef}
+            locked={lf.isEditing}
           />
 
           <ListingDetails form={form} isEbay={lf.isEbay} />
@@ -93,6 +94,7 @@ export function CreateListingForm(props: CreateListingFormProps) {
           mercariShip={lf.mercariShip}
           busy={lf.busy}
           isPublishing={lf.isPublishing}
+          isEditing={lf.isEditing}
           isSubmitting={isSubmitting}
           selectedConnectionId={lf.selectedConnectionId}
           onSaveDraft={handleSubmit(lf.onSaveDraft)}

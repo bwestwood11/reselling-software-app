@@ -33,6 +33,17 @@ export function useCreateListing() {
   });
 }
 
+export function useUpdateListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: unknown }) => listingsApi.update(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Failed to save changes"),
+  });
+}
+
 export function useCrosslistListings() {
   const qc = useQueryClient();
   return useMutation({

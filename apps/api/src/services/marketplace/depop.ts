@@ -40,7 +40,10 @@ export class DepopAdapter extends BaseMarketplaceAdapter {
     });
 
     if (!res.ok) {
-      throw new Error(`Depop publish error: ${res.status}`);
+      const detail = await res.text().catch(() => "");
+      throw new Error(
+        detail ? `Depop rejected the listing: ${detail}` : `Depop publish error: ${res.status}`
+      );
     }
 
     const data = (await res.json()) as { id: string };

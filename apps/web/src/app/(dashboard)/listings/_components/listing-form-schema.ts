@@ -38,6 +38,13 @@ export interface CreateListingFormProps {
   defaultInventoryItemId?: string;
   /** Resolved marketplace connection ID — pre-selects the Marketplace dropdown */
   defaultConnectionId?: string;
+  /**
+   * When set, the form edits and re-saves this existing listing instead of creating a new
+   * one — used to let a FAILED listing's details be fixed (e.g. a missing shipping method)
+   * without spawning a duplicate. Saving resets the listing's retry budget and clears its
+   * error (see ListingService.update).
+   */
+  editListingId?: string;
   onClose: () => void;
 }
 

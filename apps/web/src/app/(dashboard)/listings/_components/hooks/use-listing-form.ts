@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { getMarketplaceLabel } from "@repo/utils";
 import { listingsApi, marketplacesApi, mercariApi, poshmarkApi, inventoryApi } from "@/lib/api";
 import { useInventory, useInventoryItem } from "@/hooks/use-inventory";
-import { useCreateListing } from "@/hooks/use-listings";
+import { useCreateListing, useUpdateListing } from "@/hooks/use-listings";
 import {
   listingFormSchema,
   type FormValues,
@@ -36,9 +36,12 @@ export type MercariAddress = {
 export function useListingForm({
   defaultInventoryItemId,
   defaultConnectionId,
+  editListingId,
   onClose,
 }: CreateListingFormProps) {
+  const isEditing = Boolean(editListingId);
   const createMutation = useCreateListing();
+  const updateMutation = useUpdateListing();
   const queryClient = useQueryClient();
   const [isPublishing, setIsPublishing] = useState(false);
   const [crossFill, setCrossFill] = useState<CrossFill | null>(null);
@@ -550,11 +553,8 @@ export function useListingForm({
     toast.error(`${label} hasn't confirmed the listing yet — check the Listings page.`);
   }
 
-  async function onSaveDraft(values: FormValues) {
-    if (isEbay && !validateEbayFields(values)) return;
-    if (isPoshmark && !validatePoshmarkFields(values)) return;
-    if (isMercari && !validateMercariFields(values)) return;
-    await createMutation.mutateAsync({
+  function buildListingPayload(values: FormValues) {
+    return {
       inventoryItemId: values.inventoryItemId,
       marketplaceConnectionId: values.marketplaceConnectionId,
       marketplace: selectedConnection!.marketplace,
@@ -562,7 +562,28 @@ export function useListingForm({
       title: values.title,
       description: values.description,
       marketplaceData: buildMarketplaceData(values),
-    });
+    };
+  }
+
+  /** Creates a new listing, or — in edit mode — saves onto the existing one instead. */
+  async function saveListing(values: FormValues): Promise<string> {
+    const payload = buildListingPayload(values);
+    if (editListingId) {
+      await updateMutation.mutateAsync({ id: editListingId, body: payload });
+      return editListingId;
+    }
+    const created = await createMutation.mutateAsync(payload);
+    const listingId = created?.data?.id;
+    if (!listingId) throw new Error("Could not retrieve listing ID after creation");
+    return listingId;
+  }
+
+  async function onSaveDraft(values: FormValues) {
+    if (isEbay && !validateEbayFields(values)) return;
+    if (isPoshmark && !validatePoshmarkFields(values)) return;
+    if (isMercari && !validateMercariFields(values)) return;
+    await saveListing(values);
+    if (isEditing) toast.success("Listing details saved");
     onClose();
   }
 
@@ -572,17 +593,7 @@ export function useListingForm({
     if (isMercari && !validateMercariFields(values)) return;
     setIsPublishing(true);
     try {
-      const created = await createMutation.mutateAsync({
-        inventoryItemId: values.inventoryItemId,
-        marketplaceConnectionId: values.marketplaceConnectionId,
-        marketplace: selectedConnection!.marketplace,
-        price: values.price,
-        title: values.title,
-        description: values.description,
-        marketplaceData: buildMarketplaceData(values),
-      });
-      const listingId = created?.data?.id;
-      if (!listingId) throw new Error("Could not retrieve listing ID after creation");
+      const listingId = await saveListing(values);
       const publishRes = await listingsApi.publish(listingId);
 
       if (isMercari || isPoshmark) {
@@ -592,7 +603,7 @@ export function useListingForm({
         onClose();
         if (jobId) void pollExtensionPublish(jobId, marketplace);
       } else {
-        toast.success("Listing published!");
+        toast.success(isEditing ? "Fixed and republished!" : "Listing published!");
         onClose();
       }
     } catch (err) {
@@ -602,7 +613,8 @@ export function useListingForm({
     }
   }
 
-  const busy = formState.isSubmitting || createMutation.isPending || isPublishing;
+  const busy =
+    formState.isSubmitting || createMutation.isPending || updateMutation.isPending || isPublishing;
 
   // getValues is kept in scope for any callers that may use it
   void getValues;
@@ -652,6 +664,7 @@ export function useListingForm({
     // Submit
     busy,
     isPublishing,
+    isEditing,
     onSaveDraft,
     onSaveAndPublish,
     onClose,
