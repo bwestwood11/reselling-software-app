@@ -228,12 +228,24 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: "No image url provided." });
       }
 
-      // Only allow reprocessing images this user already owns in our bucket.
+      // Only allow reprocessing images this user actually owns. Two cases:
+      //  1. Fast path — the image lives in our own bucket, under this user's prefix
+      //     (every fresh upload from the file picker).
+      //  2. Fallback — the URL doesn't match our bucket (e.g. an inventory item's
+      //     photo came from an external source, like the Unsplash-hosted seed/demo
+      //     data), so confirm ownership by looking up the image in the DB instead:
+      //     it's allowed if it's attached to one of this user's inventory items.
       const allowedPrefix = `${PUBLIC_BASE_URL}/inventory/${userId}/`;
       if (!sourceUrl.startsWith(allowedPrefix)) {
-        return reply
-          .status(403)
-          .send({ success: false, error: "You can only edit your own photos." });
+        const ownedImage = await fastify.prisma.inventoryImage.findFirst({
+          where: { url: sourceUrl, item: { userId } },
+          select: { id: true },
+        });
+        if (!ownedImage) {
+          return reply
+            .status(403)
+            .send({ success: false, error: "You can only edit your own photos." });
+        }
       }
 
       const editOptions: PhotoroomEditOptions = {
