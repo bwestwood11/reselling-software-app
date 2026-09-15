@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   AlertTriangle,
   RotateCcw,
+  Expand,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -114,6 +115,7 @@ export default function ListingsPage(): import("react").JSX.Element {
   const [soldTarget, setSoldTarget] = useState<
     { id: string; price: number; marketplace: string; title?: string } | null
   >(null);
+  const [lightbox, setLightbox] = useState<{ url: string; title: string } | null>(null);
 
   function openListingDialog(inventoryItemId: string, marketplace: string) {
     const conn = connections.find((c: any) => c.marketplace === marketplace && c.isActive);
@@ -307,6 +309,23 @@ export default function ListingsPage(): import("react").JSX.Element {
 
   return (
     <>
+      {/* ── Image Lightbox ── */}
+      <Dialog open={lightbox !== null} onOpenChange={(open) => { if (!open) setLightbox(null); }}>
+        <DialogContent
+          showCloseButton
+          className="flex w-full max-w-3xl flex-col gap-2 border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-3xl [&_button]:bg-white/90 [&_button]:text-zinc-900 [&_button]:hover:bg-white"
+        >
+          <DialogTitle className="sr-only">{lightbox?.title ?? "Listing photo"}</DialogTitle>
+          {lightbox && (
+            <img
+              src={lightbox.url}
+              alt={lightbox.title}
+              className="max-h-[85vh] w-full rounded-lg object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* ── Mark Sold Dialog ── */}
       <MarkSoldDialog
         open={soldTarget !== null}
@@ -638,9 +657,19 @@ export default function ListingsPage(): import("react").JSX.Element {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex-1 overflow-hidden bg-zinc-100">
+                                <div className="group/img relative flex-1 overflow-hidden bg-zinc-100">
                                   {primaryImage ? (
-                                    <img src={primaryImage.url} alt={item.title} className="h-full w-full object-cover" />
+                                    <>
+                                      <img src={primaryImage.url} alt={item.title} className="h-full w-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => setLightbox({ url: primaryImage.url, title: item.title })}
+                                        className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover/img:bg-black/25 group-hover/img:opacity-100"
+                                        title="View full image"
+                                      >
+                                        <Expand className="h-4 w-4 text-white drop-shadow" />
+                                      </button>
+                                    </>
                                   ) : (
                                     <div className="flex h-full items-center justify-center text-2xl text-zinc-200">📦</div>
                                   )}
