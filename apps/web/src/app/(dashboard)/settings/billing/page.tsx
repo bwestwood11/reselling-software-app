@@ -432,13 +432,13 @@ function BillingContent() {
           aria-checked={interval === "yearly"}
           onClick={() => setInterval((i) => (i === "monthly" ? "yearly" : "monthly"))}
           className={cn(
-            "relative h-6 w-11 rounded-full transition-colors",
+            "inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
             interval === "yearly" ? "bg-orange-500" : "bg-zinc-300"
           )}
         >
           <span
             className={cn(
-              "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+              "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
               interval === "yearly" ? "translate-x-[22px]" : "translate-x-0.5"
             )}
           />
