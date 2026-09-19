@@ -47,6 +47,7 @@ export default function ImportScreen() {
   const [showImported, setShowImported] = useState(false);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [costPrices, setCostPrices] = useState<Record<string, string>>({});
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
@@ -106,7 +107,16 @@ export default function ImportScreen() {
     if (selected.size === 0 || importing) return;
     setImporting(true);
     try {
-      const res = await api.importEbayItems([...selected]);
+      const ids = [...selected];
+      const costPricesPayload: Record<string, number> = {};
+      for (const id of ids) {
+        const raw = costPrices[id];
+        const num = raw ? Number.parseFloat(raw) : NaN;
+        if (Number.isFinite(num) && num > 0) {
+          costPricesPayload[id] = num;
+        }
+      }
+      const res = await api.importEbayItems(ids, costPricesPayload);
       const result = res.data as {
         imported: string[];
         skipped: string[];
@@ -114,6 +124,7 @@ export default function ImportScreen() {
       };
 
       setSelected(new Set());
+      setCostPrices({});
       await qc.invalidateQueries({ queryKey: ["mobile-inventory"] });
       await refetch();
 
@@ -176,6 +187,24 @@ export default function ImportScreen() {
             {item.categoryName ? ` · ${item.categoryName}` : ""}
             {item.listedAt ? ` · ${new Date(item.listedAt).toLocaleDateString()}` : ""}
           </Text>
+          {!isImported && (
+            <View style={s.costRow}>
+              <Text style={s.costLabel}>Cost</Text>
+              <View style={s.costInputWrap}>
+                <Text style={s.costDollar}>$</Text>
+                <TextInput
+                  style={s.costInput}
+                  value={costPrices[item.ebayItemId] ?? ""}
+                  onChangeText={(v) =>
+                    setCostPrices((prev) => ({ ...prev, [item.ebayItemId]: v }))
+                  }
+                  placeholder="0.00"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Right side */}
@@ -199,7 +228,7 @@ export default function ImportScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, [selected]);
+  }, [selected, costPrices]);
 
   return (
     <SafeAreaView style={s.root} edges={["bottom"]}>
@@ -423,6 +452,15 @@ const s = StyleSheet.create({
   info: { flex: 1, gap: 3 },
   itemTitle: { fontSize: 13, fontWeight: "500", color: "#111827", lineHeight: 18 },
   itemMeta: { fontSize: 11, color: "#9ca3af" },
+  costRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  costLabel: { fontSize: 11, color: "#9ca3af" },
+  costInputWrap: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: Platform.OS === "ios" ? 3 : 0,
+  },
+  costDollar: { fontSize: 11, color: "#9ca3af", marginRight: 2 },
+  costInput: { fontSize: 11, color: "#111827", minWidth: 44, padding: 0 },
 
   right: { alignItems: "flex-end", gap: 4, flexShrink: 0 },
   price: { fontSize: 13, fontWeight: "700", color: "#111827" },

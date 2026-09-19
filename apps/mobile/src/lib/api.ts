@@ -179,10 +179,10 @@ export const api = {
     if (params.search) p.set("search", params.search);
     return request<any>(`/api/marketplaces/ebay/importable-listings?${p.toString()}`);
   },
-  importEbayItems: (ebayItemIds: string[]) =>
+  importEbayItems: (ebayItemIds: string[], costPrices?: Record<string, number>) =>
     request<any>("/api/marketplaces/ebay/import", {
       method: "POST",
-      body: JSON.stringify({ ebayItemIds }),
+      body: JSON.stringify({ ebayItemIds, costPrices }),
     }),
 
   // Subscription

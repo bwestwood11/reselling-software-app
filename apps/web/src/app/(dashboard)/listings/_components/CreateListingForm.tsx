@@ -48,7 +48,6 @@ export function CreateListingForm(props: CreateListingFormProps) {
           <SourceDestination
             form={form}
             connections={lf.connections}
-            inventoryItems={lf.inventoryItems}
             crossFill={lf.crossFill}
             lastAppliedItemRef={lf.lastAppliedItemRef}
             locked={lf.isEditing}

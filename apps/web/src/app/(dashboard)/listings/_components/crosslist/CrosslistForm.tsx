@@ -40,7 +40,6 @@ export function CrosslistForm(props: CrosslistFormProps) {
         {cf.itemMode === "existing" ? (
           <ExistingItemPicker
             form={form}
-            inventoryItems={cf.inventoryItems}
             crossFillBanners={cf.crossFillBanners}
           />
         ) : (

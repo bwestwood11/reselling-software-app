@@ -93,7 +93,11 @@ export class ImportService {
     return { data: paged, total, page, totalPages };
   }
 
-  async importItems(userId: string, ebayItemIds: string[]): Promise<ImportResult> {
+  async importItems(
+    userId: string,
+    ebayItemIds: string[],
+    costPrices: Record<string, number> = {}
+  ): Promise<ImportResult> {
     const connection = await this.db.marketplaceConnection.findUnique({
       where: { userId_marketplace: { userId, marketplace: "EBAY" } },
     });
@@ -128,6 +132,7 @@ export class ImportService {
         const detail = await adapter.getItemById(itemId);
         const condition = EbayAdapter.reverseMapConditionId(detail.conditionId) as Condition;
         const listingStatus = this.mapListingStatus(detail.listingStatus);
+        const costPrice = costPrices[itemId];
 
         await this.db.$transaction(async (tx) => {
           const inventoryItem = await tx.inventoryItem.create({
@@ -137,8 +142,8 @@ export class ImportService {
               description: detail.description ? normalizeEbayDescription(detail.description) : undefined,
               condition,
               quantity: detail.quantity,
+              costPrice: typeof costPrice === "number" && costPrice > 0 ? costPrice : undefined,
               targetPrice: detail.price > 0 ? detail.price : undefined,
-              costPrice: detail.startPrice > 0 ? detail.startPrice : undefined,
               brand: detail.brand || undefined,
               sku: detail.sku || undefined,
               category: detail.categoryName ? decodeEntities(detail.categoryName) : undefined,

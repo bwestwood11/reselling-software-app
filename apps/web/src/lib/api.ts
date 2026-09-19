@@ -187,10 +187,10 @@ export const importApi = {
     return request<any>(`/api/marketplaces/ebay/importable-listings${qs}`);
   },
 
-  importItems: (ebayItemIds: string[]) =>
+  importItems: (ebayItemIds: string[], costPrices?: Record<string, number>) =>
     request<any>("/api/marketplaces/ebay/import", {
       method: "POST",
-      body: JSON.stringify({ ebayItemIds }),
+      body: JSON.stringify({ ebayItemIds, costPrices }),
     }),
 };
 

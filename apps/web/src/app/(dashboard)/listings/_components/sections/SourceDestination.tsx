@@ -7,11 +7,11 @@ import type { FormValues, FormInput } from "../listing-form-schema";
 import type { CrossFill } from "../hooks/use-listing-form";
 import { SectionHeader } from "../ui/SectionHeader";
 import { Field } from "../ui/Field";
+import { InventoryItemCombobox } from "../ui/InventoryItemCombobox";
 
 interface Props {
   form: UseFormReturn<FormInput, any, FormValues>;
   connections: any[];
-  inventoryItems: any[];
   crossFill: CrossFill | null;
   lastAppliedItemRef: React.MutableRefObject<string | null>;
   /** Editing an existing listing — the item/marketplace it's tied to can't be changed here. */
@@ -21,7 +21,6 @@ interface Props {
 export function SourceDestination({
   form,
   connections,
-  inventoryItems,
   crossFill,
   lastAppliedItemRef,
   locked,
@@ -34,28 +33,15 @@ export function SourceDestination({
       <div className="mt-5 space-y-4">
 
         <Field label="Inventory Item *" error={errors.inventoryItemId?.message}>
-          <Select
-            value={watch("inventoryItemId") ?? ""}
+          <InventoryItemCombobox
+            value={watch("inventoryItemId")}
             disabled={locked}
-            onValueChange={(val) => {
+            onChange={(val) => {
               // Reset the pre-fill guard so applyInventoryItem re-fires for the new item
               lastAppliedItemRef.current = null;
               setValue("inventoryItemId", val);
             }}
-          >
-            <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-orange-400">
-              <SelectValue placeholder="Select an item from inventory…" />
-            </SelectTrigger>
-            <SelectContent className="bg-white text-zinc-900">
-              {inventoryItems.length === 0 ? (
-                <SelectItem value="_none" disabled>No inventory items found</SelectItem>
-              ) : (
-                inventoryItems.map((item: any) => (
-                  <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          />
         </Field>
 
         <Field label="Marketplace *" error={errors.marketplaceConnectionId?.message}>

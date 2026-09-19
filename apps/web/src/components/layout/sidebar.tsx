@@ -10,7 +10,6 @@ import {
   Settings,
   ShoppingBag,
   LogOut,
-  RefreshCw,
   Store,
   Zap,
   CreditCard,
@@ -27,7 +26,6 @@ const navItems = [
   { href: "/inventory", label: "Inventory", Icon: Package },
   { href: "/listings", label: "Listings", Icon: Tag },
   { href: "/marketplaces", label: "Marketplaces", Icon: Store },
-  { href: "/dashboard/sync", label: "Sync", Icon: RefreshCw },
   { href: "/settings", label: "Settings", Icon: Settings },
 ];
 

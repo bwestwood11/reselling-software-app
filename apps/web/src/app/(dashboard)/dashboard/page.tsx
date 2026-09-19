@@ -10,7 +10,6 @@ import { Card, CardContent, Badge } from "@repo/ui";
 import {
   Package,
   Tag,
-  RefreshCw,
   Plus,
   Store,
   ChevronRight,
@@ -148,12 +147,6 @@ export default function DashboardPage(): import("react").JSX.Element {
               label="Connect a marketplace"
               description="Link eBay, Poshmark, Mercari and more"
               Icon={Store}
-            />
-            <QuickAction
-              href="/dashboard/sync"
-              label="Sync listings"
-              description="Refresh status across marketplaces"
-              Icon={RefreshCw}
             />
           </CardContent>
         </Card>

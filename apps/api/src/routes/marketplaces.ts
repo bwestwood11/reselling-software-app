@@ -968,7 +968,10 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
     "/ebay/import",
     { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
-      const { ebayItemIds } = request.body as { ebayItemIds?: unknown };
+      const { ebayItemIds, costPrices } = request.body as {
+        ebayItemIds?: unknown;
+        costPrices?: unknown;
+      };
 
       if (!Array.isArray(ebayItemIds) || ebayItemIds.length === 0) {
         return reply.status(400).send({
@@ -982,9 +985,19 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: "No valid eBay item IDs provided" });
       }
 
+      const costPriceMap: Record<string, number> = {};
+      if (costPrices && typeof costPrices === "object") {
+        for (const [id, value] of Object.entries(costPrices as Record<string, unknown>)) {
+          const num = typeof value === "number" ? value : Number.parseFloat(String(value));
+          if (Number.isFinite(num) && num > 0) {
+            costPriceMap[id] = num;
+          }
+        }
+      }
+
       try {
         const service = new ImportService(fastify.prisma);
-        const result = await service.importItems(request.user!.id, ids);
+        const result = await service.importItems(request.user!.id, ids, costPriceMap);
         return reply.send({ success: true, data: result });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Import failed";

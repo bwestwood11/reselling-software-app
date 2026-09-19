@@ -2,10 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { inventoryApi } from "@/lib/api";
 import { toast } from "sonner";
 
-export function useInventory(params?: Record<string, string>) {
+export function useInventory(
+  params?: Record<string, string>,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ["inventory", params],
     queryFn: () => inventoryApi.list(params),
+    enabled: options?.enabled,
   });
 }
 

@@ -12,6 +12,7 @@ export default function ImportPage(): import("react").JSX.Element {
   const [showImported, setShowImported] = useState(false);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [costPrices, setCostPrices] = useState<Record<string, string>>({});
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,9 +73,19 @@ export default function ImportPage(): import("react").JSX.Element {
 
   const handleImport = useCallback(async () => {
     if (selected.size === 0 || importMutation.isPending) return;
-    await importMutation.mutateAsync([...selected]);
+    const ids = [...selected];
+    const costPricesPayload: Record<string, number> = {};
+    for (const id of ids) {
+      const raw = costPrices[id];
+      const num = raw ? Number.parseFloat(raw) : NaN;
+      if (Number.isFinite(num) && num > 0) {
+        costPricesPayload[id] = num;
+      }
+    }
+    await importMutation.mutateAsync({ ebayItemIds: ids, costPrices: costPricesPayload });
     setSelected(new Set());
-  }, [selected, importMutation]);
+    setCostPrices({});
+  }, [selected, costPrices, importMutation]);
 
   return (
     <div className="space-y-7">
@@ -285,6 +296,31 @@ export default function ImportPage(): import("react").JSX.Element {
                       : ""}
                   </p>
                 </div>
+
+                {/* Cost price */}
+                {!isImported && (
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <label className="mb-0.5 block text-[10px] uppercase tracking-wide text-zinc-400">
+                      Cost price
+                    </label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={costPrices[item.ebayItemId] ?? ""}
+                        onChange={(e) =>
+                          setCostPrices((prev) => ({ ...prev, [item.ebayItemId]: e.target.value }))
+                        }
+                        className="w-24 rounded-lg border border-zinc-200 py-1.5 pl-5 pr-2 text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-orange-400/40"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Price + badge */}
                 <div className="shrink-0 text-right">

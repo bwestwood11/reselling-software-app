@@ -22,7 +22,13 @@ export function useImportableListings(params: ImportParams) {
 export function useImportItems() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (ebayItemIds: string[]) => importApi.importItems(ebayItemIds),
+    mutationFn: ({
+      ebayItemIds,
+      costPrices,
+    }: {
+      ebayItemIds: string[];
+      costPrices?: Record<string, number>;
+    }) => importApi.importItems(ebayItemIds, costPrices),
     onSuccess: (res: any) => {
       const { imported = [], failed = [] } = res.data ?? {};
       if (imported.length > 0) {
