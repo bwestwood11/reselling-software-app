@@ -47,6 +47,7 @@ A public privacy-policy URL is mandatory (the listing is rejected without one). 
 
 ## Remaining store-dashboard items
 
+- Support URL: `https://<web-domain>/support` (page: `apps/web/src/app/support/page.tsx`).
 - Store listing icon 128×128 (`extension/icons/icon128.png`), at least one 1280×800 or 640×400
   screenshot, and a short + detailed description.
 - Category: Shopping (or Productivity). Set the privacy-policy URL and support email.

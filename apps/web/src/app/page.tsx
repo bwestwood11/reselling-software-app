@@ -342,9 +342,14 @@ export default function Home() {
 
       <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-6 pb-10 text-xs text-zinc-500">
         <p>&copy; {new Date().getFullYear()} Omventa. All rights reserved.</p>
-        <Link href="/privacy" className="font-medium transition-colors hover:text-zinc-900">
-          Privacy Policy
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link href="/support" className="font-medium transition-colors hover:text-zinc-900">
+            Support
+          </Link>
+          <Link href="/privacy" className="font-medium transition-colors hover:text-zinc-900">
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
 
       <style>{`
