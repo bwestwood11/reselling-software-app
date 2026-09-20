@@ -340,6 +340,13 @@ export default function Home() {
         </section>
       </main>
 
+      <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-6 pb-10 text-xs text-zinc-500">
+        <p>&copy; {new Date().getFullYear()} Omventa. All rights reserved.</p>
+        <Link href="/privacy" className="font-medium transition-colors hover:text-zinc-900">
+          Privacy Policy
+        </Link>
+      </footer>
+
       <style>{`
         .hero-ribbon {
           background:

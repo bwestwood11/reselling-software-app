@@ -7,6 +7,8 @@
     "dev:api": "pnpm run kill:api-port && pnpm --filter @repo/api run dev",
     "dev:web": "pnpm run kill:api-port && turbo dev --filter=@repo/api --filter=@repo/web",
     "dev:mobile": "pnpm run kill:api-port && turbo dev --filter=@repo/mobile --filter=@repo/api",
+    "ext:build": "node extension/scripts/build.mjs",
+    "ext:dev": "node extension/scripts/build.mjs --dev",
     "kill:api-port": "kill-port 3001",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",

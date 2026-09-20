@@ -1,4 +1,4 @@
-// Service worker — waits on the ReList API for pending Mercari jobs and publishes via direct API.
+// Service worker — waits on the Omventa API for pending Mercari jobs and publishes via direct API.
 //
 // LATENCY BUDGET — a publish must complete within ~5s of the user hitting Publish. What that
 // requires, and how it is achieved here:
@@ -145,7 +145,7 @@ async function runJob(job) {
       await claim;
       await patchJob(job.id, { status: "COMPLETED" });
       console.log(
-        `[relist] job ${job.id} (delist) done in ${Date.now() - started}ms`,
+        `[omventa] job ${job.id} (delist) done in ${Date.now() - started}ms`,
         result
       );
       return;
@@ -157,7 +157,7 @@ async function runJob(job) {
       const addresses = await withMercariTab((tabId) => fetchDeliveryAddresses(tabId, bearerToken));
       await claim;
       await patchJob(job.id, { status: "COMPLETED", addresses });
-      console.log(`[relist] job ${job.id} (fetch-addresses) done in ${Date.now() - started}ms`);
+      console.log(`[omventa] job ${job.id} (fetch-addresses) done in ${Date.now() - started}ms`);
       return;
     }
 
@@ -165,9 +165,9 @@ async function runJob(job) {
     const externalId = await postToMercariApi(job);
     await claim;
     await patchJob(job.id, { status: "COMPLETED", externalId: externalId ?? undefined });
-    console.log(`[relist] job ${job.id} published in ${Date.now() - started}ms`);
+    console.log(`[omventa] job ${job.id} published in ${Date.now() - started}ms`);
   } catch (err) {
-    console.error("[relist] job failed:", err.message);
+    console.error("[omventa] job failed:", err.message);
 
     if (err.message === "Not authenticated") {
       // apiFetch already cleared the token; stop polling and show the ! badge
@@ -232,7 +232,7 @@ async function postToMercariApi(job) {
     getMercariSession(),
     downloadImages(images),
   ]);
-  console.log(`[relist] warmup (tab+session+images) ${Date.now() - t0}ms`);
+  console.log(`[omventa] warmup (tab+session+images) ${Date.now() - t0}ms`);
 
   // zipCode is a required field on Mercari's createListing input — without it the mutation is
   // rejected outright ('Field "zipCode" of required type "String!" was not provided'). It
@@ -245,10 +245,10 @@ async function postToMercariApi(job) {
       const addr = addresses.find((a) => a?.isDefault) ?? addresses[0];
       if (addr?.zipCode1) {
         resolvedZip = String(addr.zipCode1);
-        console.log("[relist] zipCode absent from job payload — using default address zip");
+        console.log("[omventa] zipCode absent from job payload — using default address zip");
       }
     } catch (err) {
-      console.warn("[relist] zip fallback failed:", err.message);
+      console.warn("[omventa] zip fallback failed:", err.message);
     }
   }
   if (!resolvedZip) {
@@ -262,7 +262,7 @@ async function postToMercariApi(job) {
     // Step 1 — upload images to Mercari's CDN, get UUID photoIds back
     const tUpload = Date.now();
     const photoIds = await uploadImagesToMercari(imageData);
-    console.log(`[relist] uploaded ${photoIds.length} photo(s) in ${Date.now() - tUpload}ms`);
+    console.log(`[omventa] uploaded ${photoIds.length} photo(s) in ${Date.now() - tUpload}ms`);
 
     // Step 2 — create the listing via Mercari's GraphQL API (same warm tab)
     const tCreate = Date.now();
@@ -288,7 +288,7 @@ async function postToMercariApi(job) {
       offerConfig,
       zipCode: resolvedZip,
     });
-    console.log(`[relist] createListing ${Date.now() - tCreate}ms — total ${Date.now() - t0}ms`);
+    console.log(`[omventa] createListing ${Date.now() - tCreate}ms — total ${Date.now() - t0}ms`);
     return id;
   } finally {
     // Hand the tab back; it stays warm for TAB_IDLE_CLOSE_MS so the next publish skips the load.
@@ -405,7 +405,7 @@ async function downloadImages(imageUrls) {
       try {
         const res = await fetch(url);
         if (!res.ok) {
-          console.warn("[relist] Image fetch failed:", url, res.status);
+          console.warn("[omventa] Image fetch failed:", url, res.status);
           return null;
         }
         const buffer = await res.arrayBuffer();
@@ -419,7 +419,7 @@ async function downloadImages(imageUrls) {
         }
         return { base64: btoa(binary), type };
       } catch (err) {
-        console.warn("[relist] Image fetch error:", err.message);
+        console.warn("[omventa] Image fetch error:", err.message);
         return null;
       }
     })
@@ -429,7 +429,7 @@ async function downloadImages(imageUrls) {
 
 async function uploadImagesToMercari(imageDataList) {
   if (imageDataList.length === 0) {
-    console.warn("[relist] No images could be fetched — aborting upload");
+    console.warn("[omventa] No images could be fetched — aborting upload");
     return [];
   }
 
@@ -522,12 +522,12 @@ async function uploadImagesToMercari(imageDataList) {
               const data = await res.json().catch(() => ({}));
 
               if (!res.ok) {
-                console.warn("[relist] Upload rejected:", res.status, data);
+                console.warn("[omventa] Upload rejected:", res.status, data);
                 return null;
               }
 
               if (data?.errors?.length) {
-                console.warn("[relist] GraphQL errors:", data.errors);
+                console.warn("[omventa] GraphQL errors:", data.errors);
                 return null;
               }
 
@@ -562,10 +562,10 @@ async function uploadImagesToMercari(imageDataList) {
               }
 
               if (photoId) return String(photoId);
-              console.warn("[relist] Could not extract photoId from:", JSON.stringify(data));
+              console.warn("[omventa] Could not extract photoId from:", JSON.stringify(data));
               return null;
             } catch (err) {
-              console.warn("[relist] Upload error:", err.message);
+              console.warn("[omventa] Upload error:", err.message);
               return null;
             }
           };
@@ -580,7 +580,7 @@ async function uploadImagesToMercari(imageDataList) {
 }
 
 // Mercari's access token + CSRF token, both from ONE /session call and cached.
-// The service worker has no Mercari session cookies, so it reads these from the ReList API and
+// The service worker has no Mercari session cookies, so it reads these from the Omventa API and
 // hands them to injected scripts. Previously each was a separate uncached request per job.
 let sessionCache = null; // { accessToken, csrfToken, fetchedAt }
 
@@ -589,9 +589,9 @@ async function getMercariSession(force = false) {
     return sessionCache;
   }
   try {
-    const relistToken = await getToken();
+    const omventaToken = await getToken();
     const res = await fetch(`${API_BASE}/api/marketplaces/mercari/session`, {
-      headers: { Authorization: `Bearer ${relistToken}` },
+      headers: { Authorization: `Bearer ${omventaToken}` },
     });
     const data = await res.json().catch(() => ({}));
     sessionCache = {
@@ -600,7 +600,7 @@ async function getMercariSession(force = false) {
       fetchedAt: Date.now(),
     };
   } catch (err) {
-    console.warn("[relist] getMercariSession failed:", err.message);
+    console.warn("[omventa] getMercariSession failed:", err.message);
     sessionCache = { accessToken: null, csrfToken: null, fetchedAt: Date.now() };
   }
   return sessionCache;
@@ -716,7 +716,7 @@ async function createMercariListing(params) {
     },
   };
 
-  console.log("[relist] createListing body:", JSON.stringify(requestBody).slice(0, 500));
+  console.log("[omventa] createListing body:", JSON.stringify(requestBody).slice(0, 500));
 
   return withMercariTab((tabId) =>
     chrome.scripting
@@ -729,7 +729,7 @@ async function createMercariListing(params) {
               // Strategy 1: /v1/initialize — stable endpoint, returns { accessToken } at top level
               try {
                 const r = await fetch("https://www.mercari.com/v1/initialize", { credentials: "include" });
-                if (r.ok) { const d = await r.json().catch(() => null); if (d?.accessToken) { console.log("[relist] token via /v1/initialize"); return d.accessToken; } }
+                if (r.ok) { const d = await r.json().catch(() => null); if (d?.accessToken) { console.log("[omventa] token via /v1/initialize"); return d.accessToken; } }
               } catch {}
               // Strategy 2: __NEXT_DATA__ (already in page — no network needed)
               const JWT_RE = /^[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$/;
@@ -743,17 +743,17 @@ async function createMercariListing(params) {
                 }
                 return null;
               };
-              try { const t = scanObj(window.__NEXT_DATA__?.props); if (t) { console.log("[relist] token via __NEXT_DATA__"); return t; } } catch {}
+              try { const t = scanObj(window.__NEXT_DATA__?.props); if (t) { console.log("[omventa] token via __NEXT_DATA__"); return t; } } catch {}
               // Strategy 3: _mwus cookie (may be non-httpOnly)
               try {
                 const m = document.cookie.match(/(?:^|;\s*)_mwus=([^;]+)/);
-                if (m) { const p = JSON.parse(atob(decodeURIComponent(m[1]))); if (p?.accessToken) { console.log("[relist] token via _mwus cookie"); return p.accessToken; } }
+                if (m) { const p = JSON.parse(atob(decodeURIComponent(m[1]))); if (p?.accessToken) { console.log("[omventa] token via _mwus cookie"); return p.accessToken; } }
               } catch {}
               // Strategy 4: localStorage JWT scan
               try {
                 for (const k of Object.keys(localStorage)) {
                   const v = localStorage.getItem(k) ?? "";
-                  if (JWT_RE.test(v) && v.length > 100) { console.log("[relist] token via localStorage key:", k); return v; }
+                  if (JWT_RE.test(v) && v.length > 100) { console.log("[omventa] token via localStorage key:", k); return v; }
                 }
               } catch {}
               return null;
@@ -815,10 +815,10 @@ async function createMercariListing(params) {
         if (!result) throw new Error("executeScript returned no result");
 
         // Log in the service worker — visible in extension DevTools (chrome://extensions → service worker)
-        console.log("[relist] createListing REQUEST headers:", JSON.stringify(result.debug?.headers, null, 2));
-        console.log("[relist] createListing REQUEST body:", result.debug?.body);
-        console.log("[relist] createListing RESPONSE status:", result.status);
-        console.log("[relist] createListing RESPONSE body:", JSON.stringify(result.data, null, 2));
+        console.log("[omventa] createListing REQUEST headers:", JSON.stringify(result.debug?.headers, null, 2));
+        console.log("[omventa] createListing REQUEST body:", result.debug?.body);
+        console.log("[omventa] createListing RESPONSE status:", result.status);
+        console.log("[omventa] createListing RESPONSE body:", JSON.stringify(result.data, null, 2));
 
         if (!result.ok) {
           throw new Error(
@@ -910,11 +910,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Opens mercari.com/login in a real browser tab so the user authenticates via
 // Mercari's own UI (no CORS issues, no bot-detection). After the user logs in
 // and lands on a non-auth page, we extract the access token from the tab's
-// localStorage / cookies and POST it to the ReList API.
+// localStorage / cookies and POST it to the Omventa API.
 
 async function connectMercari() {
-  const relistToken = await getToken();
-  if (!relistToken) throw new Error("Not authenticated to ReList");
+  const omventaToken = await getToken();
+  if (!omventaToken) throw new Error("Not authenticated to Omventa");
 
   const tab = await chrome.tabs.create({
     url: "https://www.mercari.com/login/",
@@ -957,7 +957,7 @@ async function connectMercari() {
       await new Promise((r) => setTimeout(r, 2000));
 
       try {
-        await captureMercariToken(tab.id, relistToken);
+        await captureMercariToken(tab.id, omventaToken);
         chrome.tabs.remove(tab.id).catch(() => {});
         resolve({ ok: true });
       } catch (err) {
@@ -972,8 +972,8 @@ async function connectMercari() {
 }
 
 // Calls /v1/initialize inside the mercari.com tab (session cookies sent automatically),
-// captures account details from page storage, then POSTs everything to the ReList API.
-async function captureMercariToken(tabId, relistToken) {
+// captures account details from page storage, then POSTs everything to the Omventa API.
+async function captureMercariToken(tabId, omventaToken) {
   // Get access token and CSRF token from /v1/initialize — the canonical source
   let accessToken = null;
   let csrfToken = null;
@@ -1025,14 +1025,14 @@ async function captureMercariToken(tabId, relistToken) {
   try {
     addresses = await fetchDeliveryAddresses(tabId, accessToken);
   } catch (err) {
-    console.warn("[relist] fetchDeliveryAddresses at connect time failed:", err.message);
+    console.warn("[omventa] fetchDeliveryAddresses at connect time failed:", err.message);
   }
 
   const res = await fetch(`${API_BASE}/api/marketplaces/mercari/connect-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${relistToken}`,
+      Authorization: `Bearer ${omventaToken}`,
     },
     body: JSON.stringify({
       accessToken,
@@ -1173,14 +1173,14 @@ function extractMercariTokenFromPage() {
   return { accessToken, accountId, accountName };
 }
 
-// Checks whether a Mercari connection exists in the ReList API.
+// Checks whether a Mercari connection exists in the Omventa API.
 async function getMercariStatus() {
-  const relistToken = await getToken();
-  if (!relistToken) return { connected: false };
+  const omventaToken = await getToken();
+  if (!omventaToken) return { connected: false };
 
   try {
     const res = await fetch(`${API_BASE}/api/marketplaces/connections`, {
-      headers: { Authorization: `Bearer ${relistToken}` },
+      headers: { Authorization: `Bearer ${omventaToken}` },
     });
     const data = await res.json().catch(() => ({}));
     const connections = data.data ?? [];
@@ -1199,7 +1199,7 @@ async function getMercariStatus() {
 // from their web app and are subject to change.
 //
 // Auth: cookie-based. After login, the extension captures the full cookie jar and
-// the _csrf_token, then saves them to the ReList API via /api/marketplaces/poshmark/connect-token.
+// the _csrf_token, then saves them to the Omventa API via /api/marketplaces/poshmark/connect-token.
 //
 // CONFIRMED 2026-08-15 — a single POST /api/v2/post (the old shape this file used to guess
 // at) does not exist; Poshmark returned its generic 404 handler for it and for
@@ -1251,7 +1251,7 @@ async function getLivePoshmarkCsrf(storedCsrfToken) {
     const cookie = await chrome.cookies.get({ url: POSHMARK_BASE, name: "_csrf" });
     if (cookie?.value) return cookie.value;
   } catch (err) {
-    console.warn("[relist:poshmark] Failed to read live _csrf cookie:", err.message);
+    console.warn("[omventa:poshmark] Failed to read live _csrf cookie:", err.message);
   }
   return storedCsrfToken;
 }
@@ -1283,7 +1283,7 @@ async function runPoshmarkJob(job) {
       await claim;
       await patchPoshmarkJob(job.id, { status: "COMPLETED" });
       console.log(
-        `[relist] poshmark job ${job.id} (delist) done in ${Date.now() - started}ms`,
+        `[omventa] poshmark job ${job.id} (delist) done in ${Date.now() - started}ms`,
         result
       );
       return;
@@ -1292,9 +1292,9 @@ async function runPoshmarkJob(job) {
     const externalId = await postToPoshmarkApi(job);
     await claim;
     await patchPoshmarkJob(job.id, { status: "COMPLETED", externalId: externalId ?? undefined });
-    console.log(`[relist] poshmark job ${job.id} published in ${Date.now() - started}ms`);
+    console.log(`[omventa] poshmark job ${job.id} published in ${Date.now() - started}ms`);
   } catch (err) {
-    console.error("[relist] poshmark job failed:", err.message);
+    console.error("[omventa] poshmark job failed:", err.message);
 
     if (err.message === "Not authenticated") {
       // apiFetch already cleared the token; stop polling and show the ! badge
@@ -1374,7 +1374,7 @@ async function createPoshmarkDraft(tabId, userId, csrfToken) {
   const url = `${POSHMARK_BASE}/vm-rest/users/${userId}/posts?pm_version=${POSHMARK_PM_VERSION}`;
   const response = await poshmarkTabFetchJson(tabId, url, "POST", {}, csrfToken);
   if (!response?.ok) {
-    console.error("[relist:poshmark] draft creation failed:", response);
+    console.error("[omventa:poshmark] draft creation failed:", response);
     throw poshmarkErrorFromResponse(response, "Poshmark draft creation failed");
   }
   const draftId = response.data?.id ?? null;
@@ -1387,7 +1387,7 @@ async function savePoshmarkDraft(tabId, draftId, postBody, csrfToken) {
   const url = `${POSHMARK_BASE}/vm-rest/posts/${draftId}?pm_version=${POSHMARK_PM_VERSION}`;
   const response = await poshmarkTabFetchJson(tabId, url, "POST", postBody, csrfToken);
   if (!response?.ok) {
-    console.error("[relist:poshmark] draft save failed:", response);
+    console.error("[omventa:poshmark] draft save failed:", response);
     throw poshmarkErrorFromResponse(response, "Poshmark listing save failed");
   }
 }
@@ -1399,7 +1399,7 @@ async function publishPoshmarkDraft(tabId, draftId, csrfToken) {
     `?app_version=${POSHMARK_APP_VERSION}&pm_version=${POSHMARK_PM_VERSION}`;
   const response = await poshmarkTabFetchJson(tabId, url, "PUT", {}, csrfToken);
   if (!response?.ok) {
-    console.error("[relist:poshmark] publish failed:", response);
+    console.error("[omventa:poshmark] publish failed:", response);
     throw poshmarkErrorFromResponse(response, "Poshmark publish failed");
   }
 }
@@ -1420,7 +1420,7 @@ async function verifyPoshmarkPublished(tabId, draftId, csrfToken) {
   if (!post?.inventory?.size_quantities?.length) hints.push("no size set (size_quantities is empty)");
   if ((post?.scratch_pictures?.length ?? 0) > 0) hints.push("images never left scratch_pictures");
 
-  console.error("[relist:poshmark] publish did not take effect:", {
+  console.error("[omventa:poshmark] publish did not take effect:", {
     status: post?.status,
     hints,
     data: post,
@@ -1583,7 +1583,7 @@ async function uploadImagesToPoshmark(tabId, draftId, imageUrls, csrfToken) {
       // Fetch image in the service worker (no CORS restrictions)
       const res = await fetch(url);
       if (!res.ok) {
-        console.warn("[relist] Poshmark image fetch failed:", url);
+        console.warn("[omventa] Poshmark image fetch failed:", url);
         index++;
         continue;
       }
@@ -1648,14 +1648,14 @@ async function uploadImagesToPoshmark(tabId, draftId, imageUrls, csrfToken) {
         const picId = uploadResult.data?.id ?? null;
         if (picId) pictureIds.push(picId);
       } else {
-        console.warn("[relist] Poshmark image upload failed for:", url, {
+        console.warn("[omventa] Poshmark image upload failed for:", url, {
           status: uploadResult?.status,
           data: uploadResult?.data,
           rawText: uploadResult?.rawText,
         });
       }
     } catch (err) {
-      console.warn("[relist] Poshmark image error:", err.message);
+      console.warn("[omventa] Poshmark image error:", err.message);
     }
     index++;
   }
@@ -1741,9 +1741,9 @@ async function restorePoshmarkCookies() {
     });
     const data = await res.json().catch(() => ({}));
     cookies = data.data?.cookies ?? [];
-    console.log("[relist:poshmark] restorePoshmarkCookies: fetched", cookies.length, "cookies from API");
+    console.log("[omventa:poshmark] restorePoshmarkCookies: fetched", cookies.length, "cookies from API");
   } catch (err) {
-    console.error("[relist:poshmark] restorePoshmarkCookies: session fetch failed:", err.message);
+    console.error("[omventa:poshmark] restorePoshmarkCookies: session fetch failed:", err.message);
     return;
   }
 
@@ -1772,26 +1772,26 @@ async function restorePoshmarkCookies() {
       ok++;
     } catch (err) {
       fail++;
-      console.warn("[relist:poshmark] Failed to restore cookie:", cookie.name,
+      console.warn("[omventa:poshmark] Failed to restore cookie:", cookie.name,
         `(domain=${cookie.domain}, httpOnly=${cookie.httpOnly}, sameSite=${cookie.sameSite})`,
         "→", err.message);
     }
   }
-  console.log(`[relist:poshmark] restorePoshmarkCookies done: ${ok} set, ${fail} failed`);
+  console.log(`[omventa:poshmark] restorePoshmarkCookies done: ${ok} set, ${fail} failed`);
 }
 
 // Opens poshmark.com/login, waits for the user to authenticate, then captures
-// cookies and account info and saves them to the ReList API.
+// cookies and account info and saves them to the Omventa API.
 async function connectPoshmark() {
-  const relistToken = await getToken();
-  if (!relistToken) throw new Error("Not authenticated to ReList");
+  const omventaToken = await getToken();
+  if (!omventaToken) throw new Error("Not authenticated to Omventa");
 
-  console.log("[relist:poshmark] Opening login tab…");
+  console.log("[omventa:poshmark] Opening login tab…");
   const tab = await chrome.tabs.create({
     url: "https://poshmark.com/login",
     active: true,
   });
-  console.log("[relist:poshmark] Login tab opened, id:", tab.id);
+  console.log("[omventa:poshmark] Login tab opened, id:", tab.id);
 
   return new Promise((resolve, reject) => {
     const TIMEOUT_MS = 5 * 60 * 1000;
@@ -1804,7 +1804,7 @@ async function connectPoshmark() {
 
     const timer = setTimeout(() => {
       cleanup();
-      console.warn("[relist:poshmark] Login timed out after 5 min");
+      console.warn("[omventa:poshmark] Login timed out after 5 min");
       // Tab left open intentionally for debugging
       reject(new Error("Login timed out — please try again"));
     }, TIMEOUT_MS);
@@ -1812,33 +1812,33 @@ async function connectPoshmark() {
     const onRemoved = (tabId) => {
       if (tabId !== tab.id) return;
       cleanup();
-      console.warn("[relist:poshmark] Login tab closed before capture completed");
+      console.warn("[omventa:poshmark] Login tab closed before capture completed");
       reject(new Error("Login tab was closed before completing"));
     };
 
     const onUpdated = async (tabId, changeInfo, updatedTab) => {
       if (tabId !== tab.id || changeInfo.status !== "complete") return;
       const url = updatedTab.url ?? "";
-      console.log("[relist:poshmark] Tab navigated →", url);
+      console.log("[omventa:poshmark] Tab navigated →", url);
 
       if (!url.startsWith("https://poshmark.com")) return;
       if (url.includes("/login") || url.includes("/signup") || url.includes("/auth")) {
-        console.log("[relist:poshmark] Still on auth page, waiting…");
+        console.log("[omventa:poshmark] Still on auth page, waiting…");
         return;
       }
 
       // User is on a real Poshmark page — login succeeded
-      console.log("[relist:poshmark] Login detected, waiting 1.5 s for cookies to settle…");
+      console.log("[omventa:poshmark] Login detected, waiting 1.5 s for cookies to settle…");
       cleanup();
       await new Promise((r) => setTimeout(r, 1500));
 
       try {
-        await capturePoshmarkSession(tab.id, relistToken);
+        await capturePoshmarkSession(tab.id, omventaToken);
         // Tab left open intentionally for debugging — remove this comment when done
-        console.log("[relist:poshmark] Session captured OK — tab left open for inspection");
+        console.log("[omventa:poshmark] Session captured OK — tab left open for inspection");
         resolve({ ok: true });
       } catch (err) {
-        console.error("[relist:poshmark] capturePoshmarkSession failed:", err.message);
+        console.error("[omventa:poshmark] capturePoshmarkSession failed:", err.message);
         // Tab left open intentionally for debugging
         reject(err);
       }
@@ -1849,7 +1849,7 @@ async function connectPoshmark() {
   });
 }
 
-// Captures Poshmark session data from the logged-in tab and POSTs to the ReList API.
+// Captures Poshmark session data from the logged-in tab and POSTs to the Omventa API.
 //
 // Auth cookie map (confirmed from live DevTools 2026-06):
 //   jwt       — httpOnly, secure; main session JWT
@@ -1863,64 +1863,64 @@ async function connectPoshmark() {
 //
 // All are read via chrome.cookies.getAll() in the service worker (which can access httpOnly
 // cookies). No injected script needed for capture.
-async function capturePoshmarkSession(tabId, relistToken) {
-  console.log("[relist:poshmark] capturePoshmarkSession start, tabId:", tabId);
+async function capturePoshmarkSession(tabId, omventaToken) {
+  console.log("[omventa:poshmark] capturePoshmarkSession start, tabId:", tabId);
 
   // Read all cookies from the service worker — chrome.cookies can read httpOnly cookies
   let allCookies = [];
   try {
     allCookies = await chrome.cookies.getAll({ url: "https://poshmark.com" });
-    console.log("[relist:poshmark] getAll(url) returned", allCookies.length, "cookies:",
+    console.log("[omventa:poshmark] getAll(url) returned", allCookies.length, "cookies:",
       allCookies.map((c) => `${c.name}(httpOnly=${c.httpOnly},domain=${c.domain})`).join(", "));
   } catch (err) {
-    console.error("[relist:poshmark] getAll(url) failed:", err.message);
+    console.error("[omventa:poshmark] getAll(url) failed:", err.message);
   }
 
   // Also grab .poshmark.com domain cookies (subdomain-scoped ones like _ga, __ssid, etc.)
   try {
     const sub = await chrome.cookies.getAll({ domain: ".poshmark.com" });
-    console.log("[relist:poshmark] getAll(domain) returned", sub.length, "cookies");
+    console.log("[omventa:poshmark] getAll(domain) returned", sub.length, "cookies");
     for (const c of sub) {
       if (!allCookies.some((x) => x.name === c.name && x.domain === c.domain)) {
         allCookies.push(c);
       }
     }
   } catch (err) {
-    console.warn("[relist:poshmark] getAll(domain) failed:", err.message);
+    console.warn("[omventa:poshmark] getAll(domain) failed:", err.message);
   }
 
-  console.log("[relist:poshmark] Total cookies after merge:", allCookies.length);
+  console.log("[omventa:poshmark] Total cookies after merge:", allCookies.length);
 
   // _csrf cookie — NOT httpOnly, value is the raw CSRF token
   const csrfCookie = allCookies.find((c) => c.name === "_csrf");
   const csrfToken = csrfCookie?.value ?? null;
-  console.log("[relist:poshmark] _csrf cookie found:", !!csrfCookie, "| value:", csrfToken);
+  console.log("[omventa:poshmark] _csrf cookie found:", !!csrfCookie, "| value:", csrfToken);
 
   // ui cookie — httpOnly JSON: {uid, dh (handle/username), fn (full name URL-encoded), em, ...}
   let accountId = null;
   let accountName = null;
   const uiCookie = allCookies.find((c) => c.name === "ui");
-  console.log("[relist:poshmark] ui cookie found:", !!uiCookie, "| raw:", uiCookie?.value?.slice(0, 80));
+  console.log("[omventa:poshmark] ui cookie found:", !!uiCookie, "| raw:", uiCookie?.value?.slice(0, 80));
   if (uiCookie?.value) {
     try {
       const ui = JSON.parse(decodeURIComponent(uiCookie.value));
-      console.log("[relist:poshmark] ui cookie parsed:", JSON.stringify(ui));
+      console.log("[omventa:poshmark] ui cookie parsed:", JSON.stringify(ui));
       accountId = ui.uid ?? null;
       // dh = username handle (e.g. "flipping_studio"), fn = "Brett+Westwood"
       accountName = ui.dh ?? ui.fn?.replace(/\+/g, " ") ?? null;
     } catch (err) {
-      console.warn("[relist:poshmark] Failed to parse ui cookie:", err.message);
+      console.warn("[omventa:poshmark] Failed to parse ui cookie:", err.message);
     }
   }
 
-  console.log("[relist:poshmark] accountId:", accountId, "| accountName:", accountName);
+  console.log("[omventa:poshmark] accountId:", accountId, "| accountName:", accountName);
 
   // jwt cookie — httpOnly, confirms session is active
   const jwtCookie = allCookies.find((c) => c.name === "jwt");
-  console.log("[relist:poshmark] jwt cookie found:", !!jwtCookie);
+  console.log("[omventa:poshmark] jwt cookie found:", !!jwtCookie);
 
   if (!csrfToken && !accountId) {
-    console.error("[relist:poshmark] No CSRF token and no accountId — aborting");
+    console.error("[omventa:poshmark] No CSRF token and no accountId — aborting");
     throw new Error(
       "Could not capture Poshmark session.\n\nMake sure you are fully logged in, then try again."
     );
@@ -1928,19 +1928,19 @@ async function capturePoshmarkSession(tabId, relistToken) {
 
   // Strip non-serializable fields before saving
   const cookiesPayload = allCookies.map(({ hostOnly, session, ...c }) => c);
-  console.log("[relist:poshmark] Sending", cookiesPayload.length, "cookies to API");
+  console.log("[omventa:poshmark] Sending", cookiesPayload.length, "cookies to API");
 
   // The accessToken field is used by our API as a connection marker.
   // Poshmark uses cookie-based auth, so we store the CSRF token here as a
   // convenient single-string auth signal; the full cookie jar is what matters.
   const accessToken = csrfToken ?? `poshmark_${accountId}`;
 
-  console.log("[relist:poshmark] POSTing to connect-token…");
+  console.log("[omventa:poshmark] POSTing to connect-token…");
   const res = await fetch(`${API_BASE}/api/marketplaces/poshmark/connect-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${relistToken}`,
+      Authorization: `Bearer ${omventaToken}`,
     },
     body: JSON.stringify({
       accessToken,
@@ -1952,18 +1952,18 @@ async function capturePoshmarkSession(tabId, relistToken) {
   });
 
   const body = await res.json().catch(() => ({}));
-  console.log("[relist:poshmark] connect-token response:", res.status, JSON.stringify(body));
+  console.log("[omventa:poshmark] connect-token response:", res.status, JSON.stringify(body));
   if (!res.ok) throw new Error(body.error ?? "Failed to save Poshmark connection");
-  console.log("[relist:poshmark] Connection saved ✓ accountName:", accountName);
+  console.log("[omventa:poshmark] Connection saved ✓ accountName:", accountName);
 }
 
 async function getPoshmarkStatus() {
-  const relistToken = await getToken();
-  if (!relistToken) return { connected: false };
+  const omventaToken = await getToken();
+  if (!omventaToken) return { connected: false };
 
   try {
     const res = await fetch(`${API_BASE}/api/marketplaces/connections`, {
-      headers: { Authorization: `Bearer ${relistToken}` },
+      headers: { Authorization: `Bearer ${omventaToken}` },
     });
     const data = await res.json().catch(() => ({}));
     const connections = data.data ?? [];
@@ -1981,7 +1981,7 @@ async function getPoshmarkStatus() {
 //
 // Poshmark has no webhooks and no public API, so the only way to find out that a listing sold
 // is to read each post back through an authenticated poshmark.com tab. This runs once an hour
-// on a chrome.alarms tick and reports everything it reads to the ReList API.
+// on a chrome.alarms tick and reports everything it reads to the Omventa API.
 //
 // The SERVER owns the schedule, not this alarm: every sweep starts with
 // POST /api/poshmark/status-check/claim, which answers `due: false` if the account was already
@@ -1989,7 +1989,7 @@ async function getPoshmarkStatus() {
 // service worker that gets woken repeatedly) still polls Poshmark once per hour, and every
 // claim/complete pair is recorded server-side as a MarketplacePollRun.
 //
-// Endpoint is the same GET the publish flow uses for its step-5 verification (see POSHMARK.md):
+// Endpoint is the same GET the publish flow uses for its step-5 verification (see docs/POSHMARK.md):
 //   GET /vm-rest/posts/{postId}?app_version=X&pm_version=X → { data: { status, inventory, ... } }
 
 /** Alarm names for the hourly sweeps. 60 minutes matches the server-side poll interval. */
@@ -2002,16 +2002,13 @@ const STATUS_CHECK_GAP_MS = 400;
 /** One in-flight guard per marketplace — the two sweeps use separate tabs and never contend. */
 const statusCheckRunning = { POSHMARK: false, MERCARI: false };
 
-// chrome.notifications requires an iconUrl for "basic" notifications and the extension ships no
-// icon files (icons/ holds only a README), so a packaged 32x32 solid-green square is inlined here
-// rather than pointing at a path that would make every sold notification fail to render.
-const SOLD_NOTIFICATION_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAL0lEQVR42u3OIQEAAAgDMFIQipoEhRg3E/Or3rmkEhAQEBAQEBAQEBAQEBAQSAcel1EIeUbP2o4AAAAASUVORK5CYII=";
+const SOLD_NOTIFICATION_ICON = chrome.runtime.getURL("icons/icon128.png");
 
 /**
  * Read one Poshmark post back and classify it.
  *
  * INFERENCE WARNING — unlike the publish flow (every field of which was confirmed against live
- * traffic, see POSHMARK.md), the sold-detection signals below are read off the same confirmed
+ * traffic, see docs/POSHMARK.md), the sold-detection signals below are read off the same confirmed
  * GET response but were not observed on a genuinely sold listing. `raw` is therefore reported to
  * the API for every check so a misclassification can be diagnosed from stored data rather than
  * re-guessed. Signals used, in order:
@@ -2199,7 +2196,7 @@ async function onSold(label, outcomes) {
     (o.siblings ?? []).filter((s) => s.result === "queued_extension")
   );
   console.log(
-    `[relist:${label.toLowerCase()}] ${ids.length} newly sold listing(s):`, ids,
+    `[omventa:${label.toLowerCase()}] ${ids.length} newly sold listing(s):`, ids,
     queuedDelists.length ? `— ${queuedDelists.length} sibling delist job(s) queued` : ""
   );
 
@@ -2213,14 +2210,14 @@ async function onSold(label, outcomes) {
       title: ids.length === 1 ? `${label} sale detected` : `${ids.length} ${label} sales detected`,
       message:
         (ids.length === 1
-          ? `One listing sold on ${label} — ReList has marked it sold.`
-          : `${ids.length} listings sold on ${label} — ReList has marked them sold.`) +
+          ? `One listing sold on ${label} — Omventa has marked it sold.`
+          : `${ids.length} listings sold on ${label} — Omventa has marked them sold.`) +
         (queuedDelists.length
           ? ` Delisting ${queuedDelists.length} copy/copies from other marketplaces.`
           : ""),
     });
   } catch (err) {
-    console.warn(`[relist:${label.toLowerCase()}] sold notification failed:`, err.message);
+    console.warn(`[omventa:${label.toLowerCase()}] sold notification failed:`, err.message);
   }
 }
 
@@ -2268,12 +2265,12 @@ async function runStatusCheck(sweep, { force = false } = {}) {
     await onSold(label, newlySold);
 
     console.log(
-      `[relist:${key.toLowerCase()}] status check: ${results.length} listing(s) in ` +
+      `[omventa:${key.toLowerCase()}] status check: ${results.length} listing(s) in ` +
       `${Date.now() - started}ms, ${newlySold.length} newly sold`
     );
     return { checked: results.length, sold: newlySold.length };
   } catch (err) {
-    console.error(`[relist:${key.toLowerCase()}] status check failed:`, err.message);
+    console.error(`[omventa:${key.toLowerCase()}] status check failed:`, err.message);
     // Close the claimed run out so it isn't left RUNNING and reaped as a timeout later.
     const pollRunId = claim?.data?.pollRunId;
     if (pollRunId) {
@@ -2350,7 +2347,7 @@ const runMercariStatusCheck = (opts) => runStatusCheck(MERCARI_SWEEP, opts);
 
 // ── Extension-driven delisting ────────────────────────────────────────────────
 //
-// Neither marketplace can be delisted from the ReList server: Cloudflare Bot Management blocks
+// Neither marketplace can be delisted from the Omventa server: Cloudflare Bot Management blocks
 // Node.js requests to www.mercari.com, and Poshmark's vm-rest API only answers a real browser
 // cookie session. Both adapters' delist() are therefore no-ops server-side (see
 // apps/api/src/services/marketplace/{mercari,poshmark}.ts) and the work lands here instead.
@@ -2378,7 +2375,7 @@ const runMercariStatusCheck = (opts) => runStatusCheck(MERCARI_SWEEP, opts);
  * The real mechanism, found by driving the "Availability" dropdown (For Sale / Not For Sale) on
  * Poshmark's own `/edit-listing/{id}` page and reading the post back via GET, is the same
  * listing-save endpoint used to persist fields onto a draft (step 3 of the create flow, see
- * `savePoshmarkDraft` / POSHMARK.md) — just with `inventory.status` set directly:
+ * `savePoshmarkDraft` / docs/POSHMARK.md) — just with `inventory.status` set directly:
  *
  *   POST /vm-rest/posts/{id}?pm_version={PM_VERSION}
  *   body: { post: { inventory: { status: "not_for_sale" } } }
@@ -2404,13 +2401,13 @@ async function delistPoshmarkPost(tabId, postId, csrfToken) {
   // A 404 means the post is already gone from Poshmark — the outcome we wanted, so not an error.
   if (response?.status === 404) return { status: "removed", raw: { httpStatus: 404 } };
   if (!response?.ok) {
-    console.error("[relist:poshmark] delist call failed:", response);
+    console.error("[omventa:poshmark] delist call failed:", response);
     throw poshmarkErrorFromResponse(response, "Poshmark delist failed");
   }
 
   const after = await fetchPoshmarkPostStatus(tabId, postId, csrfToken);
   if (after.status === "active") {
-    console.error("[relist:poshmark] delist did not take effect:", after.raw);
+    console.error("[omventa:poshmark] delist did not take effect:", after.raw);
     throw new Error(
       "Poshmark accepted the delist request but the listing is still published — " +
       "the post may need to be taken off sale manually."
@@ -2567,7 +2564,7 @@ async function delistFromMercari(externalId) {
         const result = results[0]?.result;
         if (!result) throw new Error("Mercari delist request returned no result");
 
-        console.log(`[relist:mercari] delist ${externalId} response:`, JSON.stringify(result.data));
+        console.log(`[omventa:mercari] delist ${externalId} response:`, JSON.stringify(result.data));
 
         if (!result.ok) {
           throw new Error(result.data?.errors?.[0]?.message ?? `Mercari delist failed (${result.status})`);
@@ -2610,7 +2607,7 @@ async function awaitPendingJobsFrom(path, label) {
       chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
       return null;
     }
-    console.warn(`[relist] ${label} poll failed:`, err.message);
+    console.warn(`[omventa] ${label} poll failed:`, err.message);
     await sleep(POLL_ERROR_BACKOFF_MS);
     return [];
   }
@@ -2665,7 +2662,7 @@ function startPolling() {
   stopRequested = false;
   // Watchdog: restarts the loop if the service worker was evicted mid-wait. 1 minute is the
   // minimum period Chrome allows for MV3 alarms.
-  chrome.alarms.create("relist-poll", { periodInMinutes: 1 });
+  chrome.alarms.create("omventa-poll", { periodInMinutes: 1 });
   // Hourly sold-detection sweeps, one per marketplace. Chrome coalesces these with the watchdog
   // tick; the server-side claim is what actually enforces "once an hour", so an early or
   // repeated fire costs one cheap API call and nothing more.
@@ -2678,7 +2675,7 @@ function startPolling() {
 
 function stopPolling() {
   stopRequested = true;
-  chrome.alarms.clear("relist-poll");
+  chrome.alarms.clear("omventa-poll");
   chrome.alarms.clear(POSHMARK_STATUS_ALARM);
   chrome.alarms.clear(MERCARI_STATUS_ALARM);
 }
@@ -2692,7 +2689,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     });
     return;
   }
-  if (alarm.name !== "relist-poll") return;
+  if (alarm.name !== "omventa-poll") return;
   getToken().then((token) => {
     if (token) pollLoop();
   });

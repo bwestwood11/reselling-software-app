@@ -8,11 +8,11 @@
 //
 // POSHMARK_API base: https://poshmark.com
 // The `/api/v2/posts...` paths that used to be documented here don't exist — see
-// extension/POSHMARK.md "History of wrong guesses". The real, verified flow (draft
+// docs/POSHMARK.md "History of wrong guesses". The real, verified flow (draft
 // create -> image upload -> save -> publish -> verify) lives under /vm-rest/, fully
-// documented in extension/POSHMARK.md and implemented in extension/background.js.
+// documented in docs/POSHMARK.md and implemented in extension/background.js.
 //
-// Sold-item detection (see extension/POSHMARK.md "Sold-item detection" for full capture
+// Sold-item detection (see docs/POSHMARK.md "Sold-item detection" for full capture
 // notes): GET /vm-rest/posts/{postId}?app_version=5.04&pm_version={PM_VERSION} — check
 // response.data.inventory.status === "sold_out" (NOT response.data.status, which stays
 // "published" forever). response.data.inventory.status_changed_at is the sale timestamp.

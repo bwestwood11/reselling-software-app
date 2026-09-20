@@ -11,6 +11,9 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://omventa.com
   ""
 );
 
+// Address shown on the privacy page and used for privacy/data requests.
+export const CONTACT_EMAIL = "support@omventa.com";
+
 export const SITE_KEYWORDS = [
   "crosslisting software",
   "crosslister",
