@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/sidebar";
 import { SubscriptionGate } from "@/components/subscription-gate";
+
+// The authenticated app has nothing worth indexing.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function DashboardLayout({
   children,

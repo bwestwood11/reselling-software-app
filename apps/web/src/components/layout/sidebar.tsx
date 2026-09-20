@@ -29,6 +29,25 @@ const navItems = [
   { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
+const PLAN_LABELS: Record<string, string> = {
+  FREE: "Free",
+  SIDE_HUSTLE: "Side Hustle",
+  FULL_TIME: "Full-Time",
+  ENTERPRISE: "Enterprise",
+};
+
+function formatPlan(plan: string | null): string {
+  if (!plan) return "Current";
+  return (
+    PLAN_LABELS[plan] ??
+    plan
+      .toLowerCase()
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -46,9 +65,18 @@ export function Sidebar() {
   const totalCredits = subscription
     ? subscription.aiCredits + subscription.bonusAiCredits
     : 0;
+  // The bar fills as the monthly allotment is used up (empty = nothing used).
   const creditPct =
     isActive && subscription?.monthlyAiCredits
-      ? Math.max(0, Math.min(100, (subscription.aiCredits / subscription.monthlyAiCredits) * 100))
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((subscription.monthlyAiCredits - subscription.aiCredits) /
+              subscription.monthlyAiCredits) *
+              100
+          )
+        )
       : 0;
 
   async function handleSignOut() {
@@ -112,7 +140,7 @@ export function Sidebar() {
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3 w-3 text-orange-500" />
                 <span className="text-xs font-semibold text-zinc-700">
-                  {subscription.isTrialing ? "Free Trial" : `${subscription.plan} Plan`}
+                  {subscription.isTrialing ? "Free Trial" : `${formatPlan(subscription.plan)} Plan`}
                 </span>
               </div>
               <Link

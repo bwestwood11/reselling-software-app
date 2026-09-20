@@ -318,8 +318,16 @@ export class SubscriptionService {
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        // Replenish the monthly AI allotment on each renewal cycle.
-        if (invoice.billing_reason !== "subscription_cycle") break;
+        // Replenish the monthly AI allotment whenever a subscription is actually
+        // charged for a new period. Stripe tags the very first charge — including
+        // the one that fires when a trial ends — as "subscription_create", and
+        // only later renewals as "subscription_cycle"; both need the reset.
+        if (
+          invoice.billing_reason !== "subscription_cycle" &&
+          invoice.billing_reason !== "subscription_create"
+        ) {
+          break;
+        }
         const subId =
           typeof invoice.subscription === "string"
             ? invoice.subscription
@@ -337,21 +345,35 @@ export class SubscriptionService {
         });
         if (!sub) break;
 
-        const allotment = PLANS[match.plan].aiCredits;
-        await this.db.$transaction(async (tx) => {
-          await tx.subscription.update({
-            where: { id: sub.id },
-            data: { aiCredits: allotment },
-          });
-          await tx.creditTransaction.create({
-            data: {
-              subscriptionId: sub.id,
-              userId: sub.userId,
-              amount: allotment,
-              description: `Monthly renewal — ${allotment} smart AI credits`,
-            },
-          });
+        // Dedup on the invoice id — a webhook redelivery of the same invoice
+        // (Stripe retry, or a manual "Resend" in the Dashboard) must not
+        // re-grant the same period's allotment twice.
+        const already = await this.db.creditTransaction.findUnique({
+          where: { stripeSessionId: invoice.id },
         });
+        if (already) break;
+
+        const allotment = PLANS[match.plan].aiCredits;
+        try {
+          await this.db.$transaction(async (tx) => {
+            await tx.subscription.update({
+              where: { id: sub.id },
+              data: { aiCredits: allotment },
+            });
+            await tx.creditTransaction.create({
+              data: {
+                subscriptionId: sub.id,
+                userId: sub.userId,
+                amount: allotment,
+                description: `Monthly renewal — ${allotment} smart AI credits`,
+                stripeSessionId: invoice.id,
+              },
+            });
+          });
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") break;
+          throw err;
+        }
         break;
       }
 

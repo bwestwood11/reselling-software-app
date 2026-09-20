@@ -25,13 +25,13 @@ export async function sendVerificationOtpEmail(email: string, otp: string): Prom
     return;
   }
 
-  const subject = "Your ReList verification code";
-  const text = `Your ReList verification code is ${otp}. It expires in 10 minutes. If you didn't request this, you can ignore this email.`;
+  const subject = "Your Omventa verification code";
+  const text = `Your Omventa verification code is ${otp}. It expires in 10 minutes. If you didn't request this, you can ignore this email.`;
   const html = `
     <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
       <h2 style="margin: 0 0 16px; color: #09090b;">Verify your email</h2>
       <p style="margin: 0 0 24px; color: #3f3f46; font-size: 14px; line-height: 1.5;">
-        Enter this code to finish creating your ReList account. It expires in 10 minutes.
+        Enter this code to finish creating your Omventa account. It expires in 10 minutes.
       </p>
       <div style="font-size: 32px; font-weight: 700; letter-spacing: 8px; text-align: center; padding: 16px; background: #fafafa; border-radius: 12px; color: #09090b;">
         ${otp}
