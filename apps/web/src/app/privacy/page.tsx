@@ -87,7 +87,11 @@ export default function PrivacyPage(): import("react").JSX.Element {
                   needed to act on your behalf: OAuth access and refresh tokens (for example
                   eBay), or session tokens and cookies captured from your own logged-in browser
                   session (Mercari and Poshmark, via our Chrome extension). We also store your
-                  marketplace account name and ID. If you connect Mercari by entering your
+                  marketplace account name, handle and ID, and the delivery (ship-from) addresses
+                  saved in your Mercari account so listings can be created with the right shipping
+                  details. The session cookies we receive from these marketplaces may themselves
+                  contain account details such as your name or email address. If you connect
+                  Mercari by entering your
                   credentials, they are used to sign in and are not saved to your {SITE_NAME}{" "}
                   account.
                 </>,
@@ -127,7 +131,7 @@ export default function PrivacyPage(): import("react").JSX.Element {
             <List
               items={[
                 "runs only on mercari.com, poshmark.com and our API (api.omventa.com);",
-                "reads your Mercari or Poshmark session cookies and tokens only after you choose to connect that marketplace, and sends them over HTTPS to our servers so we can post on your behalf;",
+                "reads your Mercari or Poshmark session cookies and tokens, your account name and ID, and (for Mercari) your saved delivery addresses only after you choose to connect that marketplace, and sends them over HTTPS to our servers so we can post on your behalf;",
                 "stores your sign-in token for the extension locally in your browser so you stay signed in;",
                 "shows a notification when one of your listings is detected as sold; and",
                 "does not read your browsing history or anything on other websites.",
