@@ -1,8 +1,8 @@
 # Chrome Web Store submission — Omventa Crosslister
 
-Build the upload package with `pnpm ext:build` → `extension/dist/omventa-crosslister-<version>.zip`
+Build the upload package with `pnpm ext:build` → `dist/extension/omventa-crosslister-<version>.zip` (upload this exact file — don't zip the `extension/` folder by hand)
 (only the runtime files are included). For local development against the local API use
-`pnpm ext:dev` and load `extension/dist/dev` unpacked — it re-adds `http://localhost:3001` and
+`pnpm ext:dev` and load `dist/extension/dev` unpacked — it re-adds `http://localhost:3001` and
 points the extension at it; the store build never contains either.
 
 ## Single purpose

@@ -1,6 +1,6 @@
 // Packages the extension.
-//   node scripts/build.mjs        → dist/prod/ + dist/omventa-crosslister-<version>.zip  (Chrome Web Store upload)
-//   node scripts/build.mjs --dev  → dist/dev/  (load unpacked; talks to http://localhost:3001)
+//   node scripts/build.mjs        → ../dist/extension/prod/ + ../dist/extension/omventa-crosslister-<version>.zip  (Chrome Web Store upload)
+//   node scripts/build.mjs --dev  → ../dist/extension/dev/  (load unpacked; talks to http://localhost:3001)
 //
 // Only the allowlisted runtime files are copied, so notes, dead code and this script never
 // end up in the store package. The dev build re-adds the localhost host permission and points
@@ -12,7 +12,10 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dev = process.argv.includes("--dev");
-const outDir = join(root, "dist", dev ? "dev" : "prod");
+// Output lives OUTSIDE extension/ (repo-root dist/extension, gitignored) so zipping the extension
+// folder by hand can never pick up build artifacts or a second manifest.
+const distRoot = resolve(root, "..", "dist", "extension");
+const outDir = join(distRoot, dev ? "dev" : "prod");
 
 const FILES = ["manifest.json", "background.js", "popup.html", "popup.js", "popup.css", "icons"];
 const API_BASE_PROD = 'const API_BASE = "https://api.omventa.com";';
@@ -101,6 +104,6 @@ end.writeUInt16LE(central.length / 2, 10);
 end.writeUInt32LE(centralBuf.length, 12);
 end.writeUInt32LE(offset, 16);
 
-const zipPath = join(root, "dist", `omventa-crosslister-${manifest.version}.zip`);
+const zipPath = join(distRoot, `omventa-crosslister-${manifest.version}.zip`);
 writeFileSync(zipPath, Buffer.concat([...local, centralBuf, end]));
 console.log(`Store package → ${zipPath}`);
