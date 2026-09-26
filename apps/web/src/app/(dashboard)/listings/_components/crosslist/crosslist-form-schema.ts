@@ -60,4 +60,7 @@ export type CrosslistFormInput = z.input<typeof crosslistFormSchema>;
 
 export interface CrosslistFormProps {
   onClose: () => void;
+  /** Pre-selects this inventory item in "existing item" mode, e.g. arriving via
+   *  /listings/new?itemId=... from an item's "Add listing" button. */
+  initialItemId?: string;
 }

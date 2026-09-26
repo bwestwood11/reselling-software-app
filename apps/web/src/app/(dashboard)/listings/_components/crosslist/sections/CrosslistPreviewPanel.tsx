@@ -38,7 +38,7 @@ export function CrosslistPreviewPanel({
   const n = selectedConnections.length;
 
   return (
-    <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+    <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
       {/* Target marketplaces */}
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400">

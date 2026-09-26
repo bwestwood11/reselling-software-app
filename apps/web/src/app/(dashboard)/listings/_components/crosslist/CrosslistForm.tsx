@@ -34,7 +34,10 @@ export function CrosslistForm(props: CrosslistFormProps) {
 
   return (
     <form className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-5">
+      {/* min-w-0: grid items default to min-width:auto, which lets long unbreakable content
+          force this column past its 1fr share and push the fixed 320px preview column off the
+          right edge, causing a horizontal scrollbar. */}
+      <div className="min-w-0 space-y-5">
         <ItemModeToggle itemMode={cf.itemMode} onChange={cf.setItemMode} />
 
         {cf.itemMode === "existing" ? (

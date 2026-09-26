@@ -43,7 +43,7 @@ export function PreviewPanel({
   const primaryLabel = isEditing ? `Fix & Republish to ${destination}` : `Publish to ${destination}`;
 
   return (
-    <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+    <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
       {/* Item preview */}
       {selectedItem && (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">

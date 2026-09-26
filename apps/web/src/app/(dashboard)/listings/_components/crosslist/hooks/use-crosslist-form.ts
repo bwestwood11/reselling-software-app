@@ -60,7 +60,7 @@ const EXTENSION_PUBLISH_ESTIMATE_MS = 26_000;
 /** Marketplaces whose publish is queued for the extension rather than done server-side. */
 const EXTENSION_PUBLISHED = new Set(["MERCARI", "POSHMARK"]);
 
-export function useCrosslistForm({ onClose }: CrosslistFormProps) {
+export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps) {
   const queryClient = useQueryClient();
   const createItemMutation = useCreateInventoryItem();
   const crosslistMutation = useCrosslistListings();
@@ -120,7 +120,12 @@ export function useCrosslistForm({ onClose }: CrosslistFormProps) {
 
   const form = useForm<CrosslistFormInput, any, CrosslistFormValues>({
     resolver: zodResolver(crosslistFormSchema),
-    defaultValues: { itemMode: "existing", newCondition: "GOOD", newQuantity: 1 },
+    defaultValues: {
+      itemMode: "existing",
+      newCondition: "GOOD",
+      newQuantity: 1,
+      inventoryItemId: initialItemId,
+    },
   });
   const { setValue, watch, handleSubmit, formState } = form;
 

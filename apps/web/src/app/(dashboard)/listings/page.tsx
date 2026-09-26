@@ -350,7 +350,13 @@ export default function ListingsPage(): import("react").JSX.Element {
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeListingDialog(); }}>
         <DialogContent
           showCloseButton
-          className="flex max-h-[92vh] w-full max-w-5xl flex-col gap-0 overflow-hidden bg-[#f6f5f3] p-0 sm:max-w-5xl"
+          // w-[calc(100%-2rem)] keeps this clamped to the viewport (with a 1rem margin each side)
+          // on any window narrower than max-w-5xl — the "sm:max-w-5xl" this replaced only kicked
+          // in past the 640px `sm` breakpoint with nothing capping it below the viewport itself,
+          // so any window between ~640–1024px wide had the dialog overflow and force a page-level
+          // horizontal scrollbar (the two-column form + preview panel didn't fit, and the right
+          // column ran off-screen).
+          className="flex max-h-[92vh] w-[calc(100%-2rem)] max-w-5xl flex-col gap-0 overflow-hidden bg-[#f6f5f3] p-0"
         >
           <DialogHeader className="shrink-0 border-b border-zinc-200 bg-white px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
@@ -369,7 +375,7 @@ export default function ListingsPage(): import("react").JSX.Element {
               </DialogDescription>
             )}
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
             {dialogOpen && (
               <CreateListingForm
                 defaultInventoryItemId={dialogInventoryItemId}

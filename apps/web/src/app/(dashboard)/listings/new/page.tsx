@@ -1,12 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { CrosslistForm } from "../_components/crosslist/CrosslistForm";
 
-export default function NewListingPage(): import("react").JSX.Element {
+function NewListingPageInner(): import("react").JSX.Element {
   const router = useRouter();
+  // Arriving from an item's "Add listing" button (e.g. /listings/new?itemId=...) — preselect
+  // that item instead of making the user pick it again in the form below.
+  const itemId = useSearchParams().get("itemId") ?? undefined;
   return (
     <div className="min-h-screen bg-[#f6f5f3]">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -25,8 +29,16 @@ export default function NewListingPage(): import("react").JSX.Element {
             </p>
           </div>
         </div>
-        <CrosslistForm onClose={() => router.push("/listings")} />
+        <CrosslistForm onClose={() => router.push("/listings")} initialItemId={itemId} />
       </div>
     </div>
+  );
+}
+
+export default function NewListingPage(): import("react").JSX.Element {
+  return (
+    <Suspense>
+      <NewListingPageInner />
+    </Suspense>
   );
 }

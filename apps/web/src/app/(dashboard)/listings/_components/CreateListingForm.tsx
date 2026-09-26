@@ -44,7 +44,10 @@ export function CreateListingForm(props: CreateListingFormProps) {
       )}
 
       <form className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-5">
+        {/* min-w-0: grid items default to min-width:auto, which lets long unbreakable content
+            (a Select, an address string, etc.) force this column past its 1fr share — pushing
+            the fixed 320px preview column off the right edge and causing a horizontal scrollbar. */}
+        <div className="min-w-0 space-y-5">
           <SourceDestination
             form={form}
             connections={lf.connections}

@@ -534,9 +534,9 @@ export default function EditInventoryItemPage({
 
                 <Field label="Description">
                   <Textarea
-                    rows={4}
+                    rows={8}
                     placeholder="Describe condition, measurements, notable details…"
-                    className="resize-none border-zinc-200 focus-visible:ring-orange-400"
+                    className="resize-y border-zinc-200 focus-visible:ring-orange-400"
                     {...register("description")}
                   />
                 </Field>
