@@ -40,6 +40,8 @@ export function useImportItems() {
       qc.invalidateQueries({ queryKey: ["ebay-importable"] });
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["listings"] });
+      // Imported items land unassigned, which shifts the "By source" view's counts too.
+      qc.invalidateQueries({ queryKey: ["sources"] });
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "Import failed");

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +28,19 @@ import { SourceSelect } from "@/components/ui/source-select";
 import { PhotoToolbar, PhotoAIMenu } from "@/components/inventory/PhotoToolbar";
 import type { EditOptions } from "@/components/inventory/PhotoToolbar";
 import type { SubscriptionInfo } from "@repo/types";
+import { cn } from "@/lib/utils";
+
+// Same ledger language as the item page (/inventory/[id]) — cream page background, a plain
+// back-link + inked status stamp up top, and dot-and-hairline section headers instead of
+// boxed cards, so editing an item still feels like the same tag you were just looking at.
+const LINE = "#e4e4e7"; // zinc-200 — the punch-hole ring Tailwind classes can't express
+
+const STAMP_CLASSES: Record<string, string> = {
+  DRAFT: "text-zinc-500 border-zinc-400",
+  ACTIVE: "text-orange-600 border-orange-600",
+  SOLD: "text-zinc-900 border-zinc-900",
+  ARCHIVED: "text-zinc-400 border-zinc-300",
+};
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -400,9 +413,10 @@ export default function EditInventoryItemPage({
   const processingPhoto = images.some((s) => s?.processing);
   const busy = isSubmitting || updateMutation.isPending || uploading || processingPhoto;
   const filledCount = images.filter((s) => s && !s.uploading).length;
+  const stampClasses = STAMP_CLASSES[item.status as keyof typeof STAMP_CLASSES] ?? STAMP_CLASSES.DRAFT;
 
   return (
-    <div className="min-h-screen bg-[#f6f5f3]">
+    <div className="mx-auto max-w-5xl bg-[#f6f5f3] pb-16 text-zinc-900">
       <input
         ref={fileInputRef}
         type="file"
@@ -412,187 +426,202 @@ export default function EditInventoryItemPage({
         onChange={onFilesSelected}
       />
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <div className="mb-8 flex items-center gap-4">
-          <Link
-            href={`/inventory/${id}`}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-colors hover:text-zinc-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
-              Inventory
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-              Edit Item
-            </h1>
-          </div>
+      {/* Top bar: back link + inked status stamp — mirrors the item page */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/inventory"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-800"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Inventory
+        </Link>
+        <span
+          className={cn(
+            "select-none rounded-[3px] border-2 px-3 py-1 font-mono text-[13px] font-bold uppercase tracking-[0.12em]",
+            stampClasses
+          )}
+          style={{ transform: "rotate(-3deg)", mixBlendMode: "multiply" }}
+        >
+          {item.status}
+        </span>
+      </div>
+
+      {/* Heading */}
+      <div className="mt-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">Editing</p>
+        <h1 className="mt-1 text-3xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-4xl">
+          {item.title}
+        </h1>
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[12.5px] text-zinc-500">
+          {item.brand && <span>{item.brand}</span>}
+          {item.sku && <span>SKU {item.sku}</span>}
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-            <div className="space-y-5">
-              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
-                <SectionHeader step="01" title="Item Details" />
-                <div className="mt-5 space-y-4">
-                  <Field label="Title *" error={errors.title?.message}>
+      {/* Perforation — where a real tag would tear from the ledger below */}
+      <div
+        className="relative my-9 h-px"
+        style={{ background: `repeating-linear-gradient(to right, ${LINE} 0 6px, transparent 6px 14px)` }}
+      >
+        <span className="absolute -left-1.5 -top-2 h-4 w-4 rounded-full border-2 border-zinc-300 bg-[#f6f5f3]" />
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div>
+            <Section title="Item Details">
+              <div className="space-y-4">
+                <Field label="Title *" error={errors.title?.message}>
+                  <Input
+                    placeholder="e.g. Vintage Levi 501 Jeans Size 32x30"
+                    className="border-zinc-200 focus-visible:ring-orange-400"
+                    {...register("title")}
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Brand">
+                    <MercariBrandCombobox
+                      value={watch("brand")}
+                      onChange={(name) => setValue("brand", name)}
+                      storeName
+                      variant="orange"
+                    />
+                  </Field>
+                  <Field label="SKU">
                     <Input
-                      placeholder="e.g. Vintage Levi 501 Jeans Size 32x30"
+                      placeholder="e.g. ITEM-001"
                       className="border-zinc-200 focus-visible:ring-orange-400"
-                      {...register("title")}
-                    />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Brand">
-                      <MercariBrandCombobox
-                        value={watch("brand")}
-                        onChange={(name) => setValue("brand", name)}
-                        storeName
-                        variant="orange"
-                      />
-                    </Field>
-                    <Field label="SKU">
-                      <Input
-                        placeholder="e.g. ITEM-001"
-                        className="border-zinc-200 focus-visible:ring-orange-400"
-                        {...register("sku")}
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Source">
-                    <SourceSelect
-                      value={watch("sourceId") || undefined}
-                      onChange={(id) => setValue("sourceId", id)}
-                      placeholder="No source"
-                    />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Condition *">
-                      <Select
-                        defaultValue={item.condition ?? "GOOD"}
-                        onValueChange={(val) => setValue("condition", val as any)}
-                      >
-                        <SelectTrigger className="border-zinc-200 focus:ring-orange-400">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NEW_WITH_TAGS">New with tags</SelectItem>
-                          <SelectItem value="NEW_WITHOUT_TAGS">New without tags</SelectItem>
-                          <SelectItem value="VERY_GOOD">Very good</SelectItem>
-                          <SelectItem value="GOOD">Good</SelectItem>
-                          <SelectItem value="SATISFACTORY">Satisfactory</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="Category">
-                      <MercariCategoryCombobox
-                        value={watch("category")}
-                        onChange={(path) => setValue("category", path)}
-                        variant="orange"
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Description">
-                    <Textarea
-                      rows={4}
-                      placeholder="Describe condition, measurements, notable details…"
-                      className="resize-none border-zinc-200 focus-visible:ring-orange-400"
-                      {...register("description")}
+                      {...register("sku")}
                     />
                   </Field>
                 </div>
-              </section>
 
-              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
-                <SectionHeader step="02" title="Pricing & Quantity" />
-                <div className="mt-5 grid grid-cols-3 gap-4">
-                  <Field label="Quantity *" error={errors.quantity?.message}>
+                <Field label="Source">
+                  <SourceSelect
+                    value={watch("sourceId") || undefined}
+                    onChange={(id) => setValue("sourceId", id)}
+                    placeholder="No source"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Condition *">
+                    <Select
+                      defaultValue={item.condition ?? "GOOD"}
+                      onValueChange={(val) => setValue("condition", val as any)}
+                    >
+                      <SelectTrigger className="border-zinc-200 focus:ring-orange-400">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NEW_WITH_TAGS">New with tags</SelectItem>
+                        <SelectItem value="NEW_WITHOUT_TAGS">New without tags</SelectItem>
+                        <SelectItem value="VERY_GOOD">Very good</SelectItem>
+                        <SelectItem value="GOOD">Good</SelectItem>
+                        <SelectItem value="SATISFACTORY">Satisfactory</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Category">
+                    <MercariCategoryCombobox
+                      value={watch("category")}
+                      onChange={(path) => setValue("category", path)}
+                      variant="orange"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Description">
+                  <Textarea
+                    rows={4}
+                    placeholder="Describe condition, measurements, notable details…"
+                    className="resize-none border-zinc-200 focus-visible:ring-orange-400"
+                    {...register("description")}
+                  />
+                </Field>
+              </div>
+            </Section>
+
+            <Section title="Pricing & Quantity">
+              <div className="grid grid-cols-3 gap-4">
+                <Field label="Quantity *" error={errors.quantity?.message}>
+                  <Input
+                    type="number"
+                    min="1"
+                    className="border-zinc-200 focus-visible:ring-orange-400"
+                    {...register("quantity")}
+                  />
+                </Field>
+                <Field label="Cost price">
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
                     <Input
                       type="number"
-                      min="1"
-                      className="border-zinc-200 focus-visible:ring-orange-400"
-                      {...register("quantity")}
+                      step="0.01"
+                      placeholder="0.00"
+                      className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
+                      {...register("costPrice")}
                     />
-                  </Field>
-                  <Field label="Cost price">
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
-                        {...register("costPrice")}
-                      />
-                    </div>
-                  </Field>
-                  <Field label="List price">
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
-                        {...register("targetPrice")}
-                      />
-                    </div>
-                  </Field>
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-4">
-                  <Field label="Weight (lbs)" error={errors.weight?.message}>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        className="border-zinc-200 pr-10 focus-visible:ring-orange-400"
-                        {...register("weight")}
-                      />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">lbs</span>
-                    </div>
-                  </Field>
-                </div>
-              </section>
+                  </div>
+                </Field>
+                <Field label="List price">
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">$</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="border-zinc-200 pl-7 focus-visible:ring-orange-400"
+                      {...register("targetPrice")}
+                    />
+                  </div>
+                </Field>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <Field label="Weight (lbs)" error={errors.weight?.message}>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      className="border-zinc-200 pr-10 focus-visible:ring-orange-400"
+                      {...register("weight")}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">lbs</span>
+                  </div>
+                </Field>
+              </div>
+            </Section>
 
-              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
-                <SectionHeader step="03" title="Internal Notes" />
-                <div className="mt-5">
-                  <Textarea
-                    rows={3}
-                    placeholder="Storage location, purchase source, or any private notes…"
-                    className="resize-none border-zinc-200 focus-visible:ring-orange-400"
-                    {...register("notes")}
-                  />
-                </div>
-              </section>
-            </div>
+            <Section title="Internal Notes">
+              <Textarea
+                rows={3}
+                placeholder="Storage location, purchase source, or any private notes…"
+                className="resize-none border-zinc-200 focus-visible:ring-orange-400"
+                {...register("notes")}
+              />
+            </Section>
+          </div>
 
-            <div className="lg:sticky lg:top-6 lg:self-start">
-              <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_-12px_rgba(24,24,27,0.12)]">
-                <SectionHeader step="04" title="Photos" />
-                <p className="mt-1 text-xs text-zinc-500">
-                  First photo is the primary listing image.{" "}
-                  {filledCount > 0 && (
-                    <span className="font-medium text-zinc-700">
-                      {filledCount} / {MAX_IMAGES} added
-                    </span>
-                  )}
-                </p>
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <Section
+              card
+              title="Photos"
+              action={
+                filledCount > 0 ? (
+                  <span className="font-mono text-[11px] text-zinc-500">
+                    {filledCount} / {MAX_IMAGES}
+                  </span>
+                ) : undefined
+              }
+            >
+              <p className="mb-4 text-xs text-zinc-500">First photo is the primary listing image.</p>
 
-                <PhotoToolbar
-                  subscription={subscription}
-                  editOptions={editOptions}
-                  onToggle={toggleEditOption}
-                />
+              <PhotoToolbar subscription={subscription} editOptions={editOptions} onToggle={toggleEditOption} />
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-3 gap-2">
                   {images.map((slot, i) =>
                     slot ? (
                       <div
@@ -698,48 +727,75 @@ export default function EditInventoryItemPage({
                       </div>
                     </button>
                   )}
-                </div>
-
-                <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                  Drag to reorder · click a slot to add photos · ★ to make primary · hover a photo and tap
-                  the wand to edit it with AI.
-                </p>
-              </section>
-
-              <div className="mt-4 space-y-2">
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
-                >
-                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {uploading || processingPhoto ? "Processing photos…" : "Save changes"}
-                </button>
-                <Link
-                  href={`/inventory/${id}`}
-                  className="flex w-full items-center justify-center rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50"
-                >
-                  Cancel
-                </Link>
               </div>
+
+              <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
+                Drag to reorder · click a slot to add photos · ★ to make primary · hover a photo and tap
+                the wand to edit it with AI.
+              </p>
+            </Section>
+
+            <div className="mt-4 space-y-2">
+              <button
+                type="submit"
+                disabled={busy}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-500 disabled:translate-y-0 disabled:opacity-60"
+              >
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {uploading || processingPhoto ? "Processing photos…" : "Save changes"}
+              </button>
+              <Link
+                href={`/inventory/${id}`}
+                className="flex w-full items-center justify-center rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50"
+              >
+                Cancel
+              </Link>
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
 
-function SectionHeader({ step, title }: { step: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-[10px] font-bold text-white">
-        {step}
-      </span>
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
+/** Ledger block matching the item page's Section: a dot-marked label over a hairline, then
+ *  content below. `card` wraps it in the same bordered/shadow-sm frame as the photo panel;
+ *  without it, the section sits flat on the page like the item page's own detail blocks. */
+function Section({
+  title,
+  action,
+  card,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  card?: boolean;
+  children: ReactNode;
+}) {
+  const header = (
+    <div className="mb-5 flex items-baseline justify-between gap-3 border-b border-zinc-200 pb-2">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+        <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
         {title}
       </h2>
+      {action}
     </div>
+  );
+
+  if (card) {
+    return (
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        {header}
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <section className="pt-8 first:pt-0">
+      {header}
+      {children}
+    </section>
   );
 }
 

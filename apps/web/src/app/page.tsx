@@ -77,10 +77,10 @@ export default function Home() {
       <header className="sticky top-3 z-30 mx-auto mt-4 flex w-full max-w-7xl items-center justify-between rounded-2xl border border-white/80 bg-white/80 px-6 py-4 shadow-[0_16px_48px_-36px_rgba(24,24,27,0.45)] backdrop-blur">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-bold text-white shadow-sm">
-            R
+            O
           </div>
           <div>
-            <p className="text-sm font-semibold tracking-tight">ResellerOS</p>
+            <p className="text-sm font-semibold tracking-tight">Omventa</p>
             <p className="text-[11px] text-zinc-500">Crosslist smarter</p>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function Home() {
             </h1>
 
             <p className="max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-              ResellerOS is built for modern resellers who juggle drops, thrift
+              Omventa is built for modern resellers who juggle drops, thrift
               finds, and premium inventory. Connect channels, cross-post in a
               click, and keep stock accurate everywhere.
             </p>
