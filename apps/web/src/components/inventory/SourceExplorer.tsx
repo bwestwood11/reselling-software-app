@@ -528,7 +528,10 @@ function AssignItemsModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[80vh] max-w-lg flex-col gap-0 overflow-hidden p-0"
+        // sm:max-w-lg pairs with the unprefixed max-w-lg so it actually overrides the base
+        // Dialog component's own "sm:max-w-sm" default — see MoveToSourceDialog for why the
+        // unprefixed class alone doesn't survive tailwind-merge against that sm:-prefixed one.
+        className="flex max-h-[80vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-zinc-100 px-5 py-4">

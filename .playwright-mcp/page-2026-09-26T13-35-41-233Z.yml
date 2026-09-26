@@ -1,0 +1,56 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - text: Create Listing
+      - generic [ref=e5]: Mercari
+    - paragraph [ref=e6]: Pre-filled from your inventory
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: "01"
+          - heading "Source & Destination" [level=2] [ref=e13]
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - text: Inventory Item *
+            - button "RLX Polo Ralph Lauren Shorts Men's 36 Ivy Golf Club Blue Stretch Wicking" [ref=e16] [cursor=pointer]
+          - generic [ref=e18]:
+            - text: Marketplace *
+            - generic [ref=e19]: Mercari
+          - paragraph [ref=e20]: brand, zip code, shipping address, package weight, dimensions, category pre-filled from your eBay listing
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: "02"
+          - heading "Listing Details" [level=2] [ref=e25]
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - text: Title *
+            - generic [ref=e28]: RLX Polo Ralph Lauren Shorts
+          - generic [ref=e29]:
+            - text: Price (USD) *
+            - generic [ref=e30]: $ 29.99
+          - generic [ref=e31]:
+            - text: Description
+            - generic [ref=e32]: Description text goes here...
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - paragraph [ref=e35]: Selected Item
+        - paragraph [ref=e37]: RLX Polo Ralph Lauren Shorts Men's 36 Ivy Golf Club Blue Stretch Wicking $98
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: Fee Breakdown
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: Listing price
+            - generic [ref=e43]: $29.99
+          - generic [ref=e44]:
+            - generic [ref=e45]: Mercari fee (10%)
+            - generic [ref=e46]: "-$2.99"
+          - generic [ref=e47]:
+            - generic [ref=e48]: Your earnings
+            - generic [ref=e49]: $27.00
+      - generic [ref=e50]:
+        - paragraph [ref=e51]: Actions
+        - generic [ref=e52]:
+          - button "Publish to Mercari" [ref=e53] [cursor=pointer]
+          - button "Save as Draft" [ref=e54] [cursor=pointer]
+          - button "Cancel" [ref=e55] [cursor=pointer]

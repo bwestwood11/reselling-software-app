@@ -1,0 +1,19 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - text: Create Listing
+      - generic [ref=e5]: Mercari
+    - paragraph [ref=e6]: Pre-filled from your inventory
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic:
+        - generic [ref=e10]: "01"
+        - heading "Source & Destination" [level=2] [ref=e11]
+      - generic:
+        - generic:
+          - text: Inventory Item *
+          - button "RLX Polo Ralph Lauren Shorts Men's 36 Ivy Golf Club Blue Stretch Wicking" [ref=e12] [cursor=pointer]
+        - paragraph: price, shipping method, category, zip code, shipping address, package weight, dimensions pre-filled
+    - generic [ref=e13]:
+      - paragraph [ref=e15]: Selected Item
+      - paragraph [ref=e18]: Fee Breakdown

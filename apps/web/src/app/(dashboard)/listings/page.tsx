@@ -351,12 +351,24 @@ export default function ListingsPage(): import("react").JSX.Element {
         <DialogContent
           showCloseButton
           // w-[calc(100%-2rem)] keeps this clamped to the viewport (with a 1rem margin each side)
-          // on any window narrower than max-w-5xl — the "sm:max-w-5xl" this replaced only kicked
-          // in past the 640px `sm` breakpoint with nothing capping it below the viewport itself,
-          // so any window between ~640–1024px wide had the dialog overflow and force a page-level
-          // horizontal scrollbar (the two-column form + preview panel didn't fit, and the right
-          // column ran off-screen).
-          className="flex max-h-[92vh] w-[calc(100%-2rem)] max-w-5xl flex-col gap-0 overflow-hidden bg-[#f6f5f3] p-0"
+          // on any window narrower than max-w-6xl.
+          //
+          // The base Dialog component ships "sm:max-w-sm" (384px) as one of its own default
+          // classes. tailwind-merge dedupes conflicting classes by their exact variant, so an
+          // unprefixed "max-w-6xl" here does NOT cancel out that sm:-prefixed one — both survive
+          // the merge, and on any real screen ≥640px wide sm:max-w-sm wins the cascade, silently
+          // capping this dialog at 384px regardless of what max-w-6xl says (this is why the
+          // two-column form + preview panel looked crushed into a single narrow strip). Matching
+          // the same "sm:" variant here is what actually lets it override the base class.
+          className="flex max-h-[92vh] w-[calc(100%-2rem)] max-w-6xl sm:max-w-6xl flex-col gap-0 overflow-hidden bg-[#f6f5f3] p-0"
+          // Radix focuses the first focusable element in the dialog by default. When a
+          // preselected item is passed in (defaultInventoryItemId), its details are still
+          // loading at that instant, so InventoryItemCombobox is still rendering its search
+          // input (not the "selected" pill yet) — auto-focus lands there and its onFocus
+          // handler sets isOpen=true. That flag then never gets reset once the item's details
+          // arrive, so the pill never shows until an outside click resets isOpen manually.
+          // Skipping auto-focus here avoids the whole race instead of chasing its timing.
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader className="shrink-0 border-b border-zinc-200 bg-white px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">

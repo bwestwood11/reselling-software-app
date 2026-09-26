@@ -147,7 +147,11 @@ export function MoveToSourceDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[80vh] max-w-md flex-col gap-0 overflow-hidden p-0"
+        // sm:max-w-md pairs with the unprefixed max-w-md so it actually overrides the base
+        // Dialog component's own "sm:max-w-sm" default — tailwind-merge only dedupes classes
+        // that share the exact same variant, so without the matching "sm:" prefix here, the
+        // base class would silently win on any screen ≥640px and cap this at 384px instead.
+        className="flex max-h-[80vh] max-w-md flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-zinc-100 px-5 py-4">

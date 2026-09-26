@@ -47,7 +47,7 @@ export function InventoryItemCombobox({
     { search: debouncedQuery, limit: "20" },
     { enabled: isOpen }
   );
-  const { data: selectedData } = useInventoryItem(value ?? "");
+  const { data: selectedData, isLoading: isSelectedLoading } = useInventoryItem(value ?? "");
 
   const items: any[] = data?.data ?? [];
   const total: number = data?.total ?? 0;
@@ -109,7 +109,14 @@ export function InventoryItemCombobox({
               setQuery(e.target.value);
               setIsOpen(true);
             }}
-            onFocus={() => setIsOpen(true)}
+            onFocus={() => {
+              // A value can already be selected while its details are still loading (e.g. a
+              // preselected item right as a Dialog opens and auto-focuses this input before the
+              // fetch resolves). Opening here would set isOpen=true and get stuck — showSelected
+              // requires !isOpen, so the pill would never appear until an outside click reset it.
+              if (value && isSelectedLoading) return;
+              setIsOpen(true);
+            }}
             placeholder={placeholder}
             className="border-zinc-200 pl-9 pr-8 focus-visible:ring-orange-400"
           />
