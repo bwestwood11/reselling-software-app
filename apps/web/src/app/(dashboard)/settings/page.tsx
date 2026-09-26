@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent } from "@repo/ui";
-import { Store, User, Bell, ChevronRight } from "lucide-react";
+import { Store, User, ChevronRight } from "lucide-react";
 
 const settingsNav = [
   {
@@ -14,12 +14,6 @@ const settingsNav = [
     Icon: User,
     label: "Profile",
     description: "Update your name, email, and password",
-  },
-  {
-    href: "/settings/notifications",
-    Icon: Bell,
-    label: "Notifications",
-    description: "Configure sync alerts and email preferences",
   },
 ];
 

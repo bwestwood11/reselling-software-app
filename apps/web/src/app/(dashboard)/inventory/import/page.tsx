@@ -2,12 +2,18 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useImportableListings, useImportItems } from "@/hooks/use-import";
 import { Button, Badge } from "@repo/ui";
 import { ArrowLeft, Download, Package, CheckSquare, Square, RefreshCw, Search, X } from "lucide-react";
 import { formatCurrency } from "@repo/utils";
 
+/** Matches InventoryWorkspace's own key — set so a redirect there always lands on the
+ *  "All items" grid, even if the user had last left it on the "By source" view. */
+const INVENTORY_VIEW_STORAGE_KEY = "relist:inventory-view";
+
 export default function ImportPage(): import("react").JSX.Element {
+  const router = useRouter();
   const [status, setStatus] = useState("active");
   const [showImported, setShowImported] = useState(false);
   const [page, setPage] = useState(1);
@@ -82,10 +88,23 @@ export default function ImportPage(): import("react").JSX.Element {
         costPricesPayload[id] = num;
       }
     }
-    await importMutation.mutateAsync({ ebayItemIds: ids, costPrices: costPricesPayload });
+    const res = await importMutation.mutateAsync({ ebayItemIds: ids, costPrices: costPricesPayload });
     setSelected(new Set());
     setCostPrices({});
-  }, [selected, costPrices, importMutation]);
+
+    // At least one item landed — send the user to see it rather than leaving them on the
+    // now-stale import list. If everything failed, stay put so they can see why.
+    const imported: string[] = res?.data?.imported ?? [];
+    if (imported.length > 0) {
+      try {
+        localStorage.setItem(INVENTORY_VIEW_STORAGE_KEY, "grid");
+      } catch {
+        // localStorage unavailable (private mode, etc.) — InventoryWorkspace defaults to
+        // the grid view anyway when nothing is saved, so this is just a nice-to-have.
+      }
+      router.push("/inventory");
+    }
+  }, [selected, costPrices, importMutation, router]);
 
   return (
     <div className="space-y-7">

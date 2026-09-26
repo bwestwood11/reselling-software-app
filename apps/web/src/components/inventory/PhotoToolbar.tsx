@@ -141,7 +141,10 @@ export function PhotoToolbar({ subscription, editOptions, onToggle }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {/* Always 2 columns — this toolbar only ever sits in a ~380px sidebar column, never
+          full page width, so a viewport-based sm:grid-cols-4 breakpoint just crams 4 cards
+          into that narrow space and overflows (e.g. "Ghost Mannequin" + its cost badge). */}
+      <div className="grid grid-cols-2 gap-2">
         {TOOLS.map(
           ({
             key,
