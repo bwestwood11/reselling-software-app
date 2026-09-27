@@ -19,6 +19,45 @@ function getStripe(): Stripe {
   return new Stripe(key);
 }
 
+/**
+ * Stripe API versions from 2025-03-31 ("basil") moved `invoice.subscription` to
+ * `invoice.parent.subscription_details.subscription`. Webhook payloads follow the
+ * endpoint's API version, so accept either shape.
+ */
+function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | undefined {
+  const legacy = (invoice as { subscription?: string | { id: string } | null }).subscription;
+  const current = (
+    invoice as {
+      parent?: {
+        subscription_details?: { subscription?: string | { id: string } | null } | null;
+      } | null;
+    }
+  ).parent?.subscription_details?.subscription;
+  const ref = legacy ?? current;
+  return typeof ref === "string" ? ref : (ref?.id ?? undefined);
+}
+
+/**
+ * Billing period of a subscription. Newer Stripe API versions dropped the
+ * top-level `current_period_*` fields in favour of per-item ones; read whichever
+ * is present so an unexpected shape can't produce an Invalid Date.
+ */
+function periodBounds(stripeSub: Stripe.Subscription): {
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+} {
+  const item = stripeSub.items.data[0] as
+    | { current_period_start?: number; current_period_end?: number }
+    | undefined;
+  const top = stripeSub as { current_period_start?: number; current_period_end?: number };
+  const start = top.current_period_start ?? item?.current_period_start;
+  const end = top.current_period_end ?? item?.current_period_end;
+  return {
+    currentPeriodStart: start ? new Date(start * 1000) : null,
+    currentPeriodEnd: end ? new Date(end * 1000) : null,
+  };
+}
+
 export class SubscriptionService {
   constructor(private db: PrismaClient) {}
 
@@ -341,7 +380,15 @@ export class SubscriptionService {
       }
 
       case "customer.subscription.updated": {
-        await this.provisionSubscription(event.data.object as Stripe.Subscription);
+        // Re-fetch rather than trusting the payload: webhook payloads use the
+        // endpoint's API version, which can differ from the SDK's (newer versions
+        // moved current_period_* onto the items), and a fresh read also protects
+        // against out-of-order deliveries.
+        const stripe = getStripe();
+        const stripeSub = await stripe.subscriptions.retrieve(
+          (event.data.object as Stripe.Subscription).id
+        );
+        await this.provisionSubscription(stripeSub);
         break;
       }
 
@@ -371,10 +418,7 @@ export class SubscriptionService {
         ) {
           break;
         }
-        const subId =
-          typeof invoice.subscription === "string"
-            ? invoice.subscription
-            : (invoice.subscription as { id: string } | null)?.id;
+        const subId = subscriptionIdFromInvoice(invoice);
         if (!subId) break;
 
         const stripe = getStripe();
@@ -422,10 +466,7 @@ export class SubscriptionService {
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const subId =
-          typeof invoice.subscription === "string"
-            ? invoice.subscription
-            : (invoice.subscription as { id: string } | null)?.id;
+        const subId = subscriptionIdFromInvoice(invoice);
         if (!subId) break;
         await this.db.subscription.updateMany({
           where: { stripeSubscriptionId: subId },
@@ -485,6 +526,7 @@ export class SubscriptionService {
     const shouldGrant = isNewOrChanged && !alreadyGranted;
 
     const trialEnd = stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null;
+    const { currentPeriodStart, currentPeriodEnd } = periodBounds(stripeSub);
 
     try {
       await this.db.$transaction(async (tx) => {
@@ -499,8 +541,8 @@ export class SubscriptionService {
             status,
             billingInterval: interval,
             aiCredits: allotment,
-            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+            currentPeriodStart,
+            currentPeriodEnd,
             trialEndsAt: trialEnd,
             cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
           },
@@ -510,8 +552,8 @@ export class SubscriptionService {
             plan: planKey,
             status,
             billingInterval: interval,
-            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+            currentPeriodStart,
+            currentPeriodEnd,
             trialEndsAt: trialEnd,
             cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
             ...(shouldGrant && { aiCredits: allotment }),
