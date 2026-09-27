@@ -1,3 +1,14 @@
+import type {
+  ScanAnalysis,
+  ScanConfig,
+  ScanEbayResult,
+  ScanMergeCandidate,
+  ScanMergeResult,
+  ScanMode,
+  ScanSession,
+  ScanTier,
+} from "@repo/types";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 class ApiError extends Error {
@@ -19,8 +30,11 @@ async function request<T>(
     ...options,
     credentials: "include",
     headers: {
-      // Only send Content-Type when there is a body to avoid Fastify's FST_ERR_CTP_EMPTY_JSON_BODY
-      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+      // Only send Content-Type when there is a body to avoid Fastify's FST_ERR_CTP_EMPTY_JSON_BODY;
+      // FormData sets its own multipart Content-Type (with the boundary)
+      ...(options?.body && !(options.body instanceof FormData)
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...options?.headers,
     },
   });
@@ -354,6 +368,39 @@ export const aiApi = {
     request<{ success: true; data: { description: string } }>("/api/ai/generate", {
       method: "POST",
       body: JSON.stringify({ imageUrls, title }),
+    }),
+};
+
+// ─── Photo scanner ────────────────────────────────────────────────────────────
+
+type Data<T> = { success: true; data: T };
+
+export const scanApi = {
+  getConfig: () => request<Data<ScanConfig>>("/api/scan/config"),
+  /** Opens a scan (checks credits); every analyze/merge call of that scan sends the scanId. */
+  start: (tier: ScanTier) =>
+    request<Data<ScanSession>>("/api/scan/start", {
+      method: "POST",
+      body: JSON.stringify({ tier }),
+    }),
+  /** Sends the views as JPEG files (multipart), not base64: fields first, then one file per view. */
+  analyze: ({ scanId, mode, views }: { scanId: string; mode: ScanMode; views: { label: string; blob: Blob }[] }) => {
+    const form = new FormData();
+    form.append("scanId", scanId);
+    form.append("mode", mode);
+    form.append("labels", JSON.stringify(views.map((v) => v.label)));
+    views.forEach((v, i) => form.append("views", v.blob, `view-${i}.jpg`));
+    return request<Data<ScanAnalysis>>("/api/scan/analyze", { method: "POST", body: form });
+  },
+  merge: (body: { scanId: string; candidates: ScanMergeCandidate[] }) =>
+    request<Data<ScanMergeResult>>("/api/scan/merge", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  ebay: (queries: string[]) =>
+    request<Data<ScanEbayResult[]>>("/api/scan/ebay", {
+      method: "POST",
+      body: JSON.stringify({ queries }),
     }),
 };
 
