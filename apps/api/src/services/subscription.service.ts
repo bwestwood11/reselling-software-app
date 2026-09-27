@@ -241,6 +241,49 @@ export class SubscriptionService {
     return { url: session.url! };
   }
 
+  /**
+   * End the free trial early and start the paid plan now — for trial users who
+   * have used up the trial's AI credits and don't want to wait out the 7 days.
+   * Stripe bills the card on file immediately and starts a fresh billing period;
+   * with `error_if_incomplete`, a declined card fails the request and leaves the
+   * trial untouched rather than dropping the subscription into past_due.
+   */
+  async endTrialNow(userId: string) {
+    const sub = await this.db.subscription.findUnique({ where: { userId } });
+    if (!sub?.stripeSubscriptionId || sub.status !== "TRIALING") {
+      throw new Error("Only a subscription in its free trial can be started early.");
+    }
+
+    const stripe = getStripe();
+    let stripeSub: Stripe.Subscription;
+    try {
+      stripeSub = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+        trial_end: "now",
+        // Starting the plan is an explicit "I want to pay" — undo a pending cancellation.
+        cancel_at_period_end: false,
+        payment_behavior: "error_if_incomplete",
+      });
+    } catch (err) {
+      if (err instanceof Stripe.errors.StripeCardError) {
+        throw new Error(
+          "Your card was declined. Update your payment method in Manage billing and try again."
+        );
+      }
+      throw err;
+    }
+
+    // Provision now instead of waiting for the webhook. The grant is keyed on the
+    // invoice this created, so the invoice.payment_succeeded webhook for the same
+    // invoice recognises it as already granted and skips it.
+    const invoiceId =
+      typeof stripeSub.latest_invoice === "string"
+        ? stripeSub.latest_invoice
+        : stripeSub.latest_invoice?.id;
+    await this.provisionSubscription(stripeSub, invoiceId);
+
+    return this.getCurrent(userId);
+  }
+
   async createPortalSession(userId: string) {
     const sub = await this.db.subscription.findUnique({ where: { userId } });
     if (!sub?.stripeCustomerId) {
@@ -401,6 +444,8 @@ export class SubscriptionService {
    * ledger row is keyed on it so the webhook and the landing-page verify endpoint
    * — which both provision the same checkout — can't double-grant. The unique
    * `stripeSessionId` constraint is the hard backstop against a concurrent race.
+   * `endTrialNow` passes the trial-ending invoice id as the key instead, which
+   * dedups against the invoice.payment_succeeded grant for that invoice.
    */
   private async provisionSubscription(
     stripeSub: Stripe.Subscription,

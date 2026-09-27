@@ -9,7 +9,7 @@ import { emailOtp } from "@repo/auth/client";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { OtpInput } from "@/components/auth/otp-input";
 
-const RESEND_COOLDOWN_SECONDS = 30;
+const RESEND_COOLDOWN_SECONDS = 90;
 
 function VerifyEmailForm(): import("react").JSX.Element {
   const router = useRouter();
@@ -144,7 +144,7 @@ function VerifyEmailForm(): import("react").JSX.Element {
             {cooldown > 0 ? (
               <span>
                 Didn&apos;t get it? Resend in{" "}
-                <span className="tabular-nums font-medium text-zinc-700">0:{String(cooldown).padStart(2, "0")}</span>
+                <span className="tabular-nums font-medium text-zinc-700">{Math.floor(cooldown / 60)}:{String(cooldown % 60).padStart(2, "0")}</span>
               </span>
             ) : (
               <button

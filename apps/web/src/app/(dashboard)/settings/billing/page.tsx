@@ -21,6 +21,15 @@ import {
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@repo/ui";
+import { TrialNotice } from "@/components/auth/trial-notice";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Plan config ──────────────────────────────────────────────────────────────
 
@@ -254,6 +263,18 @@ function BillingContent() {
     onError: (err: Error) => toast.error(err.message ?? "Failed to start checkout"),
   });
 
+  const [confirmStartNow, setConfirmStartNow] = useState(false);
+  const endTrialMutation = useMutation({
+    mutationFn: () => subscriptionApi.endTrial() as Promise<{ data: SubscriptionInfo }>,
+    onSuccess: ({ data }) => {
+      queryClient.setQueryData(["subscription"], { data });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      setConfirmStartNow(false);
+      toast.success("Your plan is active — your full monthly AI credits are ready to use.");
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Couldn't start your plan"),
+  });
+
   const portalMutation = useMutation({
     mutationFn: () => subscriptionApi.createPortal() as Promise<{ data: { url: string } }>,
     onSuccess: ({ data }) => {
@@ -269,12 +290,53 @@ function BillingContent() {
     ? subscription.aiCredits + subscription.bonusAiCredits
     : 0;
 
+  const trialPlan =
+    isTrialing && subscription?.plan ? PLAN_DISPLAY[subscription.plan] : undefined;
+  const startNowCharge = trialPlan
+    ? subscription?.billingInterval === "yearly"
+      ? `$${(trialPlan.priceYearlyPerMonth * 12).toFixed(2)} for the year`
+      : `$${trialPlan.priceMonthly.toFixed(2)} for the month`
+    : "";
+
   const topupTotalCredits = packs * TOPUP.creditsPerPack;
   const topupTotalPrice = packs * TOPUP.pricePerPack;
   const topupFillPct = ((packs - 1) / (MAX_PACKS - 1)) * 100;
 
   return (
     <div className="space-y-10">
+      <Dialog
+        open={confirmStartNow}
+        onOpenChange={(open) => !endTrialMutation.isPending && setConfirmStartNow(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start {trialPlan?.name} now?</DialogTitle>
+            <DialogDescription>
+              This ends your free trial today. Your card on file will be charged {startNowCharge}{" "}
+              right away, and your full monthly smart AI credits will be available immediately.
+              Your billing cycle will restart from today.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setConfirmStartNow(false)}
+              disabled={endTrialMutation.isPending}
+              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Keep my trial
+            </button>
+            <button
+              onClick={() => endTrialMutation.mutate()}
+              disabled={endTrialMutation.isPending}
+              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {endTrialMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Start plan &amp; pay now
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Billing & Plan</h1>
@@ -330,6 +392,11 @@ function BillingContent() {
         </div>
       )}
 
+      {/* New accounts have no access until they start the trial — spell out the terms. */}
+      {!isLoading && !hasSubscribed && !justSubscribed && !isVerifying && (
+        <TrialNotice className="p-5" />
+      )}
+
       {/* Current plan card */}
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-zinc-500">
@@ -353,6 +420,20 @@ function BillingContent() {
                   Free trial ends {new Date(subscription.trialEndsAt).toLocaleDateString()} — you&apos;ll
                   be charged then unless you cancel.
                 </p>
+              )}
+              {isTrialing && trialPlan && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setConfirmStartNow(true)}
+                    className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Start {trialPlan.name} now
+                  </button>
+                  <span className="text-xs text-zinc-500">
+                    Out of trial credits? Skip the wait and get your full monthly allotment today.
+                  </span>
+                </div>
               )}
               {!isTrialing && subscription.currentPeriodEnd && isActive && (
                 <p className="mt-1 text-xs text-zinc-500">

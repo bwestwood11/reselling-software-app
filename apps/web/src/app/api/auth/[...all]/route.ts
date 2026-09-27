@@ -21,7 +21,11 @@ async function proxyAuth(request: Request, all: string[]): Promise<Response> {
 	};
 
 	if (method !== "GET" && method !== "HEAD") {
-		init.body = await request.text();
+		// Only forward a body if there is one: passing "" makes fetch add
+		// `Content-Type: text/plain`, which Better Auth rejects with 415 (this
+		// broke bodyless POSTs like sign-out).
+		const body = await request.text();
+		if (body) init.body = body;
 	}
 
 	const upstream = await fetch(target, init);

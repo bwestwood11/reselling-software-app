@@ -80,6 +80,17 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // POST /api/subscriptions/end-trial — end the free trial and start the paid plan now
+  fastify.post("/end-trial", { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const data = await svc.endTrialNow(request.user!.id);
+      return reply.send({ success: true, data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      return reply.status(400).send({ success: false, error: message });
+    }
+  });
+
   // POST /api/subscriptions/portal
   fastify.post("/portal", { preHandler: requireAuth }, async (request, reply) => {
     try {

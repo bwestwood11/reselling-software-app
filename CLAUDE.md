@@ -97,7 +97,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 | `inventory.ts` | CRUD on `/api/inventory` + `PATCH /:id/status` |
 | `listings.ts` | CRUD on `/api/listings` + `POST /:id/publish`, `/:id/delist`, `/:id/mark-sold` |
 | `marketplaces.ts` | Connections CRUD, eBay policies/categories, OAuth authorize/callback |
-| `subscriptions.ts` | `GET /api/subscriptions/current`, `POST /api/subscriptions/checkout`, `POST /api/subscriptions/portal` |
+| `subscriptions.ts` | `GET /api/subscriptions/current`, `POST /api/subscriptions/checkout`, `POST /api/subscriptions/end-trial`, `POST /api/subscriptions/portal` |
 | `sync.ts` | `POST /api/sync/all`, `POST /api/sync/listing/:id`, `GET /api/sync/events` |
 | `upload.ts` | `POST /api/upload` — single image to S3 (JPEG/PNG/WebP/GIF, max 10 MB), returns `{ url, key }` |
 | `webhooks.ts` | `POST /api/webhooks/stripe` — Stripe event handler (no auth, signature verified) |
@@ -120,6 +120,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 - `deductAiCredits(userId, cost, description, listingId?)` — draws from the monthly allotment first, then purchased top-up credits
 - `createCheckoutSession(userId, plan, interval)` — Stripe Checkout with a 7-day trial for first-time subscribers
 - `createTopupCheckoutSession(userId, packs)` — one-time purchase of AI credit packs
+- `endTrialNow(userId)` — ends a TRIALING subscription early (`trial_end: "now"`, `payment_behavior: "error_if_incomplete"`): charges the card immediately and grants the paid plan's full AI allotment, keyed on the resulting invoice id so the `invoice.payment_succeeded` webhook doesn't double-grant
 - `createPortalSession(userId)` — creates a Stripe Customer Portal session
 - `handleWebhookEvent(event)` — handles `checkout.session.completed`, `customer.subscription.updated`/`deleted`, `invoice.payment_succeeded` (monthly AI-credit replenish), and `invoice.payment_failed` (→ PAST_DUE)
 
@@ -127,7 +128,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 
 ### Authentication (`packages/auth`)
 
-Better Auth with a Prisma adapter. The server config lives in `packages/auth/src/index.ts` (used by the API). The React client is at `packages/auth/src/client.ts` (used by web/mobile). Session expiry is 30 days; cookie cache TTL is 5 minutes. Supports email/password and Google OAuth.
+Better Auth with a Prisma adapter. The server config lives in `packages/auth/src/index.ts` (used by the API). The React client is at `packages/auth/src/client.ts` (used by web/mobile). Session expiry is 30 days; cookie cache TTL is 5 minutes. Email/password only — Google OAuth is disabled for now (the `socialProviders` config was removed).
 
 The `requireAuth` middleware calls `auth.api.getSession()` and attaches the user to `request.user`.
 

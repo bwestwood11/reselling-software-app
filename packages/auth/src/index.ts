@@ -4,19 +4,6 @@ import { bearer, emailOTP } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import { sendVerificationOtpEmail } from "./email";
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-const socialProviders =
-  googleClientId && googleClientSecret
-    ? {
-        google: {
-          clientId: googleClientId,
-          clientSecret: googleClientSecret,
-        },
-      }
-    : undefined;
-
 const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -54,7 +41,6 @@ export const auth = betterAuth({
     },
   },
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? "http://localhost:3001",
-  ...(socialProviders ? { socialProviders } : {}),
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // refresh if older than 1 day

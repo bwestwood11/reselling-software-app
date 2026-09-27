@@ -11,7 +11,6 @@ import {
   LogOut,
   Store,
   Zap,
-  CreditCard,
   PanelLeftClose,
   ScanSearch,
 } from "lucide-react";
@@ -169,9 +168,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         </nav>
 
-        {/* Credits widget */}
-        <div className="border-t border-zinc-200 px-4 py-4">
-          {isActive && subscription ? (
+        {/* Credits widget — hidden until the account has a trial/subscription */}
+        {isActive && subscription && (
+          <div className="border-t border-zinc-200 px-4 py-4">
             <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -205,7 +204,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 <p className="mt-1.5 text-[10px] text-red-500">
                   No AI credits left —{" "}
                   <a href="/settings/billing" className="underline">
-                    buy a top-up
+                    {subscription.isTrialing ? "start your plan now" : "buy a top-up"}
                   </a>
                 </p>
               ) : subscription.bonusAiCredits > 0 ? (
@@ -214,16 +213,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </p>
               ) : null}
             </div>
-          ) : (
-            <Link
-              href="/settings/billing"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            >
-              <CreditCard className="h-4 w-4" />
-              Subscribe to crosspost
-            </Link>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Account — shows who's signed in instead of a bare "Sign out" row, so the sidebar
             doubles as a quick answer to "which account am I in". */}

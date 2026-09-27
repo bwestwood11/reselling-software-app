@@ -10,6 +10,7 @@ import { ShoppingBag, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button, Input, Label } from "@repo/ui";
 import { signUp } from "@repo/auth/client";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
+import { TrialNotice } from "@/components/auth/trial-notice";
 
 const schema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -75,8 +76,10 @@ export default function RegisterPage(): import("react").JSX.Element {
 
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Create your account</h2>
           <p className="mt-1.5 text-sm text-zinc-500">
-            Free to start — no credit card required.
+            Every account starts with a 7-day free trial.
           </p>
+
+          <TrialNotice className="mt-6" />
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
             <div className="space-y-1.5">

@@ -19,7 +19,7 @@ import { AuthApiError } from "../../src/lib/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,19 +53,6 @@ export default function LoginScreen() {
         return;
       }
       setError(err instanceof Error ? err.message : "Sign in failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleGoogleSignIn() {
-    setError(null);
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
-      router.replace("/(tabs)");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign in failed.");
     } finally {
       setIsLoading(false);
     }
@@ -205,26 +192,6 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.primaryBtnText}>Sign in</Text>
               )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google */}
-            <TouchableOpacity
-              style={[styles.googleBtn, isLoading && styles.btnDisabled]}
-              onPress={handleGoogleSignIn}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              <View style={styles.googleIcon}>
-                <Text style={styles.googleIconText}>G</Text>
-              </View>
-              <Text style={styles.googleBtnText}>Continue with Google</Text>
             </TouchableOpacity>
           </View>
 
@@ -378,42 +345,6 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   btnDisabled: { opacity: 0.55 },
-
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginVertical: 18,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: "#e4e4e7" },
-  dividerText: { fontSize: 12, color: "#a1a1aa", fontWeight: "500" },
-
-  googleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#e4e4e7",
-    paddingVertical: 13,
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#4285F4",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleIconText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "800",
-    lineHeight: 14,
-  },
-  googleBtnText: { color: "#3f3f46", fontWeight: "600", fontSize: 15 },
 
   // Footer
   footer: {

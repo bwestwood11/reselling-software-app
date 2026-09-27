@@ -345,6 +345,8 @@ export const subscriptionApi = {
     }),
   createPortal: () =>
     request<any>("/api/subscriptions/portal", { method: "POST" }),
+  endTrial: () =>
+    request<any>("/api/subscriptions/end-trial", { method: "POST" }),
 };
 
 // ─── Sources ─────────────────────────────────────────────────────────────────
