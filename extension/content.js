@@ -16,7 +16,7 @@
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function getJobIdFromHash() {
-    const match = location.hash.match(/relist-job=([^&]+)/);
+    const match = location.hash.match(/omventa-job=([^&]+)/);
     return match ? match[1] : null;
   }
 
@@ -185,17 +185,17 @@
     }
 
     await sleep(300);
-    showBanner("Form filled by ReList. Review and submit when ready.");
+    showBanner("Form filled by Omventa. Review and submit when ready.");
   }
 
   // ── Status banner ─────────────────────────────────────────────────────────────
 
   function showBanner(message, isError = false) {
-    const existing = document.getElementById("relist-banner");
+    const existing = document.getElementById("omventa-banner");
     if (existing) existing.remove();
 
     const banner = document.createElement("div");
-    banner.id = "relist-banner";
+    banner.id = "omventa-banner";
     banner.style.cssText = `
       position: fixed;
       top: 16px;
@@ -213,7 +213,7 @@
       line-height: 1.4;
       cursor: pointer;
     `;
-    banner.textContent = `ReList: ${message}`;
+    banner.textContent = `Omventa: ${message}`;
     banner.addEventListener("click", () => banner.remove());
     document.body.appendChild(banner);
 

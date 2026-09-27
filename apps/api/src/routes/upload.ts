@@ -24,7 +24,7 @@ const PHOTOROOM_V2_URL = "https://image-api.photoroom.com/v2/edit";
 
 // Public base URL objects are served from. Defaults to the standard AWS
 // virtual-hosted-style URL; overridable for a local/MinIO S3-compatible setup via
-// AWS_S3_PUBLIC_URL (e.g. http://localhost:9000/relist-inventory), which also covers
+// AWS_S3_PUBLIC_URL (e.g. http://localhost:9000/omventa-inventory), which also covers
 // the path-style layout MinIO uses.
 const PUBLIC_BASE_URL =
   process.env.AWS_S3_PUBLIC_URL?.replace(/\/$/, "") ||

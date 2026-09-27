@@ -224,7 +224,7 @@ app/(auth)/   — login.tsx, register.tsx, oauth-callback.tsx (checks auth state
 app/(tabs)/   — _layout.tsx, index.tsx, inventory.tsx, listings.tsx, marketplaces.tsx, settings.tsx
 ```
 
-App metadata: name "ReList", scheme "relist", bundle ID `com.relist.app`. Typed routes enabled via `experiments.typedRoutes`.
+App metadata: name "Omventa". The Expo slug, scheme (`relist://`) and bundle ID/package (`com.relist.app`) still carry the legacy name — they are app-store/EAS identity, so change them only deliberately. Typed routes enabled via `experiments.typedRoutes`.
 
 ### Shared types (`packages/types`)
 

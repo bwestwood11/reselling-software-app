@@ -43,7 +43,7 @@ export function AuthBrandPanel({ eyebrow, headline, subhead }: AuthBrandPanelPro
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/20 backdrop-blur">
           <ShoppingBag className="h-5 w-5 text-white" />
         </div>
-        <span className="text-lg font-semibold text-white">ReList</span>
+        <span className="text-lg font-semibold text-white">Omventa</span>
       </div>
 
       {/* Copy — vertically centered in the space between the mark and the footer,

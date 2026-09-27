@@ -24,7 +24,7 @@ import type { MarketplaceType } from "@repo/types";
 // ─── Marketplace catalog ──────────────────────────────────────────────────────
 // Scoped to marketplaces that actually exist in the Prisma `MarketplaceType` enum.
 // eBay connects via OAuth; Mercari and Poshmark have no public API and connect
-// through the ReList Chrome extension (it logs in through the real site, the
+// through the Omventa Chrome extension (it logs in through the real site, the
 // same way a person would, so there's no bot-detection risk).
 
 type ApiSupport = "full" | "coming_soon";
@@ -384,7 +384,7 @@ export default function MarketplacesSettingsPage(): import("react").JSX.Element 
           <span className="font-medium">Mercari</span> and <span className="font-medium">
             Poshmark
           </span>{" "}
-          connect through the ReList Chrome extension, since neither offers a public API.{" "}
+          connect through the Omventa Chrome extension, since neither offers a public API.{" "}
           <span className="font-medium">Coming soon</span> marketplaces are on the roadmap.
         </p>
       </div>
@@ -429,7 +429,7 @@ export default function MarketplacesSettingsPage(): import("react").JSX.Element 
 }
 
 // ─── Extension connect modal (Mercari / Poshmark) ─────────────────────────────
-// Neither marketplace has a public API. The ReList Chrome extension opens the
+// Neither marketplace has a public API. The Omventa Chrome extension opens the
 // real site in a browser tab, waits for the user to log in, then reads the
 // resulting session and posts it to the API — the same as logging in by hand.
 
@@ -455,8 +455,8 @@ function ExtensionConnectModal({
   const [checking, setChecking] = useState(false);
 
   const steps = [
-    "Install the ReList Chrome Extension from the Chrome Web Store.",
-    "Click the ReList icon in your browser toolbar to open the popup.",
+    "Install the Omventa Chrome Extension from the Chrome Web Store.",
+    "Click the Omventa icon in your browser toolbar to open the popup.",
     `Click "Connect ${label} Account" — a ${label} login tab will open.`,
     "Sign in with your credentials. The tab closes automatically once done.",
   ];
@@ -489,7 +489,7 @@ function ExtensionConnectModal({
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-zinc-900">Connect {label}</p>
-            <p className="text-xs text-zinc-500">Via the ReList Chrome Extension</p>
+            <p className="text-xs text-zinc-500">Via the Omventa Chrome Extension</p>
           </div>
           <button
             onClick={onClose}
@@ -584,7 +584,7 @@ function MercariPreferences() {
   return (
     <div className="space-y-5 border-t border-zinc-100 bg-zinc-50/60 px-5 py-4">
       <p className="text-xs text-zinc-500">
-        Mercari listings are published by the ReList browser extension, which posts from your own
+        Mercari listings are published by the Omventa browser extension, which posts from your own
         browser session. Keep the extension installed and signed in.
       </p>
 

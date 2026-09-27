@@ -74,7 +74,7 @@ export default function LoginScreen() {
             <View style={styles.logoWrap}>
               <Feather name="shopping-bag" size={28} color="#fff" />
             </View>
-            <Text style={styles.appName}>ReList</Text>
+            <Text style={styles.appName}>Omventa</Text>
             <Text style={styles.tagline}>Sell more. Everywhere.</Text>
           </View>
 
@@ -197,7 +197,7 @@ export default function LoginScreen() {
 
           {/* ── Footer ─────────────────────────────────── */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>New to ReList? </Text>
+            <Text style={styles.footerText}>New to Omventa? </Text>
             <TouchableOpacity onPress={() => router.replace("/(auth)/register")}>
               <Text style={styles.footerLink}>Create an account</Text>
             </TouchableOpacity>

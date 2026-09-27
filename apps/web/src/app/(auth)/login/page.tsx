@@ -64,7 +64,7 @@ export default function LoginPage(): import("react").JSX.Element {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-[0_10px_20px_-12px_rgba(249,115,22,0.7)]">
               <ShoppingBag className="h-5 w-5" />
             </div>
-            <span className="text-lg font-semibold text-zinc-900">ReList</span>
+            <span className="text-lg font-semibold text-zinc-900">Omventa</span>
           </div>
 
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Welcome back</h2>
@@ -136,7 +136,7 @@ export default function LoginPage(): import("react").JSX.Element {
           </form>
 
           <p className="mt-8 text-center text-sm text-zinc-500">
-            New to ReList?{" "}
+            New to Omventa?{" "}
             <Link href="/register" className="font-medium text-orange-600 hover:text-orange-700">
               Create an account
             </Link>

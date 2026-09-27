@@ -17,7 +17,7 @@ import { formatCurrency, getMarketplaceLabel } from "@repo/utils";
 
 // The item page reads like the price tag a reseller would staple to the piece —
 // a punched perforation where the "tag head" tears from the ledger below, and an
-// inked stamp for status instead of a pill — built entirely from ReList's own
+// inked stamp for status instead of a pill — built entirely from Omventa's own
 // orange/cream palette and zinc type so it still feels like the rest of the app.
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-tag-mono" });
 

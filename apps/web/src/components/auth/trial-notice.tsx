@@ -4,7 +4,7 @@ import { cn } from "@repo/ui";
 const POINTS = [
   {
     Icon: CalendarClock,
-    text: "You must start a 7-day free trial to use ReList.",
+    text: "You must start a 7-day free trial to use Omventa.",
   },
   {
     Icon: CreditCard,

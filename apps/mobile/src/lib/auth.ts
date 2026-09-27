@@ -5,7 +5,7 @@ import { resolveApiBaseUrl } from "./config";
 WebBrowser.maybeCompleteAuthSession();
 
 const API_BASE = resolveApiBaseUrl();
-const TOKEN_KEY = "relist_session_token";
+const TOKEN_KEY = "omventa_session_token";
 const AUTH_ORIGIN = process.env.EXPO_PUBLIC_AUTH_ORIGIN ?? "http://localhost:3000";
 
 // ─── Token storage ────────────────────────────────────────────────────────────

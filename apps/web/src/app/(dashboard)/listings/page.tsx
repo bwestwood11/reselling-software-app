@@ -203,7 +203,7 @@ export default function ListingsPage(): import("react").JSX.Element {
       // ENDED once the extension confirms, so don't claim it already has.
       toast.success(
         result?.data?.delistQueued
-          ? "Delist queued — the ReList extension is removing it now"
+          ? "Delist queued — the Omventa extension is removing it now"
           : "Delisted"
       );
     },

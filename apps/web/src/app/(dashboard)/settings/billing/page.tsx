@@ -22,6 +22,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@repo/ui";
 import { TrialNotice } from "@/components/auth/trial-notice";
+import { CONTACT_EMAIL } from "@/lib/site";
 import {
   Dialog,
   DialogContent,
@@ -109,7 +110,7 @@ const PLAN_DISPLAY: Record<PlanType, PlanDisplay> = {
 };
 
 const PLAN_ORDER: PlanType[] = ["FREE", "SIDE_HUSTLE", "FULL_TIME", "ENTERPRISE"];
-const ENTERPRISE_CONTACT = "mailto:support@relist.app?subject=Enterprise%20plan%20inquiry";
+const ENTERPRISE_CONTACT = `mailto:${CONTACT_EMAIL}?subject=Enterprise%20plan%20inquiry`;
 
 // ─── Top-up config ──────────────────────────────────────────────────────────────
 

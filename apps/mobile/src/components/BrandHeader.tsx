@@ -12,7 +12,7 @@ export function BrandHeader() {
         <Feather name="shopping-bag" size={18} color="#fff" />
       </View>
       <View style={s.text}>
-        <Text style={s.name}>ReList</Text>
+        <Text style={s.name}>Omventa</Text>
         <Text style={s.sub}>Seller Workspace</Text>
       </View>
     </View>

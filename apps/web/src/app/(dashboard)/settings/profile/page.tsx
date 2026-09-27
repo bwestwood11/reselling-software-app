@@ -306,7 +306,7 @@ export default function ProfilePage() {
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold text-zinc-900">Basic information</h3>
             <p className="mt-1 text-sm text-zinc-500">
-              This name appears across ReList — on listings you publish and in your workspace.
+              This name appears across Omventa — on listings you publish and in your workspace.
             </p>
             <form onSubmit={handleSaveName} className="mt-5 space-y-4">
               <div>

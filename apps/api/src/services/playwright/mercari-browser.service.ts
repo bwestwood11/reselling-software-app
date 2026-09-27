@@ -24,7 +24,7 @@ interface MercariProfileResponse {
  * runs and resolves itself, and demonstrates `runFetch`/`fetchJson` for hitting
  * Mercari's API from inside the authenticated page context.
  *
- * Unused: real Mercari (and Poshmark) account connection goes through the ReList
+ * Unused: real Mercari (and Poshmark) account connection goes through the Omventa
  * Chrome extension exclusively — see /api/marketplaces/mercari/connect-token and
  * /api/marketplaces/poshmark/connect-token. Kept only as a pattern reference for
  * other marketplaces (Facebook Marketplace, Etsy) that don't expose a public API:

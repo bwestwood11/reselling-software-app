@@ -10,7 +10,7 @@ import { formatCurrency } from "@repo/utils";
 
 /** Matches InventoryWorkspace's own key — set so a redirect there always lands on the
  *  "All items" grid, even if the user had last left it on the "By source" view. */
-const INVENTORY_VIEW_STORAGE_KEY = "relist:inventory-view";
+const INVENTORY_VIEW_STORAGE_KEY = "omventa:inventory-view";
 
 export default function ImportPage(): import("react").JSX.Element {
   const router = useRouter();

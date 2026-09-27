@@ -38,7 +38,7 @@ const STATUS_COLORS = {
 const PAGE_SIZE = 20;
 
 /** Remembers whether the user last browsed as a flat grid or by source folder. */
-const VIEW_STORAGE_KEY = "relist:inventory-view";
+const VIEW_STORAGE_KEY = "omventa:inventory-view";
 type ViewMode = "grid" | "sources";
 
 function isViewMode(v: string | null): v is ViewMode {

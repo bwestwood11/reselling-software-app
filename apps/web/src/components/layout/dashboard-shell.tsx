@@ -6,7 +6,7 @@ import { Sidebar } from "./sidebar";
 import { SubscriptionGate } from "@/components/subscription-gate";
 
 /** Matches the naming convention of other per-viewer UI prefs (e.g. inventory's saved view). */
-const SIDEBAR_COLLAPSED_KEY = "relist:sidebar-collapsed";
+const SIDEBAR_COLLAPSED_KEY = "omventa:sidebar-collapsed";
 
 /**
  * Owns the hide/unhide state for the sidebar. Split out from layout.tsx (a Server Component,

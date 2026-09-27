@@ -80,7 +80,7 @@ export default function RegisterScreen() {
             <View style={styles.logoWrap}>
               <Feather name="shopping-bag" size={28} color="#fff" />
             </View>
-            <Text style={styles.appName}>ReList</Text>
+            <Text style={styles.appName}>Omventa</Text>
             <Text style={styles.tagline}>Start cross-listing today</Text>
           </View>
 

@@ -77,7 +77,7 @@ export function useDelistListing() {
       // ended yet — saying so beats a "Listing ended" toast for an item still live.
       toast.success(
         result?.data?.delistQueued
-          ? "Delist queued — the ReList extension is removing it now"
+          ? "Delist queued — the Omventa extension is removing it now"
           : "Listing ended"
       );
     },

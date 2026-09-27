@@ -14,9 +14,16 @@ import {
   Store,
   X,
   Loader2,
+  Chrome,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MarketplaceType } from "@repo/types";
+
+// Mercari and Poshmark have no public API — connecting and posting to them runs
+// through the Omventa Chrome extension.
+const EXTENSION_URL =
+  "https://chromewebstore.google.com/detail/flhjipjpagkdolemkpnjildbjilaihcm?utm_source=item-share-cb";
 
 // ─── Marketplace catalog ──────────────────────────────────────────────────────
 
@@ -281,6 +288,33 @@ function MarketplacesContent(): React.JSX.Element {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Extension callout */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-orange-200">
+            <Chrome className="h-6 w-6 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-zinc-900">
+              Install the Omventa Chrome Extension
+            </p>
+            <p className="mt-0.5 text-sm text-zinc-600">
+              Required to connect Mercari and Poshmark and to cross-list to them — they have no
+              public API, so the extension posts from your own logged-in browser.
+            </p>
+          </div>
+        </div>
+        <a
+          href={EXTENSION_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(249,115,22,0.7)] transition-opacity hover:opacity-90"
+        >
+          <Download className="h-4 w-4" />
+          Add to Chrome
+        </a>
       </div>
 
       {/* Filter tabs */}
@@ -613,14 +647,14 @@ function MarketplaceCard({
 
 // ─── Mercari connect modal ─────────────────────────────────────────────────────
 // Mercari has no public OAuth API. The only supported connection path is via the
-// ReList Chrome extension, which opens mercari.com/login in a real browser tab
+// Omventa Chrome extension, which opens mercari.com/login in a real browser tab
 // (bypassing CORS + Cloudflare Bot Management), waits for the user to log in,
 // then reads the auth token from the page's localStorage/cookies and POSTs it
 // to /api/marketplaces/mercari/connect-token.
 
 const EXTENSION_STEPS = [
-  "Install the ReList Chrome Extension from the Chrome Web Store.",
-  "Click the ReList icon in your browser toolbar to open the popup.",
+  "Install the Omventa Chrome Extension from the Chrome Web Store.",
+  "Click the Omventa icon in your browser toolbar to open the popup.",
   'Click "Connect Mercari Account" — a Mercari login tab will open.',
   "Sign in with your Mercari credentials. The tab closes automatically once done.",
 ];
@@ -665,7 +699,7 @@ function MercariConnectModal({
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-zinc-900">Connect Mercari</p>
-            <p className="text-xs text-zinc-500">Via the ReList Chrome Extension</p>
+            <p className="text-xs text-zinc-500">Via the Omventa Chrome Extension</p>
           </div>
           <button
             onClick={onClose}
@@ -694,7 +728,20 @@ function MercariConnectModal({
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-600">
                     {i + 1}
                   </span>
-                  <span className="text-xs leading-relaxed text-zinc-600">{step}</span>
+                  <span className="text-xs leading-relaxed text-zinc-600">
+                    {i === 0 ? (
+                      <a
+                        href={EXTENSION_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-orange-600 underline hover:text-orange-700"
+                      >
+                        {step}
+                      </a>
+                    ) : (
+                      step
+                    )}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -720,14 +767,14 @@ function MercariConnectModal({
 }
 
 // ─── Poshmark connect modal ────────────────────────────────────────────────────
-// Poshmark has no public API. Connection is captured by the ReList Chrome
+// Poshmark has no public API. Connection is captured by the Omventa Chrome
 // extension, which opens poshmark.com in a real browser tab, waits for login,
 // reads session cookies + CSRF token, and POSTs them to
 // /api/marketplaces/poshmark/connect-token.
 
 const POSHMARK_EXTENSION_STEPS = [
-  "Install the ReList Chrome Extension from the Chrome Web Store.",
-  "Click the ReList icon in your browser toolbar to open the popup.",
+  "Install the Omventa Chrome Extension from the Chrome Web Store.",
+  "Click the Omventa icon in your browser toolbar to open the popup.",
   'Click "Connect Poshmark Account" — a Poshmark login tab will open.',
   "Sign in with your Poshmark credentials. The tab closes automatically once done.",
 ];
@@ -772,7 +819,7 @@ function PoshmarkConnectModal({
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-zinc-900">Connect Poshmark</p>
-            <p className="text-xs text-zinc-500">Via the ReList Chrome Extension</p>
+            <p className="text-xs text-zinc-500">Via the Omventa Chrome Extension</p>
           </div>
           <button
             onClick={onClose}
@@ -801,7 +848,20 @@ function PoshmarkConnectModal({
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[11px] font-bold text-rose-600">
                     {i + 1}
                   </span>
-                  <span className="text-xs leading-relaxed text-zinc-600">{step}</span>
+                  <span className="text-xs leading-relaxed text-zinc-600">
+                    {i === 0 ? (
+                      <a
+                        href={EXTENSION_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-orange-600 underline hover:text-orange-700"
+                      >
+                        {step}
+                      </a>
+                    ) : (
+                      step
+                    )}
+                  </span>
                 </li>
               ))}
             </ol>

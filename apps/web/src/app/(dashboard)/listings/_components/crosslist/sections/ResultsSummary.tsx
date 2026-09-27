@@ -59,7 +59,7 @@ function StatusRow({ result }: { result: CrosslistResult }) {
         <div>
           <p className="text-sm font-semibold text-zinc-900">{label}</p>
           <p className="text-xs text-amber-700">
-            Posting now — the ReList extension is publishing it. This updates automatically once it
+            Posting now — the Omventa extension is publishing it. This updates automatically once it
             lands (usually under 30s).
           </p>
         </div>
