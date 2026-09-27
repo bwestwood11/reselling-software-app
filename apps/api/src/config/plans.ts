@@ -85,6 +85,16 @@ export const AI_CREDIT_COSTS = {
   ghostMannequin: 10,
 } as const;
 
+/**
+ * Photo scanner tiers, charged once per photo. `regions` is how many AI passes the scan may make:
+ * the whole photo, plus one per zoomed tile of a 2×2 or 3×3 grid.
+ */
+export const PHOTO_SCAN_TIERS = {
+  quick: { label: "Quick", regions: 1, credits: 5 },
+  detailed: { label: "Detailed", regions: 5, credits: 10 },
+  deep: { label: "Deep", regions: 10, credits: 15 },
+} as const;
+
 export interface PhotoEditOptions {
   removeBackground: boolean;
   flatLay: boolean;

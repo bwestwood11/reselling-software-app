@@ -44,6 +44,8 @@ Stripe env vars required in `apps/api/.env`:
 - `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($39.99/mo billed annually)
 - `STRIPE_AI_CREDITS_PRICE_ID` — one-time price ID for the smart AI credit top-up (100 credits/pack)
 
+Photo scanner (`/scan`) needs `GEMINI_API_KEY` in `apps/api/.env`; its eBay price lookups use the Browse API with the existing `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET`/`EBAY_SANDBOX`.
+
 Enterprise is contact-sales (no self-serve price ID). Every new subscription starts with a 7-day free trial (card required; charged when the trial ends unless cancelled).
 
 ## Architecture
@@ -71,8 +73,8 @@ Internal packages use the `@repo/` prefix. Turbo orchestrates all tasks across t
 **Route → Service pattern:** Each route file instantiates a service class with `fastify.prisma`, applies `requireAuth` as a `preHandler`, then delegates to the service. Services own all business logic and DB queries.
 
 ```
-src/routes/      inventory.ts | listings.ts | marketplaces.ts | dashboard.ts | sync.ts | upload.ts | subscriptions.ts | webhooks.ts
-src/services/    inventory.service.ts | listing.service.ts | sync.service.ts | subscription.service.ts | marketplace/
+src/routes/      inventory.ts | listings.ts | marketplaces.ts | dashboard.ts | sync.ts | upload.ts | subscriptions.ts | webhooks.ts | scan.ts
+src/services/    inventory.service.ts | listing.service.ts | sync.service.ts | subscription.service.ts | marketplace/ | scanner/
 src/middleware/  auth.ts (requireAuth — reads Better Auth session from headers)
 src/plugins/     prisma.ts (decorates fastify with fastify.prisma)
 src/jobs/        sync.job.ts (node-cron, every 30 min, syncs all active listings)
@@ -99,6 +101,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 | `sync.ts` | `POST /api/sync/all`, `POST /api/sync/listing/:id`, `GET /api/sync/events` |
 | `upload.ts` | `POST /api/upload` — single image to S3 (JPEG/PNG/WebP/GIF, max 10 MB), returns `{ url, key }` |
 | `webhooks.ts` | `POST /api/webhooks/stripe` — Stripe event handler (no auth, signature verified) |
+| `scan.ts` | Photo scanner: `GET /config`, `POST /start`, `POST /analyze`, `POST /merge`, `POST`/`GET /ebay` on `/api/scan` |
 
 **Marketplace routes detail:**
 - `GET /api/marketplaces/connections` — list connections with account details and listing counts
@@ -120,7 +123,7 @@ src/config/      plans.ts (plan definitions: FREE/SIDE_HUSTLE/FULL_TIME/ENTERPRI
 - `createPortalSession(userId)` — creates a Stripe Customer Portal session
 - `handleWebhookEvent(event)` — handles `checkout.session.completed`, `customer.subscription.updated`/`deleted`, `invoice.payment_succeeded` (monthly AI-credit replenish), and `invoice.payment_failed` (→ PAST_DUE)
 
-**Credit model:** A single "smart AI credit" pool powers every AI feature. Monthly allotment (`aiCredits`) is reset each billing cycle; purchased top-ups (`bonusAiCredits`) never expire and are drawn only after the monthly balance is used up. Costs: SEO description = 1, background removal = 1, iron/flat-lay/ghost-mannequin = 10. Combined PhotoRoom effects run in one API call and are charged once at the highest applicable tier (see `photoEditCreditCost` in `config/plans.ts`). Inventory is a hard per-plan item cap (FREE/trial 50, Side Hustle 1,500, Full-Time 3,000), enforced by counting `InventoryItem` rows — cross-listing to multiple marketplaces is unlimited and never charged.
+**Credit model:** A single "smart AI credit" pool powers every AI feature. Monthly allotment (`aiCredits`) is reset each billing cycle; purchased top-ups (`bonusAiCredits`) never expire and are drawn only after the monthly balance is used up. Costs: SEO description = 1, background removal = 1, iron/flat-lay/ghost-mannequin = 10, photo scan = 5/10/15 per photo (Quick/Detailed/Deep). Combined PhotoRoom effects run in one API call and are charged once at the highest applicable tier (see `photoEditCreditCost` in `config/plans.ts`). Inventory is a hard per-plan item cap (FREE/trial 50, Side Hustle 1,500, Full-Time 3,000), enforced by counting `InventoryItem` rows — cross-listing to multiple marketplaces is unlimited and never charged.
 
 ### Authentication (`packages/auth`)
 
@@ -185,6 +188,7 @@ src/app/(dashboard)/
   inventory/[id]/edit/                   — edit inventory item (image upload + form)
   listings/                              — listings list
   listings/new/                          — create listing
+  scan/                                  — AI photo scanner (standalone; not wired into inventory/listings)
   marketplaces/                          — marketplace connections management (OAuth flow)
   settings/
   settings/billing/                      — Stripe subscription & credit management
@@ -248,3 +252,7 @@ Strict mode is on everywhere (`strict: true`, `noUncheckedIndexedAccess: true`).
 ## Prettier
 
 Double quotes, semicolons, trailing commas, 100-char print width. `prettier-plugin-tailwindcss` auto-sorts Tailwind classes.
+
+### Photo scanner (`/scan`)
+
+Ported from the standalone resale-scanner app. The browser (`apps/web/src/lib/scanner/`) enhances the photo on canvas and cuts it into zoomed tiles; the API (`apps/api/src/services/scanner/`) holds the Gemini and eBay Browse keys. Three tiers (`PHOTO_SCAN_TIERS` in `config/plans.ts`): Quick = whole photo only (5 credits), Detailed = + 2×2 tiles (10), Deep = + 3×3 tiles (15). A scan is `POST /api/scan/start { tier }` (checks credits, returns a `scanId`) → one `/analyze` per region in parallel → one `/merge` to de-duplicate → `/ebay` for prices. `/analyze` takes multipart/form-data (fields `scanId`, `mode`, `labels` JSON array, then one JPEG file per view, ≤ 4 MB per request) — images are never sent as base64 by the browser; the API base64-encodes them only for Gemini. The tier's credits are charged once per scan, on its first successful region (`scan-session.ts` tracks this in memory, which assumes a single API instance). Clients only get generic error messages; Gemini/eBay details are logged.
