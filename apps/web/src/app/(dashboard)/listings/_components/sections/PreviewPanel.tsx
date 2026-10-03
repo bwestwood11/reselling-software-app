@@ -3,6 +3,7 @@
 import { Loader2, Tag } from "lucide-react";
 import type { useMercariShipping } from "../hooks/use-mercari-shipping";
 import { PublishProgress } from "../ui/PublishProgress";
+import { PoshmarkFeeBreakdown } from "./PoshmarkFeeBreakdown";
 
 type MercariShipState = ReturnType<typeof useMercariShipping>;
 
@@ -128,6 +129,9 @@ export function PreviewPanel({
           </section>
         );
       })()}
+
+      {/* Poshmark fee breakdown */}
+      {isPoshmark && <PoshmarkFeeBreakdown price={price} />}
 
       {/* Publish progress — replaces the (all-disabled) action buttons while the publish runs */}
       {isPublishing && (

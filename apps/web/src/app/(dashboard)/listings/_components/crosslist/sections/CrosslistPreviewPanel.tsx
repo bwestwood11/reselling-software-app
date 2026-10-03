@@ -4,6 +4,7 @@ import { Loader2, Tag } from "lucide-react";
 import { getMarketplaceLabel } from "@repo/utils";
 import type { useMercariShipping } from "../../hooks/use-mercari-shipping";
 import { PublishProgress } from "../../ui/PublishProgress";
+import { PoshmarkFeeBreakdown } from "../../sections/PoshmarkFeeBreakdown";
 
 type MercariShipState = ReturnType<typeof useMercariShipping>;
 
@@ -11,6 +12,7 @@ interface Props {
   selectedItem: any;
   selectedConnections: Array<{ id: string; marketplace: string; accountName?: string }>;
   isMercari: boolean;
+  isPoshmark: boolean;
   price: number;
   mercariShip: MercariShipState;
   busy: boolean;
@@ -26,6 +28,7 @@ export function CrosslistPreviewPanel({
   selectedItem,
   selectedConnections,
   isMercari,
+  isPoshmark,
   price,
   mercariShip,
   busy,
@@ -146,6 +149,9 @@ export function CrosslistPreviewPanel({
           </section>
         );
       })()}
+
+      {/* Poshmark fee breakdown */}
+      {isPoshmark && <PoshmarkFeeBreakdown price={price} title="Poshmark Fee Breakdown" />}
 
       {/* Publish progress. While the request is in flight it replaces the (all-disabled) action
           buttons; once Mercari's job is queued it stays up alongside them until the extension
