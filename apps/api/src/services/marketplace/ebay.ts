@@ -34,6 +34,19 @@ export interface EbayItemDetail {
   dimensions?: { length: number; width: number; height: number };
 }
 
+/**
+ * Rewrite an eBay-hosted image URL to its largest variant. Handles both URL styles:
+ *   .../z/<id>/$_1.JPG?set_id=…   → .../z/<id>/$_57.JPG?set_id=…
+ *   .../images/g/<id>/s-l500.jpg  → .../images/g/<id>/s-l1600.jpg
+ * Non-eBay URLs are returned unchanged.
+ */
+export function toFullSizeEbayImageUrl(url: string): string {
+  if (!/^https?:\/\/i\.ebayimg\.com\//i.test(url)) return url;
+  return url
+    .replace(/\/\$_\d+\.(jpe?g|png|webp)/i, () => "/$_57.JPG")
+    .replace(/\/s-l\d+\.(jpe?g|png|webp)/i, (_m, ext: string) => `/s-l1600.${ext}`);
+}
+
 /** Build eBay <ItemSpecifics> XML from a key→value map. */
 function buildItemSpecificsXml(specifics: Record<string, string>): string {
   const entries = Object.entries(specifics).filter(([, v]) => v?.trim());
@@ -513,6 +526,20 @@ ${policiesXml}
     return values;
   }
 
+  /**
+   * Extract picture URLs, upgraded to full size. The Trading API returns `$_1.JPG` URLs, which
+   * eBay serves as a 300×400 thumbnail — rewrite to `$_57.JPG` (the ≤1600px original) so
+   * cross-listed photos aren't low-res.
+   */
+  private pictureUrls(xml: string): string[] {
+    const urls = this.xmlValues(xml, "PictureURL").filter((u) => u.startsWith("http"));
+    if (urls.length === 0) {
+      const galleryUrl = this.xmlValue(xml, "GalleryURL");
+      if (galleryUrl?.startsWith("http")) urls.push(galleryUrl);
+    }
+    return urls.map(toFullSizeEbayImageUrl);
+  }
+
   /** Split an XML string into individual <Item>…</Item> blocks. */
   private parseItemBlocks(xml: string): string[] {
     const blocks: string[] = [];
@@ -562,13 +589,7 @@ ${policiesXml}
     const categoryId = this.xmlValue(itemXml, "CategoryID") ?? "";
     const categoryName = this.xmlValue(itemXml, "CategoryName") ?? "";
 
-    const imageUrls = this.xmlValues(itemXml, "PictureURL").filter(
-      (u) => u.startsWith("http")
-    );
-    if (imageUrls.length === 0) {
-      const galleryUrl = this.xmlValue(itemXml, "GalleryURL");
-      if (galleryUrl?.startsWith("http")) imageUrls.push(galleryUrl);
-    }
+    const imageUrls = this.pictureUrls(itemXml);
 
     const startTimeStr = this.xmlValue(itemXml, "StartTime");
     const listedAt = startTimeStr ? new Date(startTimeStr) : null;
@@ -702,11 +723,7 @@ ${policiesXml}
     const categoryName = this.xmlValue(text, "CategoryName") ?? "";
     const quantityStr = this.xmlValue(text, "Quantity") ?? "1";
     const quantity = Math.max(1, Number.parseInt(quantityStr) || 1);
-    const imageUrls = this.xmlValues(text, "PictureURL").filter((u) => u.startsWith("http"));
-    if (imageUrls.length === 0) {
-      const galleryUrl = this.xmlValue(text, "GalleryURL");
-      if (galleryUrl?.startsWith("http")) imageUrls.push(galleryUrl);
-    }
+    const imageUrls = this.pictureUrls(text);
     console.log("[eBay GetItem] itemId=%s imageCount=%d firstUrl=%s", itemId, imageUrls.length, imageUrls[0] ?? "(none)");
     const viewItemUrl =
       this.xmlValue(text, "ViewItemURL") ?? `https://www.ebay.com/itm/${itemId}`;

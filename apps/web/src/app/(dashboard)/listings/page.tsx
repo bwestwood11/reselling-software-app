@@ -210,6 +210,20 @@ export default function ListingsPage(): import("react").JSX.Element {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Clears an ended listing so the cell goes back to "List on …". Removes every ENDED listing
+  // for the item on that marketplace — otherwise pickListing() would just surface an older one.
+  const removeEndedMutation = useMutation({
+    mutationFn: (listingIds: string[]) => Promise.all(listingIds.map(listingsApi.delete)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
+      toast.success("Listing removed");
+    },
+    onError: (err: Error) => {
+      qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
+      toast.error(err.message);
+    },
+  });
+
   const markSoldMutation = useMutation({
     mutationFn: ({ id, soldPrice }: { id: string; soldPrice?: number }) =>
       listingsApi.markSold(id, soldPrice),
@@ -723,6 +737,22 @@ export default function ListingsPage(): import("react").JSX.Element {
                                       <span className="opacity-30">·</span>
                                       <button onClick={() => delistMutation.mutate(listing.id)} disabled={delistMutation.isPending} className="opacity-50 hover:opacity-100 disabled:opacity-30" title="Delist">End</button>
                                     </>
+                                  )}
+                                  {listing.status === "ENDED" && (
+                                    <button
+                                      onClick={() =>
+                                        removeEndedMutation.mutate(
+                                          (item.listings ?? [])
+                                            .filter((l: any) => l.marketplace === mp.key && l.status === "ENDED")
+                                            .map((l: any) => l.id as string)
+                                        )
+                                      }
+                                      disabled={removeEndedMutation.isPending}
+                                      className="opacity-60 hover:opacity-100 disabled:opacity-30"
+                                      title={`Remove so it can be listed on ${mp.label} again`}
+                                    >
+                                      Remove
+                                    </button>
                                   )}
                                 </div>
                               </div>

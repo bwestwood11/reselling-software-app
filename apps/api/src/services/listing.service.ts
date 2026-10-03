@@ -167,8 +167,21 @@ export class ListingService {
     });
   }
 
+  /**
+   * Remove a listing record. Refused while it may still be live on the marketplace (ACTIVE, or
+   * PENDING mid-publish) — deleting the row then would orphan a buyable listing nothing tracks.
+   * Delist it first; once ENDED it can be removed and the item listed there again.
+   */
   async delete(id: string, userId: string) {
-    await this.db.listing.deleteMany({ where: { id, userId } });
+    const listing = await this.db.listing.findFirst({
+      where: { id, userId },
+      select: { status: true },
+    });
+    if (!listing) throw new Error("Listing not found");
+    if (listing.status === "ACTIVE" || listing.status === "PENDING") {
+      throw new Error("Delist this listing before removing it");
+    }
+    await this.db.listing.delete({ where: { id } });
   }
 
   async publish(id: string, userId: string) {

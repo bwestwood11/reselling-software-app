@@ -133,7 +133,12 @@ export async function listingsRoutes(fastify: FastifyInstance) {
     { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      await svc.delete(id, request.user!.id);
+      try {
+        await svc.delete(id, request.user!.id);
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Failed to delete listing";
+        return reply.status(error === "Listing not found" ? 404 : 409).send({ success: false, error });
+      }
       return reply.send({ success: true, message: "Listing deleted" });
     }
   );
