@@ -29,6 +29,8 @@ model User {
   poshmarkJobs           PoshmarkJob[]
   sources                Source[]
   pollRuns               MarketplacePollRun[]
+  accountabilityPeople   AccountabilityPerson[]
+  accountabilityTasks    AccountabilityTask[]
 }
 
 model Session {
@@ -418,4 +420,81 @@ model SyncEvent {
   message   String?
   data      Json?
   createdAt DateTime      @default(now())
+}
+
+// ─── Accountability ───────────────────────────────────────────────────────────
+// Daily tasks/goals a seller sets for themselves or for people who help them (VAs, family).
+// People are named entries owned by the account — not separate logins.
+
+enum AccountabilityMetric {
+  MANUAL // checked off (or counted up) by hand
+  ITEMS_LISTED // auto: inventory items with a listing published that day
+  ITEMS_ADDED // auto: inventory items created that day
+  ITEMS_SOLD // auto: inventory items marked sold that day
+}
+
+enum AccountabilityPeriod {
+  DAILY // the goal resets every day
+  WEEKLY // one goal per Monday–Sunday week; each day logs its own count toward it
+}
+
+enum AccountabilitySchedule {
+  DAILY
+  WEEKDAYS // Monday–Friday
+  ONCE // only on `onDate`
+}
+
+model AccountabilityPerson {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  color      String // one of a fixed set of avatar colors (hex)
+  archivedAt DateTime? // removed people are archived so past check-ins keep their owner
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tasks AccountabilityTask[]
+
+  @@index([userId])
+}
+
+model AccountabilityTask {
+  id         String                 @id @default(cuid())
+  userId     String
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personId   String? // null = the account owner ("Me")
+  person     AccountabilityPerson?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+  title      String
+  notes      String?
+  target     Int? // the count to hit per period (10 for "List 10 items"); null = a simple checkbox
+  period     AccountabilityPeriod   @default(DAILY)
+  metric     AccountabilityMetric   @default(MANUAL)
+  schedule   AccountabilitySchedule @default(DAILY)
+  startDate  String // YYYY-MM-DD (the user's local date) — the task doesn't apply before this
+  onDate     String? // YYYY-MM-DD, for schedule = ONCE
+  endDate    String? // YYYY-MM-DD, last day it runs (inclusive); null = continues indefinitely
+  sortOrder  Int                    @default(0)
+  archivedAt DateTime? // deleted tasks are archived so history stays intact
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  checkins AccountabilityCheckin[]
+
+  @@index([userId])
+}
+
+model AccountabilityCheckin {
+  id          String             @id @default(cuid())
+  taskId      String
+  task        AccountabilityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  date        String // YYYY-MM-DD in the user's local time
+  progress    Int                @default(0) // manual count toward `target`
+  completed   Boolean            @default(false)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([taskId, date])
+  @@index([date])
 }

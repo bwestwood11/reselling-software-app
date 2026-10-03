@@ -206,6 +206,85 @@ export interface DashboardTrend {
   points: SalesTrendPoint[];
 }
 
+// ─── Accountability ───────────────────────────────────────────────────────────
+
+/** MANUAL tasks are checked/counted by hand; the rest count real activity on the account. */
+export type AccountabilityMetric = "MANUAL" | "ITEMS_LISTED" | "ITEMS_ADDED" | "ITEMS_SOLD";
+export type AccountabilitySchedule = "DAILY" | "WEEKDAYS" | "ONCE";
+/** DAILY goals reset each day; a WEEKLY goal is one target per Monday–Sunday week. */
+export type AccountabilityPeriod = "DAILY" | "WEEKLY";
+
+/** A weekly goal's Monday–Sunday breakdown. */
+export interface AccountabilityWeekProgress {
+  start: string;
+  end: string;
+  /** Each day's count — logged by hand, or counted from account activity for automatic goals. */
+  days: Array<{ date: string; progress: number }>;
+  total: number;
+}
+
+export interface AccountabilityPerson {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** A task as it stands on one day. */
+export interface AccountabilityTaskView {
+  id: string;
+  title: string;
+  notes: string | null;
+  /** null = the account owner ("Me"). */
+  personId: string | null;
+  target: number | null;
+  metric: AccountabilityMetric;
+  period: AccountabilityPeriod;
+  schedule: AccountabilitySchedule;
+  startDate: string;
+  onDate: string | null;
+  /** Last day it runs (inclusive); null = continues indefinitely. */
+  endDate: string | null;
+  /** Count toward `target` on this day (for a WEEKLY goal: this day's own entry). */
+  progress: number;
+  /** DAILY: this day's goal is met. WEEKLY: the week's total has reached the target. */
+  completed: boolean;
+  /** WEEKLY goals only. */
+  week: AccountabilityWeekProgress | null;
+}
+
+export interface AccountabilityDayStat {
+  date: string;
+  done: number;
+  total: number;
+  /** Keyed by person id, or "me" for the owner's own tasks. */
+  byPerson: Record<string, { done: number; total: number }>;
+}
+
+export interface AccountabilityDay {
+  date: string;
+  /** The Monday–Sunday week containing `date`. */
+  weekStart: string;
+  weekEnd: string;
+  people: AccountabilityPerson[];
+  tasks: AccountabilityTaskView[];
+  /** The 7 days ending on `date`, oldest first — daily goals only. */
+  week: AccountabilityDayStat[];
+}
+
+export interface AccountabilityTaskInput {
+  title: string;
+  notes?: string | null;
+  personId?: string | null;
+  target?: number | null;
+  metric?: AccountabilityMetric;
+  period?: AccountabilityPeriod;
+  schedule?: AccountabilitySchedule;
+  /** YYYY-MM-DD: first day the task applies (defaults to today), and the day for ONCE tasks. */
+  startDate: string;
+  /** YYYY-MM-DD last day it runs (inclusive); null/omitted = continues indefinitely. */
+  endDate?: string | null;
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 /** Sales totals for one period. Averages and rates are null when there is nothing to average. */

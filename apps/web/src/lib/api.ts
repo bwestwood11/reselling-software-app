@@ -1,4 +1,5 @@
 import type {
+  AccountabilityTaskInput,
   ScanAnalysis,
   ScanConfig,
   ScanEbayResult,
@@ -264,6 +265,33 @@ export const analyticsApi = {
   /** Sales report for an inclusive YYYY-MM-DD range, compared with the period just before it. */
   getReport: (params: { start: string; end: string }) =>
     request<any>(`/api/analytics?${new URLSearchParams(params).toString()}`),
+};
+
+// ─── Accountability ───────────────────────────────────────────────────────────
+
+export const accountabilityApi = {
+  /** Tasks due on a local YYYY-MM-DD date, plus the 7-day completion strip ending on it. */
+  getDay: (date: string) =>
+    request<any>(
+      `/api/accountability?${new URLSearchParams({ date, tz: String(new Date().getTimezoneOffset()) })}`
+    ),
+  createPerson: (body: { name: string; color: string }) =>
+    request<any>("/api/accountability/people", { method: "POST", body: JSON.stringify(body) }),
+  updatePerson: (id: string, body: { name?: string; color?: string }) =>
+    request<any>(`/api/accountability/people/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  removePerson: (id: string) =>
+    request<any>(`/api/accountability/people/${id}`, { method: "DELETE" }),
+  createTask: (body: AccountabilityTaskInput) =>
+    request<any>("/api/accountability/tasks", { method: "POST", body: JSON.stringify(body) }),
+  updateTask: (id: string, body: AccountabilityTaskInput) =>
+    request<any>(`/api/accountability/tasks/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  removeTask: (id: string) =>
+    request<any>(`/api/accountability/tasks/${id}`, { method: "DELETE" }),
+  checkin: (id: string, body: { date: string; progress?: number; completed?: boolean }) =>
+    request<any>(`/api/accountability/tasks/${id}/checkin`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 };
 
 // ─── Sync ─────────────────────────────────────────────────────────────────────

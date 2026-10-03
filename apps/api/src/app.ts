@@ -9,6 +9,7 @@ import { listingsRoutes } from "./routes/listings";
 import { marketplacesRoutes } from "./routes/marketplaces";
 import { dashboardRoutes } from "./routes/dashboard";
 import { analyticsRoutes } from "./routes/analytics";
+import { accountabilityRoutes } from "./routes/accountability";
 import { syncRoutes } from "./routes/sync";
 import { uploadRoutes } from "./routes/upload";
 import { subscriptionRoutes } from "./routes/subscriptions";
@@ -109,6 +110,7 @@ export async function buildApp() {
   // ── API Routes ─────────────────────────────────────────────────────────────
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await app.register(analyticsRoutes, { prefix: "/api/analytics" });
+  await app.register(accountabilityRoutes, { prefix: "/api/accountability" });
   await app.register(inventoryRoutes, { prefix: "/api/inventory" });
   await app.register(listingsRoutes, { prefix: "/api/listings" });
   await app.register(marketplacesRoutes, { prefix: "/api/marketplaces" });
