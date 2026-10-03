@@ -258,6 +258,14 @@ export const dashboardApi = {
   },
 };
 
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export const analyticsApi = {
+  /** Sales report for an inclusive YYYY-MM-DD range, compared with the period just before it. */
+  getReport: (params: { start: string; end: string }) =>
+    request<any>(`/api/analytics?${new URLSearchParams(params).toString()}`),
+};
+
 // ─── Sync ─────────────────────────────────────────────────────────────────────
 
 export const syncApi = {

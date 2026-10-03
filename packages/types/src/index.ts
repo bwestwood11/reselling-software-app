@@ -206,6 +206,83 @@ export interface DashboardTrend {
   points: SalesTrendPoint[];
 }
 
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+/** Sales totals for one period. Averages and rates are null when there is nothing to average. */
+export interface AnalyticsTotals {
+  revenue: number;
+  /** Cost of goods sold — the sold items' costPrice × quantity. Items with no cost count as 0. */
+  cost: number;
+  /** revenue − cost. Marketplace fees are not recorded, so they are not deducted. */
+  profit: number;
+  unitsSold: number;
+  /** Inventory items whose first listing went live in the period (cross-listings not counted twice). */
+  unitsListed: number;
+  /** Of the items first listed in the period, the share that has sold since (0–1). */
+  sellThroughRate: number | null;
+  avgSalePrice: number | null;
+  avgProfit: number | null;
+  /** profit / revenue (0–1). */
+  profitMargin: number | null;
+  /** Mean days from first listing (or creation, if never listed) to sale. */
+  avgDaysToSell: number | null;
+}
+
+export interface AnalyticsSeriesPoint {
+  /** Bucket start as YYYY-MM-DD (the first day of the week/month for coarser buckets). */
+  date: string;
+  revenue: number;
+  profit: number;
+  unitsSold: number;
+  unitsListed: number;
+}
+
+export interface AnalyticsBreakdownRow {
+  /** Stable identity — a MarketplaceType, or a normalised free-text channel ("in person"). */
+  key: string;
+  label: string;
+  unitsSold: number;
+  revenue: number;
+  profit: number;
+}
+
+export interface AnalyticsMarketplaceRow extends AnalyticsBreakdownRow {
+  cost: number;
+  avgSalePrice: number | null;
+  avgProfit: number | null;
+  avgDaysToSell: number | null;
+}
+
+export interface AnalyticsInventorySnapshot {
+  /** Unsold items (DRAFT + ACTIVE). */
+  unsoldItems: number;
+  /** Items with at least one live listing. */
+  listedItems: number;
+  /** Sum of costPrice × quantity over unsold items. */
+  unsoldCost: number;
+  /** Sum of each unsold item's asking price (its live listing price, else its target price). */
+  unsoldListValue: number;
+  /** Mean days since unsold items were added. */
+  avgAgeDays: number | null;
+}
+
+export interface AnalyticsReport {
+  range: {
+    start: string;
+    end: string;
+    previousStart: string;
+    previousEnd: string;
+    granularity: "day" | "week" | "month";
+  };
+  current: AnalyticsTotals;
+  previous: AnalyticsTotals;
+  series: AnalyticsSeriesPoint[];
+  byMarketplace: AnalyticsMarketplaceRow[];
+  topBrands: AnalyticsBreakdownRow[];
+  topCategories: AnalyticsBreakdownRow[];
+  inventory: AnalyticsInventorySnapshot;
+}
+
 export interface InventoryStatusCount {
   status: InventoryStatus;
   count: number;

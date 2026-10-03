@@ -13,6 +13,7 @@ import {
   Zap,
   PanelLeftClose,
   ScanSearch,
+  ChartColumn,
 } from "lucide-react";
 import { cn } from "@repo/ui";
 import { signOut, useSession } from "@repo/auth/client";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", Icon: Package },
   { href: "/listings", label: "Listings", Icon: Tag },
+  { href: "/analytics", label: "Analytics", Icon: ChartColumn },
   { href: "/scan", label: "Scan", Icon: ScanSearch },
   { href: "/marketplaces", label: "Marketplaces", Icon: Store },
   { href: "/settings", label: "Settings", Icon: Settings },
