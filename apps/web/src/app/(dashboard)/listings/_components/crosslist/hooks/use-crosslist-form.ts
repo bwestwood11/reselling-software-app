@@ -488,7 +488,8 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
       if (p.colors?.length) poshmark.setPoshmarkColors(p.colors.slice(0, 2));
       if (p.styleTags?.length) poshmark.setPoshmarkStyleTags(p.styleTags.slice(0, 3));
       // Size is a label, not an ID — resolved against the selected category's size list below.
-      if (p.sizeLabel) poshmark.setPoshmarkPrefilledSize(p.sizeLabel);
+      // Set (or cleared) per item, so a previous item's size never leaks into this one.
+      poshmark.setPoshmarkPrefilledSize(p.sizeLabel ?? null);
     }
 
     if (poshmarkPrefillData.filledFields.length > 0) {
@@ -528,16 +529,20 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPoshmark, itemDetail, detailId, poshmarkPrefillData, poshmarkPrefillFailed]);
 
-  // Resolve the prefilled size label once the category's size list is known. The list only
-  // exists after a category is picked, which may happen after the prefill lands.
+  // Resolve the item's size label against whichever size list is showing. The label is kept for
+  // the whole session (not consumed after one try): the list only exists once a category is set,
+  // it changes when the category is guessed or corrected, and the category selects reset the size
+  // — so whenever the size is empty or not in the current list, re-match it.
   const prefilledSizeLabel = poshmark.prefilledSizeLabel;
+  const currentPoshmarkSizeId = watch("poshmarkSizeId");
   useEffect(() => {
-    if (!prefilledSizeLabel || poshmark.poshmarkSizes.length === 0) return;
-    const match = matchPoshmarkSize(poshmark.poshmarkSizes, prefilledSizeLabel);
-    if (match) setValue("poshmarkSizeId", match.id);
-    poshmark.setPoshmarkPrefilledSize(null);
+    const sizes = poshmark.poshmarkSizes;
+    if (!prefilledSizeLabel || sizes.length === 0) return;
+    if (currentPoshmarkSizeId && sizes.some((s) => s.id === currentPoshmarkSizeId)) return;
+    const match = matchPoshmarkSize(sizes, prefilledSizeLabel);
+    if (match && match.id !== currentPoshmarkSizeId) setValue("poshmarkSizeId", match.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefilledSizeLabel, poshmark.poshmarkSizes]);
+  }, [prefilledSizeLabel, poshmark.poshmarkSizes, currentPoshmarkSizeId]);
 
   const crossFillBanners = [ebayCrossFill, mercariCrossFill, poshmarkCrossFill].filter(
     (c): c is CrossFill => !!c

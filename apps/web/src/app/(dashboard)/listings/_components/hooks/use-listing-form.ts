@@ -312,7 +312,7 @@ export function useListingForm({
       if (p.colors?.length) poshmark.setPoshmarkColors(p.colors.slice(0, 2));
       if (p.styleTags?.length) poshmark.setPoshmarkStyleTags(p.styleTags.slice(0, 3));
       // Size is a label, not an ID — resolved against the selected category's size list below.
-      if (p.sizeLabel) poshmark.setPoshmarkPrefilledSize(p.sizeLabel);
+      poshmark.setPoshmarkPrefilledSize(p.sizeLabel ?? null);
     }
 
     // Update crossFill banner
@@ -354,14 +354,19 @@ export function useListingForm({
 
   // Resolve a prefilled Poshmark size label once the category's size list is known — the list
   // only exists after a category is picked, which may happen after the prefill lands.
+  // The label is kept for the whole session rather than consumed after one try — the size list
+  // changes when the category is guessed or corrected, and the category selects reset the size,
+  // so re-match whenever the size is empty or not in the current list.
   const poshmarkPrefilledSizeLabel = poshmark.prefilledSizeLabel;
+  const currentPoshmarkSizeId = watch("poshmarkSizeId");
   useEffect(() => {
-    if (!poshmarkPrefilledSizeLabel || poshmark.poshmarkSizes.length === 0) return;
-    const match = matchPoshmarkSize(poshmark.poshmarkSizes, poshmarkPrefilledSizeLabel);
-    if (match) setValue("poshmarkSizeId", match.id);
-    poshmark.setPoshmarkPrefilledSize(null);
+    const sizes = poshmark.poshmarkSizes;
+    if (!poshmarkPrefilledSizeLabel || sizes.length === 0) return;
+    if (currentPoshmarkSizeId && sizes.some((s) => s.id === currentPoshmarkSizeId)) return;
+    const match = matchPoshmarkSize(sizes, poshmarkPrefilledSizeLabel);
+    if (match && match.id !== currentPoshmarkSizeId) setValue("poshmarkSizeId", match.id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poshmarkPrefilledSizeLabel, poshmark.poshmarkSizes]);
+  }, [poshmarkPrefilledSizeLabel, poshmark.poshmarkSizes, currentPoshmarkSizeId]);
 
   // ── Mercari category search progressive fallback ──────────────────────────
   // When the prefill-seeded search returns no results, strip the last word and retry.

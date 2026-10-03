@@ -174,7 +174,11 @@ export function PoshmarkSettings({ form, poshmark, selectedItem }: Props) {
           <Field label="Size">
             <Select
               value={watch("poshmarkSizeId") ?? ""}
-              onValueChange={(val) => setValue("poshmarkSizeId", val)}
+              // Radix Select can fire onValueChange("") when its value is set from code before its
+              // options have mounted — a real pick is never empty, so don't let that wipe the size.
+              onValueChange={(val) => {
+                if (val) setValue("poshmarkSizeId", val);
+              }}
             >
               <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-red-400">
                 <SelectValue placeholder="Select size…" />
