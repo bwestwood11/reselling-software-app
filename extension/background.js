@@ -1242,6 +1242,40 @@ const POSHMARK_CONDITION_MAP = {
   SATISFACTORY: "uf",
 };
 
+// Poshmark's canonical color catalog — a post's `colors` entries must be these exact
+// { name, rgb, message_id } triples; a bare { name } fails the whole save. Mirrors
+// POSHMARK_COLORS in apps/web/src/lib/poshmark/data.ts (the picker's source), and matches a
+// real published listing read back from GET /vm-rest/posts/{id} (Brown → #663509 / "brown").
+const POSHMARK_COLOR_CATALOG = {
+  red: { name: "Red", rgb: "#ea2e2e", message_id: "red" },
+  pink: { name: "Pink", rgb: "#fb1680", message_id: "pink" },
+  orange: { name: "Orange", rgb: "#fca628", message_id: "orange" },
+  yellow: { name: "Yellow", rgb: "#ffee37", message_id: "yellow" },
+  green: { name: "Green", rgb: "#3c9c44", message_id: "green" },
+  blue: { name: "Blue", rgb: "#137fc1", message_id: "blue" },
+  purple: { name: "Purple", rgb: "#7f0f81", message_id: "purple" },
+  gold: { name: "Gold", rgb: "#ffd72e", message_id: "gold" },
+  silver: { name: "Silver", rgb: "#e9ebec", message_id: "silver" },
+  black: { name: "Black", rgb: "#000000", message_id: "black" },
+  gray: { name: "Gray", rgb: "#929292", message_id: "gray" },
+  white: { name: "White", rgb: "#FFFFFF", message_id: "white" },
+  cream: { name: "Cream", rgb: "#f4e0ca", message_id: "cream" },
+  brown: { name: "Brown", rgb: "#663509", message_id: "brown" },
+  tan: { name: "Tan", rgb: "#d1b48e", message_id: "tan" },
+};
+
+/** Selected color names → Poshmark's canonical color objects. Unknown names are dropped
+ *  (never sent half-formed), and Poshmark allows at most two colors. */
+function toPoshmarkColors(colors) {
+  return (colors ?? [])
+    .map((c) => POSHMARK_COLOR_CATALOG[String(typeof c === "string" ? c : c?.name ?? "").trim().toLowerCase()])
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+// The "Listing SKU" input on Poshmark's listing editor has maxlength=50.
+const POSHMARK_SKU_MAX_LENGTH = 50;
+
 // Reads the live _csrf cookie straight from the browser's cookie jar. Poshmark re-issues
 // this cookie on every page render, so the value restored from the stored session snapshot
 // (captured once at connect time) goes stale the moment acquirePoshmarkTab() navigates the
@@ -1467,6 +1501,7 @@ async function postToPoshmarkApi(job) {
     sizeId,
     originalPriceCents,
     shippingDiscount,
+    sku,
   } = job.payload;
 
   // Step 1 — get the stored CSRF token as a fallback. Cookies are restored by
@@ -1511,12 +1546,9 @@ async function postToPoshmarkApi(job) {
           ...(categoryId ? { category: categoryId } : {}),
           ...(subcategoryId ? { category_features: [subcategoryId] } : {}),
         },
-        // Poshmark rejects colors sent as bare { name } — it expects a canonical
-        // { name, rgb, message_id } triple from its own color catalog, which we don't have
-        // (no discoverable metadata endpoint for it, and a malformed entry fails the whole
-        // save, not just the color). Omitted until we have real data; `colors` param is
-        // intentionally unused above pending that.
-        colors: [],
+        // Poshmark rejects colors sent as bare { name } — each must be a canonical
+        // { name, rgb, message_id } triple, resolved from POSHMARK_COLOR_CATALOG.
+        colors: toPoshmarkColors(colors),
         inventory: {
           status: "available",
           size_quantities: sizeId
@@ -1550,7 +1582,12 @@ async function postToPoshmarkApi(job) {
         videos: [],
         ...(brand?.trim() ? { brand: brand.trim() } : {}),
         ...(styleTags.length > 0 ? { style_tags: styleTags.map((t) => ({ name: t })) } : {}),
-        seller_private_info: {},
+        // The editor's "Additional Details (Private)" section. CONFIRMED 2026-10-03 from the
+        // listing editor's own store: its Listing SKU / Cost Price / Other Info inputs write
+        // post.seller_private_info.sku / .cost_price_amount / .other_info.
+        seller_private_info: sku?.trim()
+          ? { sku: sku.trim().slice(0, POSHMARK_SKU_MAX_LENGTH) }
+          : {},
         autolist_draft: false,
         seller_shipping_discount: {
           id: shippingDiscount && shippingDiscount !== "no_discount" ? shippingDiscount : null,

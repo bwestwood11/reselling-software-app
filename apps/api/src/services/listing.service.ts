@@ -243,6 +243,8 @@ export class ListingService {
             sizeId: mpData?.sizeId ?? null,
             originalPriceCents: mpData?.originalPriceCents ?? null,
             shippingDiscount: mpData?.shippingDiscount ?? null,
+            // The item's own SKU (an eBay import's Custom Label) → Poshmark's private "Listing SKU".
+            sku: listing.inventoryItem?.sku?.trim() || null,
           },
         },
       });

@@ -172,7 +172,7 @@ Full confirmed body shape (from a real 2-image, sized, priced submission):
     "cover_shot": { "id": "<pictureId of the first uploaded image>" },
     "pictures": [{ "id": "<pictureId of a subsequent image>" }],
     "videos": [],
-    "seller_private_info": {},
+    "seller_private_info": { "sku": "ABC-123" },
     "style_tags": [],
     "autolist_draft": false,
     "seller_shipping_discount": { "id": null }
@@ -195,9 +195,16 @@ Field-by-field notes, all **CONFIRMED** by isolating individual validation error
   the shape `{ "name": "Brown", "rgb": "#663509", "message_id": "brown" }` — a canonical
   triple from Poshmark's own color catalog. No metadata endpoint for this list was
   discoverable (`/vm-rest/meta/colors`, `/vm-rest/metadata/colors`,
-  `/vm-rest/meta/catalog_colors` all 404). **Current extension behavior: `colors` is always
-  sent as `[]`** — colors are dropped from Poshmark listings until real canonical data is
-  found. Do not re-enable this without first finding the real color list.
+  `/vm-rest/meta/catalog_colors` all 404), but the full list is embedded in Poshmark's SSR
+  data and bundled as `POSHMARK_COLORS` in `apps/web/src/lib/poshmark/data.ts` (it matches the
+  live triple above exactly). The extension maps selected color names to these triples via
+  `POSHMARK_COLOR_CATALOG` / `toPoshmarkColors()` (max 2, unknown names dropped so a bad
+  entry can't fail the save).
+- **`seller_private_info`** — the editor's "Additional Details (Private)" section. **CONFIRMED
+  2026-10-03** from the listing editor's own Vuex store (`$_listing_editor`): the Listing SKU,
+  Cost Price and Other Info inputs write `seller_private_info.sku`, `.cost_price_amount` and
+  `.other_info`. The SKU input has `maxlength=50`. The extension sends
+  `{ sku: <inventory item's SKU> }` (an eBay import's Custom Label), or `{}` when there is none.
 - **`inventory.size_quantities[].size_obj`** — **CONFIRMED a reduced shape is sufficient.**
   The real web client sends a fully denormalized object (`short`, `long`,
   `display_with_size_set`, `display_with_size_system`, `display_with_system_and_set`,
@@ -594,7 +601,7 @@ against real traffic, and every one turned out to be wrong when finally tested:
 - Reading `response.data.error.message` for an error string — the real field is
   `.userMessage` (`.message` doesn't exist on the embedded error object).
 - Sending decimal prices (`19.99`) — Poshmark requires whole-dollar integers on creation.
-- Sending `colors` as `[{ name: "Black" }]` — real shape needs `{name, rgb, message_id}`
+- Sending `colors` as `[{ name: "Black" }]` — real shape needs `{name, rgb, message_id}` (now resolved from `POSHMARK_COLOR_CATALOG`)
   from a canonical catalog with no discoverable metadata endpoint; currently disabled.
 
 If you're debugging a new Poshmark failure and none of the above explains it, **don't guess a
