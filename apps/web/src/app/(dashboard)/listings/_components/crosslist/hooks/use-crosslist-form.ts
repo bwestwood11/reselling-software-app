@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CrosslistResult } from "@repo/types";
+import { getMercariSizeInfoForGroup, getMercariSizes, matchMercariSize } from "@repo/types";
 import type { SubscriptionInfo } from "@repo/types";
 import { getMarketplaceLabel } from "@repo/utils";
 import {
@@ -317,6 +318,8 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
       const m = mercariPrefillData.mercari;
       if (m.brandId) setValue("mercariBrandId", m.brandId);
       if (m.sizeId) setValue("mercariSizeId", Number(m.sizeId));
+      // The item's size label, resolved against the category's size schema by the effect below.
+      setMercariSizeLabel(m.sizeLabel ?? null);
       if (m.zipCode) setValue("mercariZipCode", m.zipCode);
       if (m.addressId) setValue("mercariAddressId", m.addressId);
 
@@ -337,7 +340,7 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
       const hasCatPath = m.categoryPath && m.categoryPath.length > 0;
       if (hasSuggestions || hasCatPath) {
         import("@/data/mercari-categories.json").then((mod) => {
-          type RawCat = { id: number; name: string; parentId: number };
+          type RawCat = { id: number; name: string; parentId: number; itemSizeGroupId?: number };
           const raw = (mod.default as { itemCategories: RawCat[] }).itemCategories;
           const parentIdSet = new Set(raw.filter((c) => c.parentId > 0).map((c) => c.parentId));
           const rawById = new Map(raw.map((c) => [c.id, c]));
@@ -385,8 +388,9 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
               hasChildren: parentIdSet.has(match.id),
               fullPath: fp,
               isLeaf: !parentIdSet.has(match.id),
-              isSizeRequired: false,
-              sizeSchemaId: null,
+              // From the category's own size group — hardcoding "no size" here hid the size
+              // picker for every prefilled category, so listings posted with no size.
+              ...getMercariSizeInfoForGroup(match.itemSizeGroupId),
             };
             mercariCat.setSelectedMercariCat(node);
             setValue("mercariCategoryId", node.id);
@@ -404,6 +408,22 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mercariPrefillData, detailId]);
+
+  // Resolve the item's size label against the selected category's size schema. Kept for the whole
+  // session: the schema only exists once a category is chosen (prefilled, searched, or picked),
+  // and changing category clears the size — so re-match whenever the size is empty or isn't in
+  // the current schema.
+  const [mercariSizeLabel, setMercariSizeLabel] = useState<string | null>(null);
+  const mercariSizeSchemaId = mercariCat.selectedMercariCat?.sizeSchemaId ?? null;
+  const currentMercariSizeId = watch("mercariSizeId");
+  useEffect(() => {
+    if (!mercariSizeLabel || !mercariSizeSchemaId) return;
+    const current = Number(currentMercariSizeId);
+    if (current && getMercariSizes(mercariSizeSchemaId).some((s) => s.id === current)) return;
+    const match = matchMercariSize(mercariSizeSchemaId, mercariSizeLabel);
+    if (match && match.id !== current) setValue("mercariSizeId", match.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mercariSizeLabel, mercariSizeSchemaId, currentMercariSizeId]);
 
   // Mercari category search progressive fallback — when the prefill-seeded search returns
   // no results, strip the last word and retry, until results appear or one word remains.

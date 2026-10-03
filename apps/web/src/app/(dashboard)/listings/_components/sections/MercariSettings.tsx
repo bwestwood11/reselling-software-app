@@ -205,7 +205,11 @@ export function MercariSettings({
               <Field label="Size *">
                 <Select
                   value={watch("mercariSizeId")?.toString() ?? ""}
-                  onValueChange={(val) => setValue("mercariSizeId", Number(val))}
+                  // Radix can fire onValueChange("") when the value is set from code; a real
+                  // pick is never empty, and Number("") would store an invalid size of 0.
+                  onValueChange={(val) => {
+                    if (val) setValue("mercariSizeId", Number(val));
+                  }}
                 >
                   <SelectTrigger className="border-zinc-200 bg-white text-zinc-900 focus:ring-red-400">
                     <SelectValue placeholder="Select a size…" />

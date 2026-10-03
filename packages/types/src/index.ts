@@ -318,6 +318,9 @@ export interface AuthUser {
 export interface InventoryPrefillMercari {
   brandId?: string;
   sizeId?: string;
+  /** The item's own size label (eBay "Size" specific, e.g. "L", "2XL", "38") — resolved on the
+   *  client against the selected category's size schema with matchMercariSize. */
+  sizeLabel?: string;
   zipCode?: string;
   addressId?: number;      // Mercari delivery address ID (from connection's synced address list)
   categorySuggestions?: string[];  // ordered Mercari category IDs, best first (from ebay-to-mercari mapping)

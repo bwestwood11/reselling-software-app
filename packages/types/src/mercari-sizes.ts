@@ -626,6 +626,81 @@ export function getMercariCategoryRequirements(categoryId: string): MercariCateg
   );
 }
 
+/**
+ * Size picker settings for a category from its master-data `itemSizeGroupId` (the static
+ * mercari-categories.json carries it per category). The group id IS the size-schema key; 0 means
+ * the category has no sizes.
+ */
+export function getMercariSizeInfoForGroup(
+  itemSizeGroupId: number | null | undefined
+): MercariCategoryRequirements {
+  const key = itemSizeGroupId ? String(itemSizeGroupId) : "";
+  return key && MERCARI_SIZE_SCHEMAS[key]
+    ? { sizeSchemaId: key, isSizeRequired: true }
+    : { sizeSchemaId: null, isSizeRequired: false };
+}
+
+const SIZE_WORDS: Record<string, string> = {
+  "extra small": "XS",
+  "x-small": "XS",
+  small: "S",
+  medium: "M",
+  large: "L",
+  "extra large": "XL",
+  "x-large": "XL",
+  "xx-large": "XXL",
+  "2xl": "XXL",
+  "xxx-large": "3XL",
+  xxxl: "3XL",
+  "one size": "One Size",
+  os: "One Size",
+};
+
+/** "2XL" → "xxl", "38 in" → "38", "US Men's L" → "l". */
+function normaliseSizeLabel(label: string): string {
+  let s = label.trim().toLowerCase().replace(/\s+/g, " ");
+  s = s.replace(/^(us|men'?s|women'?s|size)\s+/g, "").replace(/\s*(in\.?|")$/, "");
+  s = s.replace(/^(waist|neck)\s+/, "");
+  return (SIZE_WORDS[s] ?? s).toLowerCase();
+}
+
+/**
+ * Find the Mercari size in a schema matching an item's size label (eBay's "Size" specific:
+ * "L", "2XL", "38", "12"). Option labels look like "Regular · L (42-44)", "Standard · M (8-10)",
+ * "38 in." or "Alpha · 2X"; the first sub-group (Regular / Standard / inch) is listed first, so
+ * it wins over Tall / Big / Petite cuts. A numeric label that falls inside an alpha option's
+ * numeric range ("12" → "L (12-14)") matches that option when no exact option exists.
+ */
+export function matchMercariSize(
+  sizeSchemaId: string | null | undefined,
+  label: string | null | undefined
+): MercariSizeOption | undefined {
+  const sizes = getMercariSizes(sizeSchemaId);
+  if (!label?.trim() || sizes.length === 0) return undefined;
+  const want = normaliseSizeLabel(label);
+  // Men's "3XL" vs Big "3X" / Women's "XXXL": try the common spellings.
+  const alts = new Set([want]);
+  if (want === "3xl") alts.add("xxxl").add("3x");
+  if (want === "xxl") alts.add("2x");
+
+  const core = (o: MercariSizeOption) =>
+    normaliseSizeLabel(o.label.replace(/^[^·]*·\s*/, "").replace(/\s*\([^)]*\)\s*$/, ""));
+  const exact = sizes.find((o) => alts.has(core(o)));
+  if (exact) return exact;
+
+  const n = Number(want);
+  if (Number.isFinite(n) && want !== "") {
+    return sizes.find((o) => {
+      const range = o.label.match(/\((\d+)(?:-(\d+))?\)/);
+      if (!range) return false;
+      const lo = Number(range[1]);
+      const hi = range[2] ? Number(range[2]) : lo;
+      return n >= lo && n <= hi;
+    });
+  }
+  return undefined;
+}
+
 /** Maps our internal Condition enum value to Mercari's numeric conditionId. */
 export function getMercariConditionId(internalCondition: string): number {
   return MERCARI_CONDITION_MAP[internalCondition] ?? 4;

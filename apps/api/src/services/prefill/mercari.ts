@@ -28,6 +28,18 @@ function lookupMercariCategories(ebayCategory: string): number[] {
   return [];
 }
 
+/** Attribute names that commonly carry a size on an inventory item, most specific first. */
+const SIZE_ATTRIBUTE_NAMES = [
+  "size",
+  "us shoe size",
+  "shoe size",
+  "us size",
+  "clothing size",
+  "size (men's)",
+  "size (women's)",
+  "waist size",
+];
+
 function parseDimensions(raw: unknown): { length: number; width: number; height: number } | undefined {
   if (!raw) return undefined;
   try {
@@ -68,6 +80,13 @@ export class MercariPrefillProvider extends BasePrefillProvider {
     const sizeId =
       (refMd?.["sizeId"] != null ? String(refMd["sizeId"]) : undefined) ??
       (mercariMd?.["sizeId"] != null ? String(mercariMd["sizeId"]) : undefined);
+
+    // sizeLabel: the item's own size (eBay "Size" specific). Mercari size IDs are scoped to a
+    // category's size schema, so the client resolves this label once a category is selected.
+    const attributes = (item.attributes ?? []) as Array<{ name: string; value: string }>;
+    const sizeLabel = SIZE_ATTRIBUTE_NAMES.map(
+      (name) => attributes.find((a) => a.name?.trim().toLowerCase() === name)?.value?.trim()
+    ).find((v) => v);
 
     // zipCode: refMd → mercariMd → the resolved shipping address (see the connection
     // fallback below). Mercari's createListing rejects the mutation outright when zipCode
@@ -221,6 +240,7 @@ export class MercariPrefillProvider extends BasePrefillProvider {
 
     // Track filled fields
     if (brandId) filledFields.push("brand");
+    if (sizeId || sizeLabel) filledFields.push("size");
     if (categorySuggestions?.length || categoryPath?.length) filledFields.push("category");
     if (zipCode) filledFields.push("zip code");
     if (addressId !== undefined) filledFields.push("shipping address");
@@ -233,6 +253,7 @@ export class MercariPrefillProvider extends BasePrefillProvider {
       ...(shippingPayerId !== undefined ? { shippingPayerId } : {}),
       ...(brandId !== undefined ? { brandId } : {}),
       ...(sizeId !== undefined ? { sizeId } : {}),
+      ...(sizeLabel !== undefined ? { sizeLabel } : {}),
       ...(zipCode !== undefined ? { zipCode } : {}),
       ...(addressId !== undefined ? { addressId } : {}),
       ...(categorySuggestions !== undefined ? { categorySuggestions } : {}),
