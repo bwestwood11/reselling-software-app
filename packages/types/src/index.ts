@@ -352,6 +352,8 @@ export interface InventoryPrefillPoshmark {
   styleTags?: string[];            // up to 3
   originalPriceCents?: number;
   shippingDiscount?: string;
+  /** Private "Listing SKU": a prior Poshmark listing's (even if cleared to ""), else the item's. */
+  sku?: string;
 }
 
 export interface InventoryPrefillData {

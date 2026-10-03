@@ -233,6 +233,9 @@ export class ListingService {
             description: listing.description ?? "",
             price: Math.round(Number(listing.price) * 100),
             condition: listing.inventoryItem?.condition ?? "GOOD",
+            // What the seller picked in the Poshmark section (nwt / like_new / good / fair);
+            // the extension prefers it over the inventory item's condition.
+            poshmarkCondition: mpData?.condition ?? null,
             images,
             departmentId: mpData?.departmentId ?? null,
             categoryId: mpData?.categoryId ?? null,
@@ -243,8 +246,13 @@ export class ListingService {
             sizeId: mpData?.sizeId ?? null,
             originalPriceCents: mpData?.originalPriceCents ?? null,
             shippingDiscount: mpData?.shippingDiscount ?? null,
-            // The item's own SKU (an eBay import's Custom Label) → Poshmark's private "Listing SKU".
-            sku: listing.inventoryItem?.sku?.trim() || null,
+            // Poshmark's private "Listing SKU": what the seller left in the form (an empty string
+            // means "no SKU" on purpose), else the item's own SKU (an eBay import's Custom Label)
+            // for listings saved before the form had the field.
+            sku:
+              typeof mpData?.sku === "string"
+                ? mpData.sku.trim() || null
+                : listing.inventoryItem?.sku?.trim() || null,
           },
         },
       });

@@ -27,6 +27,8 @@ export const listingFormSchema = z.object({
   poshmarkSizeId: z.string().optional(),
   poshmarkOriginalPrice: z.coerce.number().min(0).optional(),
   poshmarkShippingDiscount: z.string().optional(),
+  // Poshmark's private "Listing SKU" (Additional Details) — its input caps at 50 chars.
+  poshmarkSku: z.string().max(50, "Poshmark SKUs are at most 50 characters").optional(),
 });
 
 export type FormValues = z.infer<typeof listingFormSchema>;

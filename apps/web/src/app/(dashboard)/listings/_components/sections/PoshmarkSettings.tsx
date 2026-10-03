@@ -21,11 +21,11 @@ interface Props {
   // rather than importing either schema's concrete form type.
   form: UseFormReturn<any, any, any>;
   poshmark: ReturnType<typeof usePoshmarkFields>;
-  selectedItem?: { condition?: string; brand?: string } | null;
+  selectedItem?: { condition?: string; brand?: string; sku?: string | null } | null;
 }
 
 export function PoshmarkSettings({ form, poshmark, selectedItem }: Props) {
-  const { register, setValue, watch } = form;
+  const { register, setValue, watch, formState } = form;
 
   const condition = watch("poshmarkCondition");
   const brand = watch("poshmarkBrand");
@@ -315,6 +315,24 @@ export function PoshmarkSettings({ form, poshmark, selectedItem }: Props) {
           <p className="text-xs text-zinc-400">
             Discounted shipping is deducted from your earnings.
           </p>
+        </Field>
+
+        {/* ── Listing SKU (private) ── */}
+        <Field label="Listing SKU (private)">
+          <Input
+            maxLength={50}
+            placeholder="optional"
+            className="border-zinc-200 focus-visible:ring-red-400"
+            {...register("poshmarkSku")}
+          />
+          {formState.errors.poshmarkSku ? (
+            <p className="text-xs text-red-600">{String(formState.errors.poshmarkSku.message)}</p>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Only you can see this — saved to Poshmark&apos;s private Additional Details.
+              {selectedItem?.sku ? " Pre-filled from this item's SKU." : ""}
+            </p>
+          )}
         </Field>
       </div>
     </section>

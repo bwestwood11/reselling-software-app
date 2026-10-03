@@ -470,6 +470,7 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
       if (p.originalPriceCents != null)
         setValue("poshmarkOriginalPrice", p.originalPriceCents / 100);
       if (p.shippingDiscount) setValue("poshmarkShippingDiscount", p.shippingDiscount);
+      if (p.sku !== undefined) setValue("poshmarkSku", p.sku);
 
       // Category must be applied through the hook so its derived department/category/subcategory
       // lists stay in sync with the form values.
@@ -824,6 +825,9 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
       ...(values.poshmarkOriginalPrice
         ? { originalPriceCents: Math.round(values.poshmarkOriginalPrice * 100) }
         : {}),
+      // Always sent once the field exists — an empty string means "post with no SKU", which must
+      // override the item-SKU fallback on the server.
+      ...(values.poshmarkSku !== undefined ? { sku: values.poshmarkSku.trim() } : {}),
       ...(values.poshmarkShippingDiscount && values.poshmarkShippingDiscount !== "no_discount"
         ? { shippingDiscount: values.poshmarkShippingDiscount }
         : {}),

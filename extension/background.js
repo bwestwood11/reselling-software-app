@@ -1242,33 +1242,36 @@ const POSHMARK_CONDITION_MAP = {
   SATISFACTORY: "uf",
 };
 
-// Poshmark's canonical color catalog — a post's `colors` entries must be these exact
-// { name, rgb, message_id } triples; a bare { name } fails the whole save. Mirrors
-// POSHMARK_COLORS in apps/web/src/lib/poshmark/data.ts (the picker's source), and matches a
-// real published listing read back from GET /vm-rest/posts/{id} (Brown → #663509 / "brown").
-const POSHMARK_COLOR_CATALOG = {
-  red: { name: "Red", rgb: "#ea2e2e", message_id: "red" },
-  pink: { name: "Pink", rgb: "#fb1680", message_id: "pink" },
-  orange: { name: "Orange", rgb: "#fca628", message_id: "orange" },
-  yellow: { name: "Yellow", rgb: "#ffee37", message_id: "yellow" },
-  green: { name: "Green", rgb: "#3c9c44", message_id: "green" },
-  blue: { name: "Blue", rgb: "#137fc1", message_id: "blue" },
-  purple: { name: "Purple", rgb: "#7f0f81", message_id: "purple" },
-  gold: { name: "Gold", rgb: "#ffd72e", message_id: "gold" },
-  silver: { name: "Silver", rgb: "#e9ebec", message_id: "silver" },
-  black: { name: "Black", rgb: "#000000", message_id: "black" },
-  gray: { name: "Gray", rgb: "#929292", message_id: "gray" },
-  white: { name: "White", rgb: "#FFFFFF", message_id: "white" },
-  cream: { name: "Cream", rgb: "#f4e0ca", message_id: "cream" },
-  brown: { name: "Brown", rgb: "#663509", message_id: "brown" },
-  tan: { name: "Tan", rgb: "#d1b48e", message_id: "tan" },
+// The crosslist form's own Poshmark condition picker (POSHMARK_CONDITION_OPTIONS in
+// apps/web/src/lib/poshmark/data.ts) → Poshmark condition codes. When the seller picked one,
+// it wins over the mapping from the inventory item's condition above.
+const POSHMARK_FORM_CONDITION_MAP = {
+  nwt: "nwt",
+  like_new: "uln",
+  good: "ug",
+  fair: "uf",
 };
 
-/** Selected color names → Poshmark's canonical color objects. Unknown names are dropped
- *  (never sent half-formed), and Poshmark allows at most two colors. */
+// Poshmark's color names (POSHMARK_COLORS in apps/web/src/lib/poshmark/data.ts — the picker's
+// source), keyed lowercase → canonical spelling.
+//
+// CONFIRMED 2026-10-03: the save endpoint takes colors as plain name STRINGS, e.g.
+// ["Black", "Gray"]. Both object shapes are rejected and fail the whole save:
+//   { name: "Black" }                               → InvalidInputError: Invalid color
+//   { name: "Blue", rgb: "#137fc1", message_id: … } → InvalidInputError: Invalid color
+// The { name, rgb, message_id } triple is only what a GET reads back — Poshmark's own listing
+// editor holds and saves `post.colors` as ["Black", "Gray"], which saved and read back as the
+// full triples.
+const POSHMARK_COLOR_NAMES = Object.fromEntries(
+  ["Red", "Pink", "Orange", "Yellow", "Green", "Blue", "Purple", "Gold", "Silver", "Black",
+    "Gray", "White", "Cream", "Brown", "Tan"].map((n) => [n.toLowerCase(), n])
+);
+
+/** Selected colors → Poshmark's canonical color-name strings. Unknown names are dropped (one bad
+ *  entry fails the whole save), and Poshmark allows at most two colors. */
 function toPoshmarkColors(colors) {
   return (colors ?? [])
-    .map((c) => POSHMARK_COLOR_CATALOG[String(typeof c === "string" ? c : c?.name ?? "").trim().toLowerCase()])
+    .map((c) => POSHMARK_COLOR_NAMES[String(typeof c === "string" ? c : c?.name ?? "").trim().toLowerCase()])
     .filter(Boolean)
     .slice(0, 2);
 }
@@ -1502,6 +1505,7 @@ async function postToPoshmarkApi(job) {
     originalPriceCents,
     shippingDiscount,
     sku,
+    poshmarkCondition: chosenCondition,
   } = job.payload;
 
   // Step 1 — get the stored CSRF token as a fallback. Cookies are restored by
@@ -1530,7 +1534,8 @@ async function postToPoshmarkApi(job) {
     // Step 2c — save the listing fields. The first uploaded picture is the cover shot;
     // any remaining ones go in `pictures`.
     const [coverShotId, ...restPictureIds] = pictureIds;
-    const poshmarkCondition = POSHMARK_CONDITION_MAP[condition] ?? "ug";
+    const poshmarkCondition =
+      POSHMARK_FORM_CONDITION_MAP[chosenCondition] ?? POSHMARK_CONDITION_MAP[condition] ?? "ug";
     // CONFIRMED 2026-08-15: Poshmark's create-listing API rejects price_amount.val with cents
     // ("Whole dollar amount required") — every real captured listing used an integer price.
     // Rounding here (rather than truncating) means the seller's price of e.g. $19.99 lists as
@@ -1546,8 +1551,7 @@ async function postToPoshmarkApi(job) {
           ...(categoryId ? { category: categoryId } : {}),
           ...(subcategoryId ? { category_features: [subcategoryId] } : {}),
         },
-        // Poshmark rejects colors sent as bare { name } — each must be a canonical
-        // { name, rgb, message_id } triple, resolved from POSHMARK_COLOR_CATALOG.
+        // Plain color-name strings — see POSHMARK_COLOR_NAMES for why not objects.
         colors: toPoshmarkColors(colors),
         inventory: {
           status: "available",

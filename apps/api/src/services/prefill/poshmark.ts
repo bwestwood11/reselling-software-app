@@ -78,6 +78,14 @@ export class PoshmarkPrefillProvider extends BasePrefillProvider {
 
     const shippingDiscount = str(poshMd?.["shippingDiscount"]);
 
+    // sku: the prior Poshmark listing's own value wins — including "" when the seller cleared it
+    // on purpose — else the item's SKU (an eBay import's Custom Label). Poshmark caps it at 50.
+    const sku = (
+      typeof poshMd?.["sku"] === "string" ? (poshMd["sku"] as string) : (str(item.sku) ?? "")
+    )
+      .trim()
+      .slice(0, 50);
+
     if (poshListing) {
       if (departmentId || categoryId) filledFields.push("category");
       if (colors?.length) filledFields.push("colors");
@@ -86,6 +94,7 @@ export class PoshmarkPrefillProvider extends BasePrefillProvider {
     }
     if (brand) filledFields.push("brand");
     if (sizeLabel) filledFields.push("size");
+    if (sku) filledFields.push("SKU");
 
     const poshmark: InventoryPrefillPoshmark = {
       ...(condition !== undefined ? { condition } : {}),
@@ -100,6 +109,8 @@ export class PoshmarkPrefillProvider extends BasePrefillProvider {
         ? { originalPriceCents }
         : {}),
       ...(shippingDiscount !== undefined ? { shippingDiscount } : {}),
+      // Always present (possibly ""), so the form starts from it rather than staying unset.
+      sku,
     };
 
     return { poshmark, filledFields };
