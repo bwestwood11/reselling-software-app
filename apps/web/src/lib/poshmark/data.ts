@@ -3356,874 +3356,2170 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "00108975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00208975d97b4e80ef00a955": [
     {
-      "id": "OSM",
+      "id": "OS",
       "display": "One Size"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
-      "id": "30AM",
+      "id": "30A",
       "display": "30A"
     },
     {
-      "id": "30BM",
+      "id": "30B",
       "display": "30B"
     },
     {
-      "id": "32AAM",
+      "id": "32AA",
       "display": "32AA"
     },
     {
-      "id": "32AM",
+      "id": "32A",
       "display": "32A"
     },
     {
-      "id": "32BM",
+      "id": "32B",
       "display": "32B"
     },
     {
-      "id": "32CM",
+      "id": "32C",
       "display": "32C"
     },
     {
-      "id": "32DM",
+      "id": "32D",
       "display": "32D"
     },
     {
-      "id": "32E (DD)M",
+      "id": "32E (DD)",
       "display": "32E (DD)"
     },
     {
-      "id": "32F (3D)M",
+      "id": "32F (3D)",
       "display": "32F (3D)"
     },
     {
-      "id": "32G (4D)M",
+      "id": "32G (4D)",
       "display": "32G (4D)"
     },
     {
-      "id": "32H (5D)M",
+      "id": "32H (5D)",
       "display": "32H (5D)"
     },
     {
-      "id": "34AAM",
+      "id": "34AA",
       "display": "34AA"
     },
     {
-      "id": "34AM",
+      "id": "34A",
       "display": "34A"
     },
     {
-      "id": "34BM",
+      "id": "34B",
       "display": "34B"
     },
     {
-      "id": "34CM",
+      "id": "34C",
       "display": "34C"
     },
     {
-      "id": "34DM",
+      "id": "34D",
       "display": "34D"
     },
     {
-      "id": "34E (DD)M",
+      "id": "34E (DD)",
       "display": "34E (DD)"
     },
     {
-      "id": "34F (3D)M",
+      "id": "34F (3D)",
       "display": "34F (3D)"
     },
     {
-      "id": "34G (4D)M",
+      "id": "34G (4D)",
       "display": "34G (4D)"
     },
     {
-      "id": "34H (5D)M",
+      "id": "34H (5D)",
       "display": "34H (5D)"
     },
     {
-      "id": "36AAM",
+      "id": "36AA",
       "display": "36AA"
     },
     {
-      "id": "36AM",
+      "id": "36A",
       "display": "36A"
     },
     {
-      "id": "36BM",
+      "id": "36B",
       "display": "36B"
     },
     {
-      "id": "36CM",
+      "id": "36C",
       "display": "36C"
     },
     {
-      "id": "36DM",
+      "id": "36D",
       "display": "36D"
     },
     {
-      "id": "36E (DD)M",
+      "id": "36E (DD)",
       "display": "36E (DD)"
     },
     {
-      "id": "36F (3D)M",
+      "id": "36F (3D)",
       "display": "36F (3D)"
     },
     {
-      "id": "36G (4D)M",
+      "id": "36G (4D)",
       "display": "36G (4D)"
     },
     {
-      "id": "36H (5D)M",
+      "id": "36H (5D)",
       "display": "36H (5D)"
     },
     {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "38A",
+      "display": "38A (Plus)"
+    },
+    {
+      "id": "38B",
+      "display": "38B (Plus)"
+    },
+    {
+      "id": "38C",
+      "display": "38C (Plus)"
+    },
+    {
+      "id": "38D",
+      "display": "38D (Plus)"
+    },
+    {
+      "id": "38E (DD)",
+      "display": "38E (DD) (Plus)"
+    },
+    {
+      "id": "38F (3D)",
+      "display": "38F (3D) (Plus)"
+    },
+    {
+      "id": "38G (4D)",
+      "display": "38G (4D) (Plus)"
+    },
+    {
+      "id": "38H (5D)",
+      "display": "38H (5D) (Plus)"
+    },
+    {
+      "id": "40A",
+      "display": "40A (Plus)"
+    },
+    {
+      "id": "40B",
+      "display": "40B (Plus)"
+    },
+    {
+      "id": "40C",
+      "display": "40C (Plus)"
+    },
+    {
+      "id": "40D",
+      "display": "40D (Plus)"
+    },
+    {
+      "id": "40E (DD)",
+      "display": "40E (DD) (Plus)"
+    },
+    {
+      "id": "40F (3D)",
+      "display": "40F (3D) (Plus)"
+    },
+    {
+      "id": "40G (4D)",
+      "display": "40G (4D) (Plus)"
+    },
+    {
+      "id": "40H (5D)",
+      "display": "40H (5D) (Plus)"
+    },
+    {
+      "id": "42A",
+      "display": "42A (Plus)"
+    },
+    {
+      "id": "42B",
+      "display": "42B (Plus)"
+    },
+    {
+      "id": "42C",
+      "display": "42C (Plus)"
+    },
+    {
+      "id": "42D",
+      "display": "42D (Plus)"
+    },
+    {
+      "id": "42E (DD)",
+      "display": "42E (DD) (Plus)"
+    },
+    {
+      "id": "42F (3D)",
+      "display": "42F (3D) (Plus)"
+    },
+    {
+      "id": "42G (4D)",
+      "display": "42G (4D) (Plus)"
+    },
+    {
+      "id": "42H (5D)",
+      "display": "42H (5D) (Plus)"
+    },
+    {
+      "id": "44A",
+      "display": "44A (Plus)"
+    },
+    {
+      "id": "44B",
+      "display": "44B (Plus)"
+    },
+    {
+      "id": "44C",
+      "display": "44C (Plus)"
+    },
+    {
+      "id": "44D",
+      "display": "44D (Plus)"
+    },
+    {
+      "id": "44E (DD)",
+      "display": "44E (DD) (Plus)"
+    },
+    {
+      "id": "44F (3D)",
+      "display": "44F (3D) (Plus)"
+    },
+    {
+      "id": "44G (4D)",
+      "display": "44G (4D) (Plus)"
+    },
+    {
+      "id": "44H (5D)",
+      "display": "44H (5D) (Plus)"
+    },
+    {
+      "id": "46A",
+      "display": "46A (Plus)"
+    },
+    {
+      "id": "46B",
+      "display": "46B (Plus)"
+    },
+    {
+      "id": "46C",
+      "display": "46C (Plus)"
+    },
+    {
+      "id": "46D",
+      "display": "46D (Plus)"
+    },
+    {
+      "id": "46DD",
+      "display": "46DD (Plus)"
+    },
+    {
+      "id": "46F (3D)",
+      "display": "46F (3D) (Plus)"
+    },
+    {
+      "id": "46G (4D)",
+      "display": "46G (4D) (Plus)"
+    },
+    {
+      "id": "46H (5D)",
+      "display": "46H (5D) (Plus)"
+    },
+    {
+      "id": "48A",
+      "display": "48A (Plus)"
+    },
+    {
+      "id": "48B",
+      "display": "48B (Plus)"
+    },
+    {
+      "id": "48C",
+      "display": "48C (Plus)"
+    },
+    {
+      "id": "48D",
+      "display": "48D (Plus)"
+    },
+    {
+      "id": "48DD",
+      "display": "48DD (Plus)"
+    },
+    {
+      "id": "48F",
+      "display": "48F (3D) (Plus)"
+    },
+    {
+      "id": "48G",
+      "display": "48G (4D) (Plus)"
+    },
+    {
+      "id": "48H (5D)",
+      "display": "48H (5D) (Plus)"
+    },
+    {
+      "id": "OSM",
+      "display": "One Size (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
+      "id": "30AM",
+      "display": "30A (Maternity)"
+    },
+    {
+      "id": "30BM",
+      "display": "30B (Maternity)"
+    },
+    {
+      "id": "32AAM",
+      "display": "32AA (Maternity)"
+    },
+    {
+      "id": "32AM",
+      "display": "32A (Maternity)"
+    },
+    {
+      "id": "32BM",
+      "display": "32B (Maternity)"
+    },
+    {
+      "id": "32CM",
+      "display": "32C (Maternity)"
+    },
+    {
+      "id": "32DM",
+      "display": "32D (Maternity)"
+    },
+    {
+      "id": "32E (DD)M",
+      "display": "32E (DD) (Maternity)"
+    },
+    {
+      "id": "32F (3D)M",
+      "display": "32F (3D) (Maternity)"
+    },
+    {
+      "id": "32G (4D)M",
+      "display": "32G (4D) (Maternity)"
+    },
+    {
+      "id": "32H (5D)M",
+      "display": "32H (5D) (Maternity)"
+    },
+    {
+      "id": "34AAM",
+      "display": "34AA (Maternity)"
+    },
+    {
+      "id": "34AM",
+      "display": "34A (Maternity)"
+    },
+    {
+      "id": "34BM",
+      "display": "34B (Maternity)"
+    },
+    {
+      "id": "34CM",
+      "display": "34C (Maternity)"
+    },
+    {
+      "id": "34DM",
+      "display": "34D (Maternity)"
+    },
+    {
+      "id": "34E (DD)M",
+      "display": "34E (DD) (Maternity)"
+    },
+    {
+      "id": "34F (3D)M",
+      "display": "34F (3D) (Maternity)"
+    },
+    {
+      "id": "34G (4D)M",
+      "display": "34G (4D) (Maternity)"
+    },
+    {
+      "id": "34H (5D)M",
+      "display": "34H (5D) (Maternity)"
+    },
+    {
+      "id": "36AAM",
+      "display": "36AA (Maternity)"
+    },
+    {
+      "id": "36AM",
+      "display": "36A (Maternity)"
+    },
+    {
+      "id": "36BM",
+      "display": "36B (Maternity)"
+    },
+    {
+      "id": "36CM",
+      "display": "36C (Maternity)"
+    },
+    {
+      "id": "36DM",
+      "display": "36D (Maternity)"
+    },
+    {
+      "id": "36E (DD)M",
+      "display": "36E (DD) (Maternity)"
+    },
+    {
+      "id": "36F (3D)M",
+      "display": "36F (3D) (Maternity)"
+    },
+    {
+      "id": "36G (4D)M",
+      "display": "36G (4D) (Maternity)"
+    },
+    {
+      "id": "36H (5D)M",
+      "display": "36H (5D) (Maternity)"
+    },
+    {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     },
     {
       "id": "38AM",
-      "display": "38A"
+      "display": "38A (Maternity)"
     },
     {
       "id": "38BM",
-      "display": "38B"
+      "display": "38B (Maternity)"
     },
     {
       "id": "38CM",
-      "display": "38C"
+      "display": "38C (Maternity)"
     },
     {
       "id": "38DM",
-      "display": "38D"
+      "display": "38D (Maternity)"
     },
     {
       "id": "38E (DD)M",
-      "display": "38E (DD)"
+      "display": "38E (DD) (Maternity)"
     },
     {
       "id": "38F (3D)M",
-      "display": "38F (3D)"
+      "display": "38F (3D) (Maternity)"
     },
     {
       "id": "38G (4D)M",
-      "display": "38G (4D)"
+      "display": "38G (4D) (Maternity)"
     },
     {
       "id": "38H (5D)M",
-      "display": "38H (5D)"
+      "display": "38H (5D) (Maternity)"
     },
     {
       "id": "40AM",
-      "display": "40A"
+      "display": "40A (Maternity)"
     },
     {
       "id": "40BM",
-      "display": "40B"
+      "display": "40B (Maternity)"
     },
     {
       "id": "40CM",
-      "display": "40C"
+      "display": "40C (Maternity)"
     },
     {
       "id": "40DM",
-      "display": "40D"
+      "display": "40D (Maternity)"
     },
     {
       "id": "40E (DD)M",
-      "display": "40E (DD)"
+      "display": "40E (DD) (Maternity)"
     },
     {
       "id": "40F (3D)M",
-      "display": "40F (3D)"
+      "display": "40F (3D) (Maternity)"
     },
     {
       "id": "40G (4D)M",
-      "display": "40G (4D)"
+      "display": "40G (4D) (Maternity)"
     },
     {
       "id": "40H (5D)M",
-      "display": "40H (5D)"
+      "display": "40H (5D) (Maternity)"
     },
     {
       "id": "42AM",
-      "display": "42A"
+      "display": "42A (Maternity)"
     },
     {
       "id": "42BM",
-      "display": "42B"
+      "display": "42B (Maternity)"
     },
     {
       "id": "42CM",
-      "display": "42C"
+      "display": "42C (Maternity)"
     },
     {
       "id": "42DM",
-      "display": "42D"
+      "display": "42D (Maternity)"
     },
     {
       "id": "42E (DD)M",
-      "display": "42E (DD)"
+      "display": "42E (DD) (Maternity)"
     },
     {
       "id": "42F (3D)M",
-      "display": "42F (3D)"
+      "display": "42F (3D) (Maternity)"
     },
     {
       "id": "42G (4D)M",
-      "display": "42G (4D)"
+      "display": "42G (4D) (Maternity)"
     },
     {
       "id": "42H (5D)M",
-      "display": "42H (5D)"
+      "display": "42H (5D) (Maternity)"
     },
     {
       "id": "44AM",
-      "display": "44A"
+      "display": "44A (Maternity)"
     },
     {
       "id": "44BM",
-      "display": "44B"
+      "display": "44B (Maternity)"
     },
     {
       "id": "44CM",
-      "display": "44C"
+      "display": "44C (Maternity)"
     },
     {
       "id": "44DM",
-      "display": "44D"
+      "display": "44D (Maternity)"
     },
     {
       "id": "44E (DD)M",
-      "display": "44E (DD)"
+      "display": "44E (DD) (Maternity)"
     },
     {
       "id": "44F (3D)M",
-      "display": "44F (3D)"
+      "display": "44F (3D) (Maternity)"
     },
     {
       "id": "44G (4D)M",
-      "display": "44G (4D)"
+      "display": "44G (4D) (Maternity)"
     },
     {
       "id": "44H (5D)M",
-      "display": "44H (5D)"
+      "display": "44H (5D) (Maternity)"
     },
     {
       "id": "46AM",
-      "display": "46A"
+      "display": "46A (Maternity)"
     },
     {
       "id": "46BM",
-      "display": "46B"
+      "display": "46B (Maternity)"
     },
     {
       "id": "46CM",
-      "display": "46C"
+      "display": "46C (Maternity)"
     },
     {
       "id": "46DM",
-      "display": "46D"
+      "display": "46D (Maternity)"
     },
     {
       "id": "46DDM",
-      "display": "46DD"
+      "display": "46DD (Maternity)"
     },
     {
       "id": "46F (3D)M",
-      "display": "46F (3D)"
+      "display": "46F (3D) (Maternity)"
     },
     {
       "id": "46G (4D)M",
-      "display": "46G (4D)"
+      "display": "46G (4D) (Maternity)"
     },
     {
       "id": "46H (5D)M",
-      "display": "46H (5D)"
+      "display": "46H (5D) (Maternity)"
     },
     {
       "id": "48AM",
-      "display": "48A"
+      "display": "48A (Maternity)"
     },
     {
       "id": "48BM",
-      "display": "48B"
+      "display": "48B (Maternity)"
     },
     {
       "id": "48CM",
-      "display": "48C"
+      "display": "48C (Maternity)"
     },
     {
       "id": "48DM",
-      "display": "48D"
+      "display": "48D (Maternity)"
     },
     {
       "id": "48DDM",
-      "display": "48DD"
+      "display": "48DD (Maternity)"
     },
     {
       "id": "48FM",
-      "display": "48F (3D)"
+      "display": "48F (3D) (Maternity)"
     },
     {
       "id": "48GM",
-      "display": "48G (4D)"
+      "display": "48G (4D) (Maternity)"
     },
     {
       "id": "48H (5D)M",
-      "display": "48H (5D)"
+      "display": "48H (5D) (Maternity)"
     }
   ],
   "00148975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "001a8975d97b4e80ef00a955": [
     {
-      "id": "23M",
+      "id": "23",
       "display": "23"
     },
     {
-      "id": "24M",
+      "id": "24",
       "display": "24"
     },
     {
-      "id": "25M",
+      "id": "25",
       "display": "25"
     },
     {
-      "id": "26M",
+      "id": "26",
       "display": "26"
     },
     {
-      "id": "27M",
+      "id": "27",
       "display": "27"
     },
     {
-      "id": "28M",
+      "id": "28",
       "display": "28"
     },
     {
-      "id": "29M",
+      "id": "29",
       "display": "29"
     },
     {
-      "id": "30M",
+      "id": "30",
       "display": "30"
     },
     {
-      "id": "31M",
+      "id": "31",
       "display": "31"
     },
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "33",
+      "display": "33 (Plus)"
+    },
+    {
+      "id": "34",
+      "display": "34 (Plus)"
+    },
+    {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24Plus",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26Plus",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28Plus",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30Plus",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32Plus",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "23P",
+      "display": "23P (Petite)"
+    },
+    {
+      "id": "24P",
+      "display": "24P (Petite)"
+    },
+    {
+      "id": "25P",
+      "display": "25P (Petite)"
+    },
+    {
+      "id": "26P",
+      "display": "26P (Petite)"
+    },
+    {
+      "id": "27P",
+      "display": "27P (Petite)"
+    },
+    {
+      "id": "28P",
+      "display": "28P (Petite)"
+    },
+    {
+      "id": "29P",
+      "display": "29P (Petite)"
+    },
+    {
+      "id": "30P",
+      "display": "30P (Petite)"
+    },
+    {
+      "id": "31P",
+      "display": "31P (Petite)"
+    },
+    {
+      "id": "32P",
+      "display": "32P (Petite)"
+    },
+    {
+      "id": "33P",
+      "display": "33P (Petite)"
+    },
+    {
+      "id": "34P",
+      "display": "34P (Petite)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "23M",
+      "display": "23 (Maternity)"
+    },
+    {
+      "id": "24M",
+      "display": "24 (Maternity)"
+    },
+    {
+      "id": "25M",
+      "display": "25 (Maternity)"
+    },
+    {
+      "id": "26M",
+      "display": "26 (Maternity)"
+    },
+    {
+      "id": "27M",
+      "display": "27 (Maternity)"
+    },
+    {
+      "id": "28M",
+      "display": "28 (Maternity)"
+    },
+    {
+      "id": "29M",
+      "display": "29 (Maternity)"
+    },
+    {
+      "id": "30M",
+      "display": "30 (Maternity)"
+    },
+    {
+      "id": "31M",
+      "display": "31 (Maternity)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "33M",
-      "display": "33"
+      "display": "33 (Maternity)"
     },
     {
       "id": "34M",
-      "display": "34"
+      "display": "34 (Maternity)"
     },
     {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24PlusM",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26PlusM",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28PlusM",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30PlusM",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32PlusM",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     }
   ],
   "00288975d97b4e80ef00a955": [
@@ -4240,220 +5536,628 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "001c8975d97b4e80ef00a955": [
     {
-      "id": "23M",
+      "id": "23",
       "display": "23"
     },
     {
-      "id": "24M",
+      "id": "24",
       "display": "24"
     },
     {
-      "id": "25M",
+      "id": "25",
       "display": "25"
     },
     {
-      "id": "26M",
+      "id": "26",
       "display": "26"
     },
     {
-      "id": "27M",
+      "id": "27",
       "display": "27"
     },
     {
-      "id": "28M",
+      "id": "28",
       "display": "28"
     },
     {
-      "id": "29M",
+      "id": "29",
       "display": "29"
     },
     {
-      "id": "30M",
+      "id": "30",
       "display": "30"
     },
     {
-      "id": "31M",
+      "id": "31",
       "display": "31"
     },
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "33",
+      "display": "33 (Plus)"
+    },
+    {
+      "id": "34",
+      "display": "34 (Plus)"
+    },
+    {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24Plus",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26Plus",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28Plus",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30Plus",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32Plus",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "23P",
+      "display": "23P (Petite)"
+    },
+    {
+      "id": "24P",
+      "display": "24P (Petite)"
+    },
+    {
+      "id": "25P",
+      "display": "25P (Petite)"
+    },
+    {
+      "id": "26P",
+      "display": "26P (Petite)"
+    },
+    {
+      "id": "27P",
+      "display": "27P (Petite)"
+    },
+    {
+      "id": "28P",
+      "display": "28P (Petite)"
+    },
+    {
+      "id": "29P",
+      "display": "29P (Petite)"
+    },
+    {
+      "id": "30P",
+      "display": "30P (Petite)"
+    },
+    {
+      "id": "31P",
+      "display": "31P (Petite)"
+    },
+    {
+      "id": "32P",
+      "display": "32P (Petite)"
+    },
+    {
+      "id": "33P",
+      "display": "33P (Petite)"
+    },
+    {
+      "id": "34P",
+      "display": "34P (Petite)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "23M",
+      "display": "23 (Maternity)"
+    },
+    {
+      "id": "24M",
+      "display": "24 (Maternity)"
+    },
+    {
+      "id": "25M",
+      "display": "25 (Maternity)"
+    },
+    {
+      "id": "26M",
+      "display": "26 (Maternity)"
+    },
+    {
+      "id": "27M",
+      "display": "27 (Maternity)"
+    },
+    {
+      "id": "28M",
+      "display": "28 (Maternity)"
+    },
+    {
+      "id": "29M",
+      "display": "29 (Maternity)"
+    },
+    {
+      "id": "30M",
+      "display": "30 (Maternity)"
+    },
+    {
+      "id": "31M",
+      "display": "31 (Maternity)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "33M",
-      "display": "33"
+      "display": "33 (Maternity)"
     },
     {
       "id": "34M",
-      "display": "34"
+      "display": "34 (Maternity)"
     },
     {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24PlusM",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26PlusM",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28PlusM",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30PlusM",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32PlusM",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00268975d97b4e80ef00a955": [
@@ -4528,900 +6232,2576 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "001e8975d97b4e80ef00a955": [
     {
-      "id": "23M",
+      "id": "23",
       "display": "23"
     },
     {
-      "id": "24M",
+      "id": "24",
       "display": "24"
     },
     {
-      "id": "25M",
+      "id": "25",
       "display": "25"
     },
     {
-      "id": "26M",
+      "id": "26",
       "display": "26"
     },
     {
-      "id": "27M",
+      "id": "27",
       "display": "27"
     },
     {
-      "id": "28M",
+      "id": "28",
       "display": "28"
     },
     {
-      "id": "29M",
+      "id": "29",
       "display": "29"
     },
     {
-      "id": "30M",
+      "id": "30",
       "display": "30"
     },
     {
-      "id": "31M",
+      "id": "31",
       "display": "31"
     },
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "33",
+      "display": "33 (Plus)"
+    },
+    {
+      "id": "34",
+      "display": "34 (Plus)"
+    },
+    {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24Plus",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26Plus",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28Plus",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30Plus",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32Plus",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "23P",
+      "display": "23P (Petite)"
+    },
+    {
+      "id": "24P",
+      "display": "24P (Petite)"
+    },
+    {
+      "id": "25P",
+      "display": "25P (Petite)"
+    },
+    {
+      "id": "26P",
+      "display": "26P (Petite)"
+    },
+    {
+      "id": "27P",
+      "display": "27P (Petite)"
+    },
+    {
+      "id": "28P",
+      "display": "28P (Petite)"
+    },
+    {
+      "id": "29P",
+      "display": "29P (Petite)"
+    },
+    {
+      "id": "30P",
+      "display": "30P (Petite)"
+    },
+    {
+      "id": "31P",
+      "display": "31P (Petite)"
+    },
+    {
+      "id": "32P",
+      "display": "32P (Petite)"
+    },
+    {
+      "id": "33P",
+      "display": "33P (Petite)"
+    },
+    {
+      "id": "34P",
+      "display": "34P (Petite)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "23M",
+      "display": "23 (Maternity)"
+    },
+    {
+      "id": "24M",
+      "display": "24 (Maternity)"
+    },
+    {
+      "id": "25M",
+      "display": "25 (Maternity)"
+    },
+    {
+      "id": "26M",
+      "display": "26 (Maternity)"
+    },
+    {
+      "id": "27M",
+      "display": "27 (Maternity)"
+    },
+    {
+      "id": "28M",
+      "display": "28 (Maternity)"
+    },
+    {
+      "id": "29M",
+      "display": "29 (Maternity)"
+    },
+    {
+      "id": "30M",
+      "display": "30 (Maternity)"
+    },
+    {
+      "id": "31M",
+      "display": "31 (Maternity)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "33M",
-      "display": "33"
+      "display": "33 (Maternity)"
     },
     {
       "id": "34M",
-      "display": "34"
+      "display": "34 (Maternity)"
     },
     {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24PlusM",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26PlusM",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28PlusM",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30PlusM",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32PlusM",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00128975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00168975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00228975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "00188975d97b4e80ef00a955": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "6e7df9aaaabb083120f45ec2": [
@@ -5444,512 +8824,1292 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "9ab476dc402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "9bb476dc402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
-      "id": "14M",
-      "display": "14"
+      "id": "14",
+      "display": "14 (Plus)"
     },
     {
-      "id": "14WM",
-      "display": "14W"
+      "id": "14W",
+      "display": "14W (Plus)"
     },
     {
-      "id": "16M",
-      "display": "16"
+      "id": "16",
+      "display": "16 (Plus)"
     },
     {
-      "id": "16WM",
-      "display": "16W"
+      "id": "16W",
+      "display": "16W (Plus)"
     },
     {
-      "id": "18M",
-      "display": "18"
+      "id": "18",
+      "display": "18 (Plus)"
     },
     {
-      "id": "18WM",
-      "display": "18W"
+      "id": "18W",
+      "display": "18W (Plus)"
     },
     {
-      "id": "20M",
-      "display": "20"
+      "id": "20",
+      "display": "20 (Plus)"
     },
     {
-      "id": "20WM",
-      "display": "20W"
+      "id": "20W",
+      "display": "20W (Plus)"
     },
     {
-      "id": "22M",
-      "display": "22"
+      "id": "22",
+      "display": "22 (Plus)"
     },
     {
-      "id": "22WM",
-      "display": "22W"
+      "id": "22W",
+      "display": "22W (Plus)"
     },
     {
-      "id": "24M",
-      "display": "24"
+      "id": "24",
+      "display": "24 (Plus)"
     },
     {
-      "id": "24WM",
-      "display": "24W"
+      "id": "24W",
+      "display": "24W (Plus)"
     },
     {
-      "id": "26M",
-      "display": "26"
+      "id": "26",
+      "display": "26 (Plus)"
     },
     {
-      "id": "26WM",
-      "display": "26W"
+      "id": "26W",
+      "display": "26W (Plus)"
     },
     {
-      "id": "28M",
-      "display": "28"
+      "id": "28",
+      "display": "28 (Plus)"
     },
     {
-      "id": "28WM",
-      "display": "28W"
+      "id": "28W",
+      "display": "28W (Plus)"
     },
     {
-      "id": "30M",
-      "display": "30"
+      "id": "30",
+      "display": "30 (Plus)"
     },
     {
-      "id": "30WM",
-      "display": "30W"
+      "id": "30W",
+      "display": "30W (Plus)"
     },
     {
-      "id": "32M",
-      "display": "32"
+      "id": "32",
+      "display": "32 (Plus)"
     },
     {
-      "id": "32WM",
-      "display": "32W"
+      "id": "32W",
+      "display": "32W (Plus)"
     },
     {
-      "id": "XXLM",
-      "display": "XXL"
+      "id": "XXL",
+      "display": "XXL (Plus)"
     },
     {
-      "id": "XXXLM",
-      "display": "XXXL"
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
     },
     {
-      "id": "0XM",
-      "display": "0X"
+      "id": "0X",
+      "display": "0X (Plus)"
     },
     {
-      "id": "1XM",
-      "display": "1X"
+      "id": "1X",
+      "display": "1X (Plus)"
     },
     {
-      "id": "2XM",
-      "display": "2X"
+      "id": "2X",
+      "display": "2X (Plus)"
     },
     {
-      "id": "3XM",
-      "display": "3X"
+      "id": "3X",
+      "display": "3X (Plus)"
     },
     {
-      "id": "4XM",
-      "display": "4X"
+      "id": "4X",
+      "display": "4X (Plus)"
     },
     {
-      "id": "5XM",
-      "display": "5X"
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
     }
   ],
   "9db476dc402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a2b476dd402403bf28a2606b": [
@@ -5960,342 +10120,974 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "9cb476dc402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a3b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "9eb476dc402403bf28a2606b": [
@@ -6306,1702 +11098,4358 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "9fb476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
-      "id": "14M",
-      "display": "14"
+      "id": "14",
+      "display": "14 (Plus)"
     },
     {
-      "id": "14WM",
-      "display": "14W"
+      "id": "14W",
+      "display": "14W (Plus)"
     },
     {
-      "id": "16M",
-      "display": "16"
+      "id": "16",
+      "display": "16 (Plus)"
     },
     {
-      "id": "16WM",
-      "display": "16W"
+      "id": "16W",
+      "display": "16W (Plus)"
     },
     {
-      "id": "18M",
-      "display": "18"
+      "id": "18",
+      "display": "18 (Plus)"
     },
     {
-      "id": "18WM",
-      "display": "18W"
+      "id": "18W",
+      "display": "18W (Plus)"
     },
     {
-      "id": "20M",
-      "display": "20"
+      "id": "20",
+      "display": "20 (Plus)"
     },
     {
-      "id": "20WM",
-      "display": "20W"
+      "id": "20W",
+      "display": "20W (Plus)"
     },
     {
-      "id": "22M",
-      "display": "22"
+      "id": "22",
+      "display": "22 (Plus)"
     },
     {
-      "id": "22WM",
-      "display": "22W"
+      "id": "22W",
+      "display": "22W (Plus)"
     },
     {
-      "id": "24M",
-      "display": "24"
+      "id": "24",
+      "display": "24 (Plus)"
     },
     {
-      "id": "24WM",
-      "display": "24W"
+      "id": "24W",
+      "display": "24W (Plus)"
     },
     {
-      "id": "26M",
-      "display": "26"
+      "id": "26",
+      "display": "26 (Plus)"
     },
     {
-      "id": "26WM",
-      "display": "26W"
+      "id": "26W",
+      "display": "26W (Plus)"
     },
     {
-      "id": "28M",
-      "display": "28"
+      "id": "28",
+      "display": "28 (Plus)"
     },
     {
-      "id": "28WM",
-      "display": "28W"
+      "id": "28W",
+      "display": "28W (Plus)"
     },
     {
-      "id": "30M",
-      "display": "30"
+      "id": "30",
+      "display": "30 (Plus)"
     },
     {
-      "id": "30WM",
-      "display": "30W"
+      "id": "30W",
+      "display": "30W (Plus)"
     },
     {
-      "id": "32M",
-      "display": "32"
+      "id": "32",
+      "display": "32 (Plus)"
     },
     {
-      "id": "32WM",
-      "display": "32W"
+      "id": "32W",
+      "display": "32W (Plus)"
     },
     {
-      "id": "XXLM",
-      "display": "XXL"
+      "id": "XXL",
+      "display": "XXL (Plus)"
     },
     {
-      "id": "XXXLM",
-      "display": "XXXL"
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
     },
     {
-      "id": "0XM",
-      "display": "0X"
+      "id": "0X",
+      "display": "0X (Plus)"
     },
     {
-      "id": "1XM",
-      "display": "1X"
+      "id": "1X",
+      "display": "1X (Plus)"
     },
     {
-      "id": "2XM",
-      "display": "2X"
+      "id": "2X",
+      "display": "2X (Plus)"
     },
     {
-      "id": "3XM",
-      "display": "3X"
+      "id": "3X",
+      "display": "3X (Plus)"
     },
     {
-      "id": "4XM",
-      "display": "4X"
+      "id": "4X",
+      "display": "4X (Plus)"
     },
     {
-      "id": "5XM",
-      "display": "5X"
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "00 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
     }
   ],
   "a0b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a1b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a4b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a5b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a6b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
-      "id": "14M",
-      "display": "14"
+      "id": "14",
+      "display": "14 (Plus)"
     },
     {
-      "id": "14WM",
-      "display": "14W"
+      "id": "14W",
+      "display": "14W (Plus)"
     },
     {
-      "id": "16M",
-      "display": "16"
+      "id": "16",
+      "display": "16 (Plus)"
     },
     {
-      "id": "16WM",
-      "display": "16W"
+      "id": "16W",
+      "display": "16W (Plus)"
     },
     {
-      "id": "18M",
-      "display": "18"
+      "id": "18",
+      "display": "18 (Plus)"
     },
     {
-      "id": "18WM",
-      "display": "18W"
+      "id": "18W",
+      "display": "18W (Plus)"
     },
     {
-      "id": "20M",
-      "display": "20"
+      "id": "20",
+      "display": "20 (Plus)"
     },
     {
-      "id": "20WM",
-      "display": "20W"
+      "id": "20W",
+      "display": "20W (Plus)"
     },
     {
-      "id": "22M",
-      "display": "22"
+      "id": "22",
+      "display": "22 (Plus)"
     },
     {
-      "id": "22WM",
-      "display": "22W"
+      "id": "22W",
+      "display": "22W (Plus)"
     },
     {
-      "id": "24M",
-      "display": "24"
+      "id": "24",
+      "display": "24 (Plus)"
     },
     {
-      "id": "24WM",
-      "display": "24W"
+      "id": "24W",
+      "display": "24W (Plus)"
     },
     {
-      "id": "26M",
-      "display": "26"
+      "id": "26",
+      "display": "26 (Plus)"
     },
     {
-      "id": "26WM",
-      "display": "26W"
+      "id": "26W",
+      "display": "26W (Plus)"
     },
     {
-      "id": "28M",
-      "display": "28"
+      "id": "28",
+      "display": "28 (Plus)"
     },
     {
-      "id": "28WM",
-      "display": "28W"
+      "id": "28W",
+      "display": "28W (Plus)"
     },
     {
-      "id": "30M",
-      "display": "30"
+      "id": "30",
+      "display": "30 (Plus)"
     },
     {
-      "id": "30WM",
-      "display": "30W"
+      "id": "30W",
+      "display": "30W (Plus)"
     },
     {
-      "id": "32M",
-      "display": "32"
+      "id": "32",
+      "display": "32 (Plus)"
     },
     {
-      "id": "32WM",
-      "display": "32W"
+      "id": "32W",
+      "display": "32W (Plus)"
     },
     {
-      "id": "XXLM",
-      "display": "XXL"
+      "id": "XXL",
+      "display": "XXL (Plus)"
     },
     {
-      "id": "XXXLM",
-      "display": "XXXL"
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
     },
     {
-      "id": "0XM",
-      "display": "0X"
+      "id": "0X",
+      "display": "0X (Plus)"
     },
     {
-      "id": "1XM",
-      "display": "1X"
+      "id": "1X",
+      "display": "1X (Plus)"
     },
     {
-      "id": "2XM",
-      "display": "2X"
+      "id": "2X",
+      "display": "2X (Plus)"
     },
     {
-      "id": "3XM",
-      "display": "3X"
+      "id": "3X",
+      "display": "3X (Plus)"
     },
     {
-      "id": "4XM",
-      "display": "4X"
+      "id": "4X",
+      "display": "4X (Plus)"
     },
     {
-      "id": "5XM",
-      "display": "5X"
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
     }
   ],
   "a7b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a8b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "a9b476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "aab476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
-      "id": "14M",
-      "display": "14"
+      "id": "14",
+      "display": "14 (Plus)"
     },
     {
-      "id": "14WM",
-      "display": "14W"
+      "id": "14W",
+      "display": "14W (Plus)"
     },
     {
-      "id": "16M",
-      "display": "16"
+      "id": "16",
+      "display": "16 (Plus)"
     },
     {
-      "id": "16WM",
-      "display": "16W"
+      "id": "16W",
+      "display": "16W (Plus)"
     },
     {
-      "id": "18M",
-      "display": "18"
+      "id": "18",
+      "display": "18 (Plus)"
     },
     {
-      "id": "18WM",
-      "display": "18W"
+      "id": "18W",
+      "display": "18W (Plus)"
     },
     {
-      "id": "20M",
-      "display": "20"
+      "id": "20",
+      "display": "20 (Plus)"
     },
     {
-      "id": "20WM",
-      "display": "20W"
+      "id": "20W",
+      "display": "20W (Plus)"
     },
     {
-      "id": "22M",
-      "display": "22"
+      "id": "22",
+      "display": "22 (Plus)"
     },
     {
-      "id": "22WM",
-      "display": "22W"
+      "id": "22W",
+      "display": "22W (Plus)"
     },
     {
-      "id": "24M",
-      "display": "24"
+      "id": "24",
+      "display": "24 (Plus)"
     },
     {
-      "id": "24WM",
-      "display": "24W"
+      "id": "24W",
+      "display": "24W (Plus)"
     },
     {
-      "id": "26M",
-      "display": "26"
+      "id": "26",
+      "display": "26 (Plus)"
     },
     {
-      "id": "26WM",
-      "display": "26W"
+      "id": "26W",
+      "display": "26W (Plus)"
     },
     {
-      "id": "28M",
-      "display": "28"
+      "id": "28",
+      "display": "28 (Plus)"
     },
     {
-      "id": "28WM",
-      "display": "28W"
+      "id": "28W",
+      "display": "28W (Plus)"
     },
     {
-      "id": "30M",
-      "display": "30"
+      "id": "30",
+      "display": "30 (Plus)"
     },
     {
-      "id": "30WM",
-      "display": "30W"
+      "id": "30W",
+      "display": "30W (Plus)"
     },
     {
-      "id": "32M",
-      "display": "32"
+      "id": "32",
+      "display": "32 (Plus)"
     },
     {
-      "id": "32WM",
-      "display": "32W"
+      "id": "32W",
+      "display": "32W (Plus)"
     },
     {
-      "id": "XXLM",
-      "display": "XXL"
+      "id": "XXL",
+      "display": "XXL (Plus)"
     },
     {
-      "id": "XXXLM",
-      "display": "XXXL"
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
     },
     {
-      "id": "0XM",
-      "display": "0X"
+      "id": "0X",
+      "display": "0X (Plus)"
     },
     {
-      "id": "1XM",
-      "display": "1X"
+      "id": "1X",
+      "display": "1X (Plus)"
     },
     {
-      "id": "2XM",
-      "display": "2X"
+      "id": "2X",
+      "display": "2X (Plus)"
     },
     {
-      "id": "3XM",
-      "display": "3X"
+      "id": "3X",
+      "display": "3X (Plus)"
     },
     {
-      "id": "4XM",
-      "display": "4X"
+      "id": "4X",
+      "display": "4X (Plus)"
     },
     {
-      "id": "5XM",
-      "display": "5X"
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
     }
   ],
   "abb476dd402403bf28a2606b": [
@@ -8012,172 +15460,488 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "acb476dd402403bf28a2606b": [
     {
-      "id": "00M",
+      "id": "00",
       "display": "00"
     },
     {
-      "id": "0M",
+      "id": "0",
       "display": "0"
     },
     {
-      "id": "2M",
+      "id": "2",
       "display": "2"
     },
     {
-      "id": "4M",
+      "id": "4",
       "display": "4"
     },
     {
-      "id": "6M",
+      "id": "6",
       "display": "6"
     },
     {
-      "id": "8M",
+      "id": "8",
       "display": "8"
     },
     {
-      "id": "10M",
+      "id": "10",
       "display": "10"
     },
     {
-      "id": "12M",
+      "id": "12",
       "display": "12"
     },
     {
-      "id": "XXSM",
+      "id": "XXS",
       "display": "XXS"
     },
     {
-      "id": "XSM",
+      "id": "XS",
       "display": "XS"
     },
     {
-      "id": "SM",
+      "id": "S",
       "display": "S"
     },
     {
-      "id": "MM",
+      "id": "M",
       "display": "M"
     },
     {
-      "id": "LM",
+      "id": "L",
       "display": "L"
     },
     {
-      "id": "XLM",
+      "id": "XL",
       "display": "XL"
     },
     {
+      "id": "14",
+      "display": "14 (Plus)"
+    },
+    {
+      "id": "14W",
+      "display": "14W (Plus)"
+    },
+    {
+      "id": "16",
+      "display": "16 (Plus)"
+    },
+    {
+      "id": "16W",
+      "display": "16W (Plus)"
+    },
+    {
+      "id": "18",
+      "display": "18 (Plus)"
+    },
+    {
+      "id": "18W",
+      "display": "18W (Plus)"
+    },
+    {
+      "id": "20",
+      "display": "20 (Plus)"
+    },
+    {
+      "id": "20W",
+      "display": "20W (Plus)"
+    },
+    {
+      "id": "22",
+      "display": "22 (Plus)"
+    },
+    {
+      "id": "22W",
+      "display": "22W (Plus)"
+    },
+    {
+      "id": "24",
+      "display": "24 (Plus)"
+    },
+    {
+      "id": "24W",
+      "display": "24W (Plus)"
+    },
+    {
+      "id": "26",
+      "display": "26 (Plus)"
+    },
+    {
+      "id": "26W",
+      "display": "26W (Plus)"
+    },
+    {
+      "id": "28",
+      "display": "28 (Plus)"
+    },
+    {
+      "id": "28W",
+      "display": "28W (Plus)"
+    },
+    {
+      "id": "30",
+      "display": "30 (Plus)"
+    },
+    {
+      "id": "30W",
+      "display": "30W (Plus)"
+    },
+    {
+      "id": "32",
+      "display": "32 (Plus)"
+    },
+    {
+      "id": "32W",
+      "display": "32W (Plus)"
+    },
+    {
+      "id": "XXL",
+      "display": "XXL (Plus)"
+    },
+    {
+      "id": "XXXL",
+      "display": "XXXL (Plus)"
+    },
+    {
+      "id": "0X",
+      "display": "0X (Plus)"
+    },
+    {
+      "id": "1X",
+      "display": "1X (Plus)"
+    },
+    {
+      "id": "2X",
+      "display": "2X (Plus)"
+    },
+    {
+      "id": "3X",
+      "display": "3X (Plus)"
+    },
+    {
+      "id": "4X",
+      "display": "4X (Plus)"
+    },
+    {
+      "id": "5X",
+      "display": "5X (Plus)"
+    },
+    {
+      "id": "00P",
+      "display": "00P (Petite)"
+    },
+    {
+      "id": "0P",
+      "display": "0P (Petite)"
+    },
+    {
+      "id": "2P",
+      "display": "2P (Petite)"
+    },
+    {
+      "id": "4P",
+      "display": "4P (Petite)"
+    },
+    {
+      "id": "6P",
+      "display": "6P (Petite)"
+    },
+    {
+      "id": "8P",
+      "display": "8P (Petite)"
+    },
+    {
+      "id": "10P",
+      "display": "10P (Petite)"
+    },
+    {
+      "id": "12P",
+      "display": "12P (Petite)"
+    },
+    {
+      "id": "14P",
+      "display": "14P (Petite)"
+    },
+    {
+      "id": "16P",
+      "display": "16P (Petite)"
+    },
+    {
+      "id": "18P",
+      "display": "18P (Petite)"
+    },
+    {
+      "id": "20P",
+      "display": "20P (Petite)"
+    },
+    {
+      "id": "XXSP",
+      "display": "XXSP (Petite)"
+    },
+    {
+      "id": "XSP",
+      "display": "XSP (Petite)"
+    },
+    {
+      "id": "SP",
+      "display": "SP (Petite)"
+    },
+    {
+      "id": "MP",
+      "display": "MP (Petite)"
+    },
+    {
+      "id": "LP",
+      "display": "LP (Petite)"
+    },
+    {
+      "id": "XLP",
+      "display": "XLP (Petite)"
+    },
+    {
+      "id": "XXLP",
+      "display": "XXLP (Petite)"
+    },
+    {
+      "id": "00J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "0J",
+      "display": "0 (Juniors)"
+    },
+    {
+      "id": "1J",
+      "display": "1 (Juniors)"
+    },
+    {
+      "id": "3J",
+      "display": "3 (Juniors)"
+    },
+    {
+      "id": "5J",
+      "display": "5 (Juniors)"
+    },
+    {
+      "id": "7J",
+      "display": "7 (Juniors)"
+    },
+    {
+      "id": "9J",
+      "display": "9 (Juniors)"
+    },
+    {
+      "id": "11J",
+      "display": "11 (Juniors)"
+    },
+    {
+      "id": "13J",
+      "display": "13 (Juniors)"
+    },
+    {
+      "id": "15J",
+      "display": "15 (Juniors)"
+    },
+    {
+      "id": "17J",
+      "display": "17 (Juniors)"
+    },
+    {
+      "id": "XXSJ",
+      "display": "XXS (Juniors)"
+    },
+    {
+      "id": "XSJ",
+      "display": "XS (Juniors)"
+    },
+    {
+      "id": "SJ",
+      "display": "S (Juniors)"
+    },
+    {
+      "id": "MJ",
+      "display": "M (Juniors)"
+    },
+    {
+      "id": "LJ",
+      "display": "L (Juniors)"
+    },
+    {
+      "id": "XLJ",
+      "display": "XL (Juniors)"
+    },
+    {
+      "id": "XXLJ",
+      "display": "XXL (Juniors)"
+    },
+    {
+      "id": "00M",
+      "display": "00 (Maternity)"
+    },
+    {
+      "id": "0M",
+      "display": "0 (Maternity)"
+    },
+    {
+      "id": "2M",
+      "display": "2 (Maternity)"
+    },
+    {
+      "id": "4M",
+      "display": "4 (Maternity)"
+    },
+    {
+      "id": "6M",
+      "display": "6 (Maternity)"
+    },
+    {
+      "id": "8M",
+      "display": "8 (Maternity)"
+    },
+    {
+      "id": "10M",
+      "display": "10 (Maternity)"
+    },
+    {
+      "id": "12M",
+      "display": "12 (Maternity)"
+    },
+    {
+      "id": "XXSM",
+      "display": "XXS (Maternity)"
+    },
+    {
+      "id": "XSM",
+      "display": "XS (Maternity)"
+    },
+    {
+      "id": "SM",
+      "display": "S (Maternity)"
+    },
+    {
+      "id": "MM",
+      "display": "M (Maternity)"
+    },
+    {
+      "id": "LM",
+      "display": "L (Maternity)"
+    },
+    {
+      "id": "XLM",
+      "display": "XL (Maternity)"
+    },
+    {
       "id": "14M",
-      "display": "14"
+      "display": "14 (Maternity)"
     },
     {
       "id": "14WM",
-      "display": "14W"
+      "display": "14W (Maternity)"
     },
     {
       "id": "16M",
-      "display": "16"
+      "display": "16 (Maternity)"
     },
     {
       "id": "16WM",
-      "display": "16W"
+      "display": "16W (Maternity)"
     },
     {
       "id": "18M",
-      "display": "18"
+      "display": "18 (Maternity)"
     },
     {
       "id": "18WM",
-      "display": "18W"
+      "display": "18W (Maternity)"
     },
     {
       "id": "20M",
-      "display": "20"
+      "display": "20 (Maternity)"
     },
     {
       "id": "20WM",
-      "display": "20W"
+      "display": "20W (Maternity)"
     },
     {
       "id": "22M",
-      "display": "22"
+      "display": "22 (Maternity)"
     },
     {
       "id": "22WM",
-      "display": "22W"
+      "display": "22W (Maternity)"
     },
     {
       "id": "24M",
-      "display": "24"
+      "display": "24 (Maternity)"
     },
     {
       "id": "24WM",
-      "display": "24W"
+      "display": "24W (Maternity)"
     },
     {
       "id": "26M",
-      "display": "26"
+      "display": "26 (Maternity)"
     },
     {
       "id": "26WM",
-      "display": "26W"
+      "display": "26W (Maternity)"
     },
     {
       "id": "28M",
-      "display": "28"
+      "display": "28 (Maternity)"
     },
     {
       "id": "28WM",
-      "display": "28W"
+      "display": "28W (Maternity)"
     },
     {
       "id": "30M",
-      "display": "30"
+      "display": "30 (Maternity)"
     },
     {
       "id": "30WM",
-      "display": "30W"
+      "display": "30W (Maternity)"
     },
     {
       "id": "32M",
-      "display": "32"
+      "display": "32 (Maternity)"
     },
     {
       "id": "32WM",
-      "display": "32W"
+      "display": "32W (Maternity)"
     },
     {
       "id": "XXLM",
-      "display": "XXL"
+      "display": "XXL (Maternity)"
     },
     {
       "id": "XXXLM",
-      "display": "XXXL"
+      "display": "XXXL (Maternity)"
     },
     {
       "id": "0XM",
-      "display": "0X"
+      "display": "0X (Maternity)"
     },
     {
       "id": "1XM",
-      "display": "1X"
+      "display": "1X (Maternity)"
     },
     {
       "id": "2XM",
-      "display": "2X"
+      "display": "2X (Maternity)"
     },
     {
       "id": "3XM",
-      "display": "3X"
+      "display": "3X (Maternity)"
     },
     {
       "id": "4XM",
-      "display": "4X"
+      "display": "4X (Maternity)"
     },
     {
       "id": "5XM",
-      "display": "5X"
+      "display": "5X (Maternity)"
     }
   ],
   "002e8975d97b4e80ef00a955": [
@@ -8200,338 +15964,542 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "04008c10d97b4e1245005764": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "05008c10d97b4e1245005764": [
     {
-      "id": "36BT",
+      "id": "28",
+      "display": "Waist 28"
+    },
+    {
+      "id": "29",
+      "display": "Waist 29"
+    },
+    {
+      "id": "30",
+      "display": "Waist 30"
+    },
+    {
+      "id": "31",
+      "display": "Waist 31"
+    },
+    {
+      "id": "32",
+      "display": "Waist 32"
+    },
+    {
+      "id": "33",
+      "display": "Waist 33"
+    },
+    {
+      "id": "34",
+      "display": "Waist 34"
+    },
+    {
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
-      "id": "41BT",
+      "id": "41",
       "display": "Waist 41"
     },
     {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
+      "id": "41BT",
+      "display": "Waist 41 (Big & Tall)"
+    },
+    {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     }
   ],
   "06008c10d97b4e1245005764": [
     {
-      "id": "36BT",
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
+      "id": "28",
+      "display": "Waist 28"
+    },
+    {
+      "id": "29",
+      "display": "Waist 29"
+    },
+    {
+      "id": "30",
+      "display": "Waist 30"
+    },
+    {
+      "id": "31",
+      "display": "Waist 31"
+    },
+    {
+      "id": "32",
+      "display": "Waist 32"
+    },
+    {
+      "id": "33",
+      "display": "Waist 33"
+    },
+    {
+      "id": "34",
+      "display": "Waist 34"
+    },
+    {
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
+      "id": "41",
+      "display": "Waist 41"
+    },
+    {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     },
     {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "07008c10d97b4e1245005764": [
     {
-      "id": "16.5BT",
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
+      "id": "14.5",
+      "display": "Neck 14.5"
+    },
+    {
+      "id": "15",
+      "display": "Neck 15"
+    },
+    {
+      "id": "15.5",
+      "display": "Neck 15.5"
+    },
+    {
+      "id": "16",
+      "display": "Neck 16"
+    },
+    {
+      "id": "16.5",
       "display": "Neck 16.5"
     },
     {
-      "id": "17BT",
+      "id": "17",
       "display": "Neck 17"
     },
     {
-      "id": "17.5BT",
+      "id": "17.5",
       "display": "Neck 17.5"
     },
     {
-      "id": "18BT",
+      "id": "18",
       "display": "Neck 18"
     },
     {
+      "id": "16.5BT",
+      "display": "Neck 16.5 (Big & Tall)"
+    },
+    {
+      "id": "17BT",
+      "display": "Neck 17 (Big & Tall)"
+    },
+    {
+      "id": "17.5BT",
+      "display": "Neck 17.5 (Big & Tall)"
+    },
+    {
+      "id": "18BT",
+      "display": "Neck 18 (Big & Tall)"
+    },
+    {
       "id": "18.5",
-      "display": "Neck 18.5"
+      "display": "Neck 18.5 (Big & Tall)"
     },
     {
       "id": "19",
-      "display": "Neck 19"
+      "display": "Neck 19 (Big & Tall)"
     },
     {
       "id": "19.5",
-      "display": "Neck 19.5"
+      "display": "Neck 19.5 (Big & Tall)"
     },
     {
       "id": "20",
-      "display": "Neck 20"
+      "display": "Neck 20 (Big & Tall)"
     },
     {
       "id": "20.5",
-      "display": "Neck 20.5"
+      "display": "Neck 20.5 (Big & Tall)"
     },
     {
       "id": "21",
-      "display": "Neck 21"
+      "display": "Neck 21 (Big & Tall)"
     },
     {
       "id": "21.5",
-      "display": "Neck 21.5"
+      "display": "Neck 21.5 (Big & Tall)"
     },
     {
       "id": "22",
-      "display": "Neck 22"
+      "display": "Neck 22 (Big & Tall)"
     },
     {
       "id": "22.5",
-      "display": "Neck 22.5"
+      "display": "Neck 22.5 (Big & Tall)"
     },
     {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "08008c10d97b4e1245005764": [
@@ -8638,292 +16606,708 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "09008c10d97b4e1245005764": [
     {
-      "id": "36BT",
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
+      "id": "28",
+      "display": "Waist 28"
+    },
+    {
+      "id": "29",
+      "display": "Waist 29"
+    },
+    {
+      "id": "30",
+      "display": "Waist 30"
+    },
+    {
+      "id": "31",
+      "display": "Waist 31"
+    },
+    {
+      "id": "32",
+      "display": "Waist 32"
+    },
+    {
+      "id": "33",
+      "display": "Waist 33"
+    },
+    {
+      "id": "34",
+      "display": "Waist 34"
+    },
+    {
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
+      "id": "41",
+      "display": "Waist 41"
+    },
+    {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     },
     {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "0a008c10d97b4e1245005764": [
     {
+      "id": "34S",
+      "display": "34S"
+    },
+    {
+      "id": "34R",
+      "display": "34R"
+    },
+    {
+      "id": "34L",
+      "display": "34L"
+    },
+    {
+      "id": "35S",
+      "display": "35S"
+    },
+    {
+      "id": "35R",
+      "display": "35R"
+    },
+    {
+      "id": "35L",
+      "display": "35L"
+    },
+    {
+      "id": "36S",
+      "display": "36S"
+    },
+    {
+      "id": "36R",
+      "display": "36R"
+    },
+    {
+      "id": "36L",
+      "display": "36L"
+    },
+    {
+      "id": "37S",
+      "display": "37S"
+    },
+    {
+      "id": "37R",
+      "display": "37R"
+    },
+    {
+      "id": "37L",
+      "display": "37L"
+    },
+    {
+      "id": "38S",
+      "display": "38S"
+    },
+    {
+      "id": "38R",
+      "display": "38R"
+    },
+    {
+      "id": "38L",
+      "display": "38L"
+    },
+    {
+      "id": "39S",
+      "display": "39S"
+    },
+    {
+      "id": "39R",
+      "display": "39R"
+    },
+    {
+      "id": "39L",
+      "display": "39L"
+    },
+    {
+      "id": "40S",
+      "display": "40S"
+    },
+    {
+      "id": "40R",
+      "display": "40R"
+    },
+    {
+      "id": "40L",
+      "display": "40L"
+    },
+    {
+      "id": "41S",
+      "display": "41S"
+    },
+    {
+      "id": "41R",
+      "display": "41R"
+    },
+    {
+      "id": "41L",
+      "display": "41L"
+    },
+    {
+      "id": "42S",
+      "display": "42S"
+    },
+    {
+      "id": "42R",
+      "display": "42R"
+    },
+    {
+      "id": "42L",
+      "display": "42L"
+    },
+    {
+      "id": "43S",
+      "display": "43S"
+    },
+    {
+      "id": "43R",
+      "display": "43R"
+    },
+    {
+      "id": "43L",
+      "display": "43L"
+    },
+    {
+      "id": "44S",
+      "display": "44S"
+    },
+    {
+      "id": "44R",
+      "display": "44R"
+    },
+    {
+      "id": "44L",
+      "display": "44L"
+    },
+    {
+      "id": "45S",
+      "display": "45S"
+    },
+    {
+      "id": "45R",
+      "display": "45R"
+    },
+    {
+      "id": "45L",
+      "display": "45L"
+    },
+    {
+      "id": "46S",
+      "display": "46S"
+    },
+    {
+      "id": "46R",
+      "display": "46R"
+    },
+    {
+      "id": "46L",
+      "display": "46L"
+    },
+    {
+      "id": "47S",
+      "display": "47S"
+    },
+    {
+      "id": "47R",
+      "display": "47R"
+    },
+    {
+      "id": "47L",
+      "display": "47L"
+    },
+    {
+      "id": "48S",
+      "display": "48S"
+    },
+    {
+      "id": "48R",
+      "display": "48R"
+    },
+    {
+      "id": "48L",
+      "display": "48L"
+    },
+    {
+      "id": "49S",
+      "display": "49S"
+    },
+    {
+      "id": "49R",
+      "display": "49R"
+    },
+    {
+      "id": "49L",
+      "display": "49L"
+    },
+    {
+      "id": "50S",
+      "display": "50S"
+    },
+    {
+      "id": "50R",
+      "display": "50R"
+    },
+    {
+      "id": "50L",
+      "display": "50L"
+    },
+    {
+      "id": "51S",
+      "display": "51S"
+    },
+    {
+      "id": "51R",
+      "display": "51R"
+    },
+    {
+      "id": "51L",
+      "display": "51L"
+    },
+    {
+      "id": "52S",
+      "display": "52S"
+    },
+    {
+      "id": "52R",
+      "display": "52R"
+    },
+    {
+      "id": "52L",
+      "display": "52L"
+    },
+    {
+      "id": "53S",
+      "display": "53S"
+    },
+    {
+      "id": "53R",
+      "display": "53R"
+    },
+    {
+      "id": "53L",
+      "display": "53L"
+    },
+    {
+      "id": "54S",
+      "display": "54S"
+    },
+    {
+      "id": "54R",
+      "display": "54R"
+    },
+    {
+      "id": "54L",
+      "display": "54L"
+    },
+    {
+      "id": "55S",
+      "display": "55S"
+    },
+    {
+      "id": "55R",
+      "display": "55R"
+    },
+    {
+      "id": "55L",
+      "display": "55L"
+    },
+    {
+      "id": "56S",
+      "display": "56S"
+    },
+    {
+      "id": "56R",
+      "display": "56R"
+    },
+    {
+      "id": "56L",
+      "display": "56L"
+    },
+    {
       "id": "58S",
-      "display": "58S"
+      "display": "58S (Big & Tall)"
     },
     {
       "id": "58R",
-      "display": "58R"
+      "display": "58R (Big & Tall)"
     },
     {
       "id": "58L",
-      "display": "58L"
+      "display": "58L (Big & Tall)"
     },
     {
       "id": "60S",
-      "display": "60S"
+      "display": "60S (Big & Tall)"
     },
     {
       "id": "60R",
-      "display": "60R"
+      "display": "60R (Big & Tall)"
     },
     {
       "id": "60L",
-      "display": "60L"
+      "display": "60L (Big & Tall)"
     }
   ],
   "0b008c10d97b4e1245005764": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "0d008c10d97b4e1245005764": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "0e008c10d97b4e1245005764": [
     {
+      "id": "OS",
+      "display": "One Size"
+    },
+    {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "717df9aaaabb083120f45ec2": [
@@ -8934,252 +17318,352 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "b2b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b3b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b4b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b5b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b6b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b7b476dd402403bf28a2606b": [
@@ -9190,606 +17674,922 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "b8b476dd402403bf28a2606b": [
     {
-      "id": "XXL",
-      "display": "XXL"
+      "id": "XS",
+      "display": "XS"
     },
     {
-      "id": "3XL",
-      "display": "3XL"
+      "id": "S",
+      "display": "S"
     },
     {
-      "id": "4XL",
-      "display": "4XL"
+      "id": "M",
+      "display": "M"
     },
     {
-      "id": "5XL",
-      "display": "5XL"
+      "id": "L",
+      "display": "L"
     },
     {
-      "id": "6XL",
-      "display": "6XL"
+      "id": "XL",
+      "display": "XL"
     },
     {
-      "id": "LT",
-      "display": "LT"
+      "id": "28",
+      "display": "Waist 28"
     },
     {
-      "id": "XLT",
-      "display": "XLT"
+      "id": "29",
+      "display": "Waist 29"
     },
     {
-      "id": "2XLT",
-      "display": "2XLT"
+      "id": "30",
+      "display": "Waist 30"
     },
     {
-      "id": "3XLT",
-      "display": "3XLT"
+      "id": "31",
+      "display": "Waist 31"
     },
     {
-      "id": "4XLT",
-      "display": "4XLT"
+      "id": "32",
+      "display": "Waist 32"
     },
     {
-      "id": "5XLT",
-      "display": "5XLT"
+      "id": "33",
+      "display": "Waist 33"
     },
     {
-      "id": "6XLT",
-      "display": "6XLT"
+      "id": "34",
+      "display": "Waist 34"
     },
     {
-      "id": "36BT",
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
+      "id": "XXL",
+      "display": "XXL (Big & Tall)"
+    },
+    {
+      "id": "3XL",
+      "display": "3XL (Big & Tall)"
+    },
+    {
+      "id": "4XL",
+      "display": "4XL (Big & Tall)"
+    },
+    {
+      "id": "5XL",
+      "display": "5XL (Big & Tall)"
+    },
+    {
+      "id": "6XL",
+      "display": "6XL (Big & Tall)"
+    },
+    {
+      "id": "LT",
+      "display": "LT (Big & Tall)"
+    },
+    {
+      "id": "XLT",
+      "display": "XLT (Big & Tall)"
+    },
+    {
+      "id": "2XLT",
+      "display": "2XLT (Big & Tall)"
+    },
+    {
+      "id": "3XLT",
+      "display": "3XLT (Big & Tall)"
+    },
+    {
+      "id": "4XLT",
+      "display": "4XLT (Big & Tall)"
+    },
+    {
+      "id": "5XLT",
+      "display": "5XLT (Big & Tall)"
+    },
+    {
+      "id": "6XLT",
+      "display": "6XLT (Big & Tall)"
+    },
+    {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
       "id": "41",
-      "display": "Waist 41"
+      "display": "Waist 41 (Big & Tall)"
     },
     {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     }
   ],
   "b9b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "aeb476dd402403bf28a2606b": [
     {
-      "id": "XXL",
-      "display": "XXL"
+      "id": "XS",
+      "display": "XS"
     },
     {
-      "id": "3XL",
-      "display": "3XL"
+      "id": "S",
+      "display": "S"
     },
     {
-      "id": "4XL",
-      "display": "4XL"
+      "id": "M",
+      "display": "M"
     },
     {
-      "id": "5XL",
-      "display": "5XL"
+      "id": "L",
+      "display": "L"
     },
     {
-      "id": "6XL",
-      "display": "6XL"
+      "id": "XL",
+      "display": "XL"
     },
     {
-      "id": "LT",
-      "display": "LT"
+      "id": "28",
+      "display": "Waist 28"
     },
     {
-      "id": "XLT",
-      "display": "XLT"
+      "id": "29",
+      "display": "Waist 29"
     },
     {
-      "id": "2XLT",
-      "display": "2XLT"
+      "id": "30",
+      "display": "Waist 30"
     },
     {
-      "id": "3XLT",
-      "display": "3XLT"
+      "id": "31",
+      "display": "Waist 31"
     },
     {
-      "id": "4XLT",
-      "display": "4XLT"
+      "id": "32",
+      "display": "Waist 32"
     },
     {
-      "id": "5XLT",
-      "display": "5XLT"
+      "id": "33",
+      "display": "Waist 33"
     },
     {
-      "id": "6XLT",
-      "display": "6XLT"
+      "id": "34",
+      "display": "Waist 34"
     },
     {
-      "id": "36BT",
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
+      "id": "XXL",
+      "display": "XXL (Big & Tall)"
+    },
+    {
+      "id": "3XL",
+      "display": "3XL (Big & Tall)"
+    },
+    {
+      "id": "4XL",
+      "display": "4XL (Big & Tall)"
+    },
+    {
+      "id": "5XL",
+      "display": "5XL (Big & Tall)"
+    },
+    {
+      "id": "6XL",
+      "display": "6XL (Big & Tall)"
+    },
+    {
+      "id": "LT",
+      "display": "LT (Big & Tall)"
+    },
+    {
+      "id": "XLT",
+      "display": "XLT (Big & Tall)"
+    },
+    {
+      "id": "2XLT",
+      "display": "2XLT (Big & Tall)"
+    },
+    {
+      "id": "3XLT",
+      "display": "3XLT (Big & Tall)"
+    },
+    {
+      "id": "4XLT",
+      "display": "4XLT (Big & Tall)"
+    },
+    {
+      "id": "5XLT",
+      "display": "5XLT (Big & Tall)"
+    },
+    {
+      "id": "6XLT",
+      "display": "6XLT (Big & Tall)"
+    },
+    {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
       "id": "41",
-      "display": "Waist 41"
+      "display": "Waist 41 (Big & Tall)"
     },
     {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     }
   ],
   "afb476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "bab476dd402403bf28a2606b": [
     {
-      "id": "XXL",
-      "display": "XXL"
+      "id": "XS",
+      "display": "XS"
     },
     {
-      "id": "3XL",
-      "display": "3XL"
+      "id": "S",
+      "display": "S"
     },
     {
-      "id": "4XL",
-      "display": "4XL"
+      "id": "M",
+      "display": "M"
     },
     {
-      "id": "5XL",
-      "display": "5XL"
+      "id": "L",
+      "display": "L"
     },
     {
-      "id": "6XL",
-      "display": "6XL"
+      "id": "XL",
+      "display": "XL"
     },
     {
-      "id": "LT",
-      "display": "LT"
+      "id": "28",
+      "display": "Waist 28"
     },
     {
-      "id": "XLT",
-      "display": "XLT"
+      "id": "29",
+      "display": "Waist 29"
     },
     {
-      "id": "2XLT",
-      "display": "2XLT"
+      "id": "30",
+      "display": "Waist 30"
     },
     {
-      "id": "3XLT",
-      "display": "3XLT"
+      "id": "31",
+      "display": "Waist 31"
     },
     {
-      "id": "4XLT",
-      "display": "4XLT"
+      "id": "32",
+      "display": "Waist 32"
     },
     {
-      "id": "5XLT",
-      "display": "5XLT"
+      "id": "33",
+      "display": "Waist 33"
     },
     {
-      "id": "6XLT",
-      "display": "6XLT"
+      "id": "34",
+      "display": "Waist 34"
     },
     {
-      "id": "36BT",
+      "id": "35",
+      "display": "Waist 35"
+    },
+    {
+      "id": "36",
       "display": "Waist 36"
     },
     {
-      "id": "37BT",
+      "id": "37",
       "display": "Waist 37"
     },
     {
-      "id": "38BT",
+      "id": "38",
       "display": "Waist 38"
     },
     {
-      "id": "39BT",
+      "id": "39",
       "display": "Waist 39"
     },
     {
-      "id": "40BT",
+      "id": "40",
       "display": "Waist 40"
     },
     {
+      "id": "XXL",
+      "display": "XXL (Big & Tall)"
+    },
+    {
+      "id": "3XL",
+      "display": "3XL (Big & Tall)"
+    },
+    {
+      "id": "4XL",
+      "display": "4XL (Big & Tall)"
+    },
+    {
+      "id": "5XL",
+      "display": "5XL (Big & Tall)"
+    },
+    {
+      "id": "6XL",
+      "display": "6XL (Big & Tall)"
+    },
+    {
+      "id": "LT",
+      "display": "LT (Big & Tall)"
+    },
+    {
+      "id": "XLT",
+      "display": "XLT (Big & Tall)"
+    },
+    {
+      "id": "2XLT",
+      "display": "2XLT (Big & Tall)"
+    },
+    {
+      "id": "3XLT",
+      "display": "3XLT (Big & Tall)"
+    },
+    {
+      "id": "4XLT",
+      "display": "4XLT (Big & Tall)"
+    },
+    {
+      "id": "5XLT",
+      "display": "5XLT (Big & Tall)"
+    },
+    {
+      "id": "6XLT",
+      "display": "6XLT (Big & Tall)"
+    },
+    {
+      "id": "36BT",
+      "display": "Waist 36 (Big & Tall)"
+    },
+    {
+      "id": "37BT",
+      "display": "Waist 37 (Big & Tall)"
+    },
+    {
+      "id": "38BT",
+      "display": "Waist 38 (Big & Tall)"
+    },
+    {
+      "id": "39BT",
+      "display": "Waist 39 (Big & Tall)"
+    },
+    {
+      "id": "40BT",
+      "display": "Waist 40 (Big & Tall)"
+    },
+    {
       "id": "41",
-      "display": "Waist 41"
+      "display": "Waist 41 (Big & Tall)"
     },
     {
       "id": "42",
-      "display": "Waist 42"
+      "display": "Waist 42 (Big & Tall)"
     },
     {
       "id": "43",
-      "display": "Waist 43"
+      "display": "Waist 43 (Big & Tall)"
     },
     {
       "id": "44",
-      "display": "Waist 44"
+      "display": "Waist 44 (Big & Tall)"
     },
     {
       "id": "46",
-      "display": "Waist 46"
+      "display": "Waist 46 (Big & Tall)"
     },
     {
       "id": "48",
-      "display": "Waist 48"
+      "display": "Waist 48 (Big & Tall)"
     },
     {
       "id": "50",
-      "display": "Waist 50"
+      "display": "Waist 50 (Big & Tall)"
     },
     {
       "id": "52",
-      "display": "Waist 52"
+      "display": "Waist 52 (Big & Tall)"
     },
     {
       "id": "54",
-      "display": "Waist 54"
+      "display": "Waist 54 (Big & Tall)"
     },
     {
       "id": "56",
-      "display": "Waist 56"
+      "display": "Waist 56 (Big & Tall)"
     },
     {
       "id": "58",
-      "display": "Waist 58"
+      "display": "Waist 58 (Big & Tall)"
     },
     {
       "id": "60",
-      "display": "Waist 60"
+      "display": "Waist 60 (Big & Tall)"
     }
   ],
   "b0b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "bbb476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "b1b476dd402403bf28a2606b": [
     {
+      "id": "XS",
+      "display": "XS"
+    },
+    {
+      "id": "S",
+      "display": "S"
+    },
+    {
+      "id": "M",
+      "display": "M"
+    },
+    {
+      "id": "L",
+      "display": "L"
+    },
+    {
+      "id": "XL",
+      "display": "XL"
+    },
+    {
       "id": "XXL",
-      "display": "XXL"
+      "display": "XXL (Big & Tall)"
     },
     {
       "id": "3XL",
-      "display": "3XL"
+      "display": "3XL (Big & Tall)"
     },
     {
       "id": "4XL",
-      "display": "4XL"
+      "display": "4XL (Big & Tall)"
     },
     {
       "id": "5XL",
-      "display": "5XL"
+      "display": "5XL (Big & Tall)"
     },
     {
       "id": "6XL",
-      "display": "6XL"
+      "display": "6XL (Big & Tall)"
     },
     {
       "id": "LT",
-      "display": "LT"
+      "display": "LT (Big & Tall)"
     },
     {
       "id": "XLT",
-      "display": "XLT"
+      "display": "XLT (Big & Tall)"
     },
     {
       "id": "2XLT",
-      "display": "2XLT"
+      "display": "2XLT (Big & Tall)"
     },
     {
       "id": "3XLT",
-      "display": "3XLT"
+      "display": "3XLT (Big & Tall)"
     },
     {
       "id": "4XLT",
-      "display": "4XLT"
+      "display": "4XLT (Big & Tall)"
     },
     {
       "id": "5XLT",
-      "display": "5XLT"
+      "display": "5XLT (Big & Tall)"
     },
     {
       "id": "6XLT",
-      "display": "6XLT"
+      "display": "6XLT (Big & Tall)"
     }
   ],
   "10008c10d97b4e1245005764": [
@@ -9800,816 +18600,1884 @@ export const POSHMARK_SIZE_MAP: PoshmarkSizeMap = {
   ],
   "21008c10d97b4e1245005764": [
     {
+      "id": "OSBB",
+      "display": "One Size (Baby)"
+    },
+    {
+      "id": "OSB",
+      "display": "One Size (Boys)"
+    },
+    {
       "id": "OSG",
-      "display": "One Size"
+      "display": "One Size (Girls)"
     }
   ],
   "24002b34d97b4efb71005784": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "22008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
       "id": "2TG",
-      "display": "2T"
+      "display": "2T (Girls)"
     },
     {
       "id": "3TG",
-      "display": "3T"
+      "display": "3T (Girls)"
     },
     {
       "id": "4TG",
-      "display": "4T"
+      "display": "4T (Girls)"
     },
     {
       "id": "5TG",
-      "display": "5T"
+      "display": "5T (Girls)"
     },
     {
       "id": "4G",
-      "display": "4"
+      "display": "4 (Girls)"
     },
     {
       "id": "5G",
-      "display": "5"
+      "display": "5 (Girls)"
     },
     {
       "id": "6G",
-      "display": "6"
+      "display": "6 (Girls)"
     },
     {
       "id": "6XG",
-      "display": "6X"
+      "display": "6X (Girls)"
     },
     {
       "id": "7G",
-      "display": "7"
+      "display": "7 (Girls)"
     },
     {
       "id": "8G",
-      "display": "8"
+      "display": "8 (Girls)"
     },
     {
       "id": "10G",
-      "display": "10"
+      "display": "10 (Girls)"
     },
     {
       "id": "12G",
-      "display": "12"
+      "display": "12 (Girls)"
     },
     {
       "id": "14G",
-      "display": "14"
+      "display": "14 (Girls)"
     },
     {
       "id": "16G",
-      "display": "16"
+      "display": "16 (Girls)"
     },
     {
       "id": "XSG",
-      "display": "XS"
+      "display": "XS (Girls)"
     },
     {
       "id": "SG",
-      "display": "S"
+      "display": "S (Girls)"
     },
     {
       "id": "MG",
-      "display": "M"
+      "display": "M (Girls)"
     },
     {
       "id": "LG",
-      "display": "L"
+      "display": "L (Girls)"
     },
     {
       "id": "XLG",
-      "display": "XL"
+      "display": "XL (Girls)"
     },
     {
       "id": "XXLG",
-      "display": "XXL"
+      "display": "XXL (Girls)"
     }
   ],
   "23008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "26008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "25008c10d97b4e1245005764": [
     {
       "id": "OSBB",
-      "display": "One Size"
+      "display": "One Size (Baby)"
     },
     {
       "id": "Preemie",
-      "display": "Preemie"
+      "display": "Preemie (Baby)"
     },
     {
       "id": "Newborn",
-      "display": "Newborn"
+      "display": "Newborn (Baby)"
     },
     {
       "id": "0-3MB",
-      "display": "0-3 Months"
+      "display": "0-3 Months (Baby)"
     },
     {
       "id": "3-6MB",
-      "display": "3-6 Months"
+      "display": "3-6 Months (Baby)"
     },
     {
       "id": "6-9MB",
-      "display": "6-9 Months"
+      "display": "6-9 Months (Baby)"
     },
     {
       "id": "9-12MB",
-      "display": "9-12 Months"
+      "display": "9-12 Months (Baby)"
     },
     {
       "id": "12-18MB",
-      "display": "12-18 Months"
+      "display": "12-18 Months (Baby)"
     },
     {
       "id": "18-24MB",
-      "display": "18-24 Months"
+      "display": "18-24 Months (Baby)"
     },
     {
       "id": "3MB",
-      "display": "3 Months"
+      "display": "3 Months (Baby)"
     },
     {
       "id": "6MB",
-      "display": "6 Months"
+      "display": "6 Months (Baby)"
     },
     {
       "id": "9MB",
-      "display": "9 Months"
+      "display": "9 Months (Baby)"
     },
     {
       "id": "12MB",
-      "display": "12 Months"
+      "display": "12 Months (Baby)"
     },
     {
       "id": "18MB",
-      "display": "18 Months"
+      "display": "18 Months (Baby)"
     },
     {
       "id": "24MB",
-      "display": "24 Months"
+      "display": "24 Months (Baby)"
     }
   ],
   "27008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "2e008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "29008c10d97b4e1245005764": [
     {
+      "id": "0BB",
+      "display": "0 (Baby)"
+    },
+    {
+      "id": "0.5BB",
+      "display": "0.5 (Baby)"
+    },
+    {
+      "id": "1BB",
+      "display": "1 (Baby)"
+    },
+    {
+      "id": "1.5BB",
+      "display": "1.5 (Baby)"
+    },
+    {
+      "id": "2BB",
+      "display": "2 (Baby)"
+    },
+    {
+      "id": "2.5BB",
+      "display": "2.5 (Baby)"
+    },
+    {
+      "id": "3BB",
+      "display": "3 (Baby)"
+    },
+    {
+      "id": "3.5BB",
+      "display": "3.5 (Baby)"
+    },
+    {
+      "id": "4BB",
+      "display": "4 (Baby)"
+    },
+    {
+      "id": "4.5BB",
+      "display": "4.5 (Baby)"
+    },
+    {
+      "id": "5BB",
+      "display": "5 (Baby)"
+    },
+    {
+      "id": "5.5BB",
+      "display": "5.5 (Baby)"
+    },
+    {
+      "id": "6BB",
+      "display": "6 (Baby)"
+    },
+    {
+      "id": "6.5BB",
+      "display": "6.5 (Baby)"
+    },
+    {
+      "id": "7BB",
+      "display": "7 (Baby)"
+    },
+    {
+      "id": "7.5G",
+      "display": "7.5 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "8.5G",
+      "display": "8.5 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "9G",
+      "display": "9 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "9.5G",
+      "display": "9.5 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "10.5G",
+      "display": "10.5 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "11G",
+      "display": "11 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "11.5G",
+      "display": "11.5 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Toddler Girl) (Girls)"
+    },
+    {
+      "id": "12.5G",
+      "display": "12.5 (Little Girl) (Girls)"
+    },
+    {
+      "id": "13G",
+      "display": "13 (Little Girl) (Girls)"
+    },
+    {
+      "id": "13.5G",
+      "display": "13.5 (Little Girl) (Girls)"
+    },
+    {
+      "id": "1G",
+      "display": "1 (Little Girl) (Girls)"
+    },
+    {
+      "id": "1.5G",
+      "display": "1.5 (Little Girl) (Girls)"
+    },
+    {
+      "id": "2G",
+      "display": "2 (Little Girl) (Girls)"
+    },
+    {
+      "id": "2.5G",
+      "display": "2.5 (Little Girl) (Girls)"
+    },
+    {
+      "id": "3G",
+      "display": "3 (Little Girl) (Girls)"
+    },
+    {
+      "id": "3.5G",
+      "display": "3.5 (Big Girl) (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Big Girl) (Girls)"
+    },
+    {
+      "id": "4.5G",
+      "display": "4.5 (Big Girl) (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Big Girl) (Girls)"
+    },
+    {
+      "id": "5.5G",
+      "display": "5.5 (Big Girl) (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Big Girl) (Girls)"
+    },
+    {
+      "id": "6.5G",
+      "display": "6.5 (Big Girl) (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Big Girl) (Girls)"
+    },
+    {
       "id": "7.5B",
-      "display": "7.5 (Toddler Boy)"
+      "display": "7.5 (Toddler Boy) (Boys)"
     },
     {
       "id": "8B",
-      "display": "8 (Toddler Boy)"
+      "display": "8 (Toddler Boy) (Boys)"
     },
     {
       "id": "8.5B",
-      "display": "8.5 (Toddler Boy)"
+      "display": "8.5 (Toddler Boy) (Boys)"
     },
     {
       "id": "9B",
-      "display": "9 (Toddler Boy)"
+      "display": "9 (Toddler Boy) (Boys)"
     },
     {
       "id": "9.5B",
-      "display": "9.5 (Toddler Boy)"
+      "display": "9.5 (Toddler Boy) (Boys)"
     },
     {
       "id": "10B",
-      "display": "10 (Toddler Boy)"
+      "display": "10 (Toddler Boy) (Boys)"
     },
     {
       "id": "10.5B",
-      "display": "10.5 (Toddler Boy)"
+      "display": "10.5 (Toddler Boy) (Boys)"
     },
     {
       "id": "11B",
-      "display": "11 (Toddler Boy)"
+      "display": "11 (Toddler Boy) (Boys)"
     },
     {
       "id": "11.5B",
-      "display": "11.5 (Toddler Boy)"
+      "display": "11.5 (Toddler Boy) (Boys)"
     },
     {
       "id": "12B",
-      "display": "12 (Toddler Boy)"
+      "display": "12 (Toddler Boy) (Boys)"
     },
     {
       "id": "12.5B",
-      "display": "12.5 (Little Boy)"
+      "display": "12.5 (Little Boy) (Boys)"
     },
     {
       "id": "13B",
-      "display": "13 (Little Boy)"
+      "display": "13 (Little Boy) (Boys)"
     },
     {
       "id": "13.5B",
-      "display": "13.5 (Little Boy)"
+      "display": "13.5 (Little Boy) (Boys)"
     },
     {
       "id": "1B",
-      "display": "1 (Little Boy)"
+      "display": "1 (Little Boy) (Boys)"
     },
     {
       "id": "1.5B",
-      "display": "1.5 (Little Boy)"
+      "display": "1.5 (Little Boy) (Boys)"
     },
     {
       "id": "2B",
-      "display": "2 (Little Boy)"
+      "display": "2 (Little Boy) (Boys)"
     },
     {
       "id": "2.5B",
-      "display": "2.5 (Little Boy)"
+      "display": "2.5 (Little Boy) (Boys)"
     },
     {
       "id": "3B",
-      "display": "3 (Little Boy)"
+      "display": "3 (Little Boy) (Boys)"
     },
     {
       "id": "3.5B",
-      "display": "3.5 (Big Boy)"
+      "display": "3.5 (Big Boy) (Boys)"
     },
     {
       "id": "4B",
-      "display": "4 (Big Boy)"
+      "display": "4 (Big Boy) (Boys)"
     },
     {
       "id": "4.5B",
-      "display": "4.5 (Big Boy)"
+      "display": "4.5 (Big Boy) (Boys)"
     },
     {
       "id": "5B",
-      "display": "5 (Big Boy)"
+      "display": "5 (Big Boy) (Boys)"
     },
     {
       "id": "5.5B",
-      "display": "5.5 (Big Boy)"
+      "display": "5.5 (Big Boy) (Boys)"
     },
     {
       "id": "6B",
-      "display": "6 (Big Boy)"
+      "display": "6 (Big Boy) (Boys)"
     },
     {
       "id": "6.5B",
-      "display": "6.5 (Big Boy)"
+      "display": "6.5 (Big Boy) (Boys)"
     },
     {
       "id": "7B",
-      "display": "7 (Big Boy)"
+      "display": "7 (Big Boy) (Boys)"
     }
   ],
   "2d008c10d97b4e1245005764": [
     {
+      "id": "Preemie",
+      "display": "Preemie (Baby)"
+    },
+    {
+      "id": "Newborn",
+      "display": "Newborn (Baby)"
+    },
+    {
+      "id": "0-3MB",
+      "display": "0-3 Months (Baby)"
+    },
+    {
+      "id": "3-6MB",
+      "display": "3-6 Months (Baby)"
+    },
+    {
+      "id": "6-9MB",
+      "display": "6-9 Months (Baby)"
+    },
+    {
+      "id": "9-12MB",
+      "display": "9-12 Months (Baby)"
+    },
+    {
+      "id": "12-18MB",
+      "display": "12-18 Months (Baby)"
+    },
+    {
+      "id": "18-24MB",
+      "display": "18-24 Months (Baby)"
+    },
+    {
+      "id": "3MB",
+      "display": "3 Months (Baby)"
+    },
+    {
+      "id": "6MB",
+      "display": "6 Months (Baby)"
+    },
+    {
+      "id": "9MB",
+      "display": "9 Months (Baby)"
+    },
+    {
+      "id": "12MB",
+      "display": "12 Months (Baby)"
+    },
+    {
+      "id": "18MB",
+      "display": "18 Months (Baby)"
+    },
+    {
+      "id": "24MB",
+      "display": "24 Months (Baby)"
+    },
+    {
+      "id": "2TG",
+      "display": "2T (Girls)"
+    },
+    {
+      "id": "3TG",
+      "display": "3T (Girls)"
+    },
+    {
+      "id": "4TG",
+      "display": "4T (Girls)"
+    },
+    {
+      "id": "5TG",
+      "display": "5T (Girls)"
+    },
+    {
+      "id": "4G",
+      "display": "4 (Girls)"
+    },
+    {
+      "id": "5G",
+      "display": "5 (Girls)"
+    },
+    {
+      "id": "6G",
+      "display": "6 (Girls)"
+    },
+    {
+      "id": "6XG",
+      "display": "6X (Girls)"
+    },
+    {
+      "id": "7G",
+      "display": "7 (Girls)"
+    },
+    {
+      "id": "8G",
+      "display": "8 (Girls)"
+    },
+    {
+      "id": "10G",
+      "display": "10 (Girls)"
+    },
+    {
+      "id": "12G",
+      "display": "12 (Girls)"
+    },
+    {
+      "id": "14G",
+      "display": "14 (Girls)"
+    },
+    {
+      "id": "16G",
+      "display": "16 (Girls)"
+    },
+    {
+      "id": "XSG",
+      "display": "XS (Girls)"
+    },
+    {
+      "id": "SG",
+      "display": "S (Girls)"
+    },
+    {
+      "id": "MG",
+      "display": "M (Girls)"
+    },
+    {
+      "id": "LG",
+      "display": "L (Girls)"
+    },
+    {
+      "id": "XLG",
+      "display": "XL (Girls)"
+    },
+    {
+      "id": "XXLG",
+      "display": "XXL (Girls)"
+    },
+    {
       "id": "2TB",
-      "display": "2T"
+      "display": "2T (Boys)"
     },
     {
       "id": "3TB",
-      "display": "3T"
+      "display": "3T (Boys)"
     },
     {
       "id": "4TB",
-      "display": "4T"
+      "display": "4T (Boys)"
     },
     {
       "id": "5TB",
-      "display": "5T"
+      "display": "5T (Boys)"
     },
     {
       "id": "4B",
-      "display": "4"
+      "display": "4 (Boys)"
     },
     {
       "id": "5B",
-      "display": "5"
+      "display": "5 (Boys)"
     },
     {
       "id": "6B",
-      "display": "6"
+      "display": "6 (Boys)"
     },
     {
       "id": "7B",
-      "display": "7"
+      "display": "7 (Boys)"
     },
     {
       "id": "7XB",
-      "display": "7X"
+      "display": "7X (Boys)"
     },
     {
       "id": "8B",
-      "display": "8"
+      "display": "8 (Boys)"
     },
     {
       "id": "10B",
-      "display": "10"
+      "display": "10 (Boys)"
     },
     {
       "id": "12B",
-      "display": "12"
+      "display": "12 (Boys)"
     },
     {
       "id": "14B",
-      "display": "14"
+      "display": "14 (Boys)"
     },
     {
       "id": "16B",
-      "display": "16"
+      "display": "16 (Boys)"
     },
     {
       "id": "18B",
-      "display": "18"
+      "display": "18 (Boys)"
     },
     {
       "id": "20B",
-      "display": "20"
+      "display": "20 (Boys)"
     },
     {
       "id": "XSB",
-      "display": "XS"
+      "display": "XS (Boys)"
     },
     {
       "id": "SB",
-      "display": "S"
+      "display": "S (Boys)"
     },
     {
       "id": "MB",
-      "display": "M"
+      "display": "M (Boys)"
     },
     {
       "id": "LB",
-      "display": "L"
+      "display": "L (Boys)"
     },
     {
       "id": "XLB",
-      "display": "XL"
+      "display": "XL (Boys)"
     },
     {
       "id": "XXLB",
-      "display": "XXL"
+      "display": "XXL (Boys)"
     }
   ],
   "30008c10d97b4e1245005764": [
     {
+      "id": "OSBB",
+      "display": "One Size (Baby)"
+    },
+    {
+      "id": "OSB",
+      "display": "One Size (Boys)"
+    },
+    {
       "id": "OSG",
-      "display": "One Size"
+      "display": "One Size (Girls)"
     }
   ],
   "727df9aaaabb083120f45ec2": [
     {
+      "id": "OSBB",
+      "display": "One Size (Baby)"
+    },
+    {
+      "id": "OSB",
+      "display": "One Size (Boys)"
+    },
+    {
       "id": "OSG",
-      "display": "One Size"
+      "display": "One Size (Girls)"
     }
   ],
   "737df9aaaabb083120f45ec2": [
     {
+      "id": "OSBB",
+      "display": "One Size (Baby)"
+    },
+    {
+      "id": "OSB",
+      "display": "One Size (Boys)"
+    },
+    {
       "id": "OSG",
-      "display": "One Size"
+      "display": "One Size (Girls)"
     }
   ],
   "31008c10d97b4e1245005764": [

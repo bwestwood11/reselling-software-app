@@ -321,16 +321,24 @@ version (not fully inspected this session).
 Known department ids: `000e8975d97b4e80ef00a955` = Women, `01008c10d97b4e1245005764` = Men
 (others un-enumerated).
 
-**Prefilling this taxonomy for a cross-listed item is fundamentally limited**: there is no
-eBay/Mercari → Poshmark category mapping (`apps/api/src/services/prefill/poshmark.ts`), so a
-category can only ever be carried over from a *prior* Poshmark listing of the same item. A
-brand-new item being cross-listed to Poshmark for the first time gets **no** department/
-category/subcategory/size prefill and must have them set manually in the crosslist form
-before submitting (`use-crosslist-form.ts` / `use-listing-form.ts`'s `validatePoshmarkFields`
-blocks submission if department+category, or size when the category has one, are missing).
+**Category prefill**: a category is carried over from a *prior* Poshmark listing of the same
+item when one exists (`apps/api/src/services/prefill/poshmark.ts`). Otherwise the web form
+guesses one with `guessPoshmarkCategory` (`apps/web/src/lib/poshmark/category-match.ts`), which
+scores Poshmark's category names against the item's category path (eBay's
+`Clothing, Shoes & Accessories:Men:Men's Clothing:Shirts:Polos`), item specifics
+(Department/Gender, Type, Product, Style…) and title. It returns only a department, or nothing,
+when the evidence is weak; `validatePoshmarkFields` still blocks submission if department+category,
+or size when the category has one, are missing.
 
 **Sizes are category-scoped**, not global — `POSHMARK_SIZE_MAP[subcategoryId] ??
-POSHMARK_SIZE_MAP[categoryId]` in `use-poshmark-fields.ts`. `GET
+POSHMARK_SIZE_MAP[categoryId]` in `use-poshmark-fields.ts`. Each category has several size
+*sets* (Standard, Big & Tall, Plus, Petite, Juniors, Maternity; Baby/Girls/Boys for Kids) with
+distinct ids — e.g. Women's Standard `M` vs Maternity `MM`. The map merges all sets; non-Standard
+sizes carry the set name in their label (`XXL (Big & Tall)`). Regenerate it from Poshmark's
+public category pages with `node --experimental-strip-types scripts/build-poshmark-sizes.mjs`
+(an earlier generator kept only the last set per category, dropping e.g. Men's S–XL).
+`matchPoshmarkSize` resolves an item's size label (`2XL`, `Large`, `38`) to an id, preferring
+the Standard set. `GET
 /vm-rest/metadata/sizes?pm_version=...` exists but returns a **different, unrelated** size-id
 namespace (`womens_dresses_xxs` style ids used by Poshmark's "My Size" profile feature) — do
 not use it for listing-creation size ids.

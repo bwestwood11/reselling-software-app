@@ -11,8 +11,17 @@ const CONDITION_MAP: Record<string, string> = {
   SATISFACTORY: "fair",
 };
 
-/** Attribute names that commonly carry a size on an inventory item. */
-const SIZE_ATTRIBUTE_NAMES = ["size", "us size", "shoe size", "clothing size"];
+/** Attribute names that commonly carry a size on an inventory item, most specific first. */
+const SIZE_ATTRIBUTE_NAMES = [
+  "size",
+  "us shoe size",
+  "shoe size",
+  "us size",
+  "clothing size",
+  "size (men's)",
+  "size (women's)",
+  "waist size",
+];
 
 export class PoshmarkPrefillProvider extends BasePrefillProvider {
   readonly marketplace = "POSHMARK";
@@ -49,8 +58,10 @@ export class PoshmarkPrefillProvider extends BasePrefillProvider {
     // size: prior Poshmark listing's sizeId is already a Poshmark ID, but it is only valid for
     // the same category. Pass it as a label and let the client match it against the size list
     // for whichever category ends up selected.
-    const sizeFromAttribute = ((item.attributes ?? []) as Array<{ name: string; value: string }>)
-      .find((a) => a.name && SIZE_ATTRIBUTE_NAMES.includes(a.name.trim().toLowerCase()))?.value;
+    const attributes = (item.attributes ?? []) as Array<{ name: string; value: string }>;
+    const sizeFromAttribute = SIZE_ATTRIBUTE_NAMES.map(
+      (name) => attributes.find((a) => a.name?.trim().toLowerCase() === name)?.value
+    ).find((v) => v?.trim());
     const sizeLabel = str(poshMd?.["sizeId"]) ?? str(sizeFromAttribute);
 
     const colors = Array.isArray(poshMd?.["colors"])

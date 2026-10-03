@@ -19,6 +19,7 @@ import { useEbayCategories } from "./use-ebay-categories";
 import { useMercariCategories, type MercariCat } from "./use-mercari-categories";
 import { useMercariShipping } from "./use-mercari-shipping";
 import { usePoshmarkFields } from "./use-poshmark-fields";
+import { guessPoshmarkCategory, matchPoshmarkSize } from "@/lib/poshmark/category-match";
 
 export type CrossFill = { source: string; fields: string[] };
 export type MercariAddress = {
@@ -325,16 +326,37 @@ export function useListingForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillData, detailId, prefillMarketplace, isMercari, isEbay, isPoshmark]);
 
+  // No prior Poshmark listing to copy a category from — guess one from the item's own category
+  // path, item specifics and title. Runs once per item, after the prefill has had its chance,
+  // and only while nothing is selected.
+  const guessedPoshmarkCategoryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isPoshmark || !prefillData || !itemDetail || itemDetail.id !== detailId) return;
+    if (guessedPoshmarkCategoryRef.current === detailId) return;
+    guessedPoshmarkCategoryRef.current = detailId;
+    if (prefillData.poshmark?.departmentId || poshmark.poshmarkDeptId) return;
+
+    const guess = guessPoshmarkCategory(itemDetail);
+    if (!guess) return;
+    poshmark.applyPrefilledCategory(guess);
+    setValue("poshmarkDepartmentId", guess.departmentId);
+    if (guess.categoryId) setValue("poshmarkCategoryId", guess.categoryId);
+    if (guess.subcategoryId) setValue("poshmarkSubcategoryId", guess.subcategoryId);
+    if (guess.categoryId) {
+      setCrossFill((prev) => ({
+        source: prev?.source ?? "item details",
+        fields: [...new Set([...(prev?.fields ?? []), "category"])],
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPoshmark, prefillData, itemDetail, detailId]);
+
   // Resolve a prefilled Poshmark size label once the category's size list is known — the list
   // only exists after a category is picked, which may happen after the prefill lands.
   const poshmarkPrefilledSizeLabel = poshmark.prefilledSizeLabel;
   useEffect(() => {
     if (!poshmarkPrefilledSizeLabel || poshmark.poshmarkSizes.length === 0) return;
-    const match = poshmark.poshmarkSizes.find(
-      (s) =>
-        s.display.toLowerCase() === poshmarkPrefilledSizeLabel.toLowerCase() ||
-        s.id === poshmarkPrefilledSizeLabel
-    );
+    const match = matchPoshmarkSize(poshmark.poshmarkSizes, poshmarkPrefilledSizeLabel);
     if (match) setValue("poshmarkSizeId", match.id);
     poshmark.setPoshmarkPrefilledSize(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
