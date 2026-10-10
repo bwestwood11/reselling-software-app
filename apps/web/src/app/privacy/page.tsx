@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CONTACT_EMAIL, SITE_NAME } from "@/lib/site";
+import { CookiePreferencesButton } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -197,14 +198,23 @@ export default function PrivacyPage(): import("react").JSX.Element {
           <Section title="5. Cookies and local storage">
             <P>
               We use a session cookie to keep you signed in and a small amount of browser storage
-              for preferences such as your last-used inventory view. The Chrome extension uses its
+              for preferences such as your last-used inventory view and your cookie choice. The
+              Chrome extension uses its
               own local extension storage for its sign-in token.
             </P>
             <P>
               Our website also uses Google Analytics, which sets cookies (such as{" "}
               <code>_ga</code>) to tell visitors apart and measure how the site is used. We use
-              this for analytics only — we do not use advertising cookies. You can opt out by
-              installing the{" "}
+              this for analytics only — we do not use advertising cookies. If you are in the
+              European Economic Area, the United Kingdom or Switzerland, these cookies are only
+              set after you accept them in our cookie banner. If you decline, no analytics
+              cookies are stored and Google Analytics receives only limited, cookieless
+              measurement signals (such as that a page was viewed) that are not linked to you
+              across visits. Wherever you are, you can{" "}
+              <CookiePreferencesButton className="font-medium text-orange-600 underline-offset-2 hover:underline">
+                change your cookie choice
+              </CookiePreferencesButton>{" "}
+              at any time. You can also opt out by installing the{" "}
               <a
                 href="https://tools.google.com/dlpage/gaoptout"
                 target="_blank"

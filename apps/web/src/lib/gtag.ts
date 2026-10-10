@@ -9,6 +9,29 @@ declare global {
   }
 }
 
+/**
+ * Tell Google Consent Mode whether analytics cookies are allowed. With "denied" the tag
+ * still loads but sets and reads no cookies, sending only cookieless pings that Google
+ * uses for modelled reporting. "default" must be queued before the tag is configured;
+ * "update" applies a later choice. Advertising storage is always denied — we run no ads.
+ */
+export function setAnalyticsConsent(
+  command: "default" | "update",
+  analytics: "granted" | "denied"
+): void {
+  window.dataLayer = window.dataLayer ?? [];
+  // gtag.js only understands `arguments` objects in the queue, not arrays.
+  (function gtag(..._args: unknown[]) {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments);
+  })("consent", command, {
+    analytics_storage: analytics,
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  });
+}
+
 export function trackEvent(name: string, params?: GtagParams): void {
   if (typeof window === "undefined") return;
   window.gtag?.("event", name, params);

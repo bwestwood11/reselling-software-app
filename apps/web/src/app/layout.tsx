@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Geist } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+import { CookieConsent } from "@/components/cookie-consent";
 import { Providers } from "@/providers/providers";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
@@ -67,8 +67,8 @@ export default function RootLayout({
           {children}
           <Toaster richColors position="top-right" />
         </Providers>
+        {GA_MEASUREMENT_ID ? <CookieConsent gaId={GA_MEASUREMENT_ID} /> : null}
       </body>
-      {GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
     </html>
   );
 }
