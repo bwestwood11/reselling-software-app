@@ -3,10 +3,16 @@ import { requireAuth } from "../middleware/auth";
 import { SubscriptionService } from "../services/subscription.service";
 import type { PlanKey, BillingInterval } from "../config/plans";
 import { PLANS } from "../config/plans";
+import type { GaIds } from "../services/google-analytics";
 
-/** Accept only a well-formed GA client ID ("<digits>.<digits>") — it ends up in Stripe metadata. */
-function parseGaClientId(value: unknown): string | undefined {
-  return typeof value === "string" && /^\d{1,20}\.\d{1,20}$/.test(value) ? value : undefined;
+/** Accept only well-formed GA ids (client "<digits>.<digits>", session "<digits>") — they end up in Stripe metadata. */
+function parseGaIds(body: { gaClientId?: unknown; gaSessionId?: unknown }): GaIds {
+  const pick = (value: unknown, pattern: RegExp) =>
+    typeof value === "string" && pattern.test(value) ? value : undefined;
+  return {
+    clientId: pick(body.gaClientId, /^\d{1,20}\.\d{1,20}$/),
+    sessionId: pick(body.gaSessionId, /^\d{1,20}$/),
+  };
 }
 
 export async function subscriptionRoutes(fastify: FastifyInstance) {
@@ -24,12 +30,14 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/subscriptions/checkout
-  // Body: { plan: "SIDE_HUSTLE" | "FULL_TIME", interval?: "monthly" | "yearly", gaClientId?: string }
-  fastify.post<{ Body: { plan: PlanKey; interval?: BillingInterval; gaClientId?: string } }>(
+  // Body: { plan: "SIDE_HUSTLE" | "FULL_TIME", interval?: "monthly" | "yearly", gaClientId?: string, gaSessionId?: string }
+  fastify.post<{
+    Body: { plan: PlanKey; interval?: BillingInterval; gaClientId?: string; gaSessionId?: string };
+  }>(
     "/checkout",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const { plan, interval = "monthly", gaClientId } = request.body ?? {};
+      const { plan, interval = "monthly" } = request.body ?? {};
       if (!plan || !PLANS[plan]) {
         return reply.status(400).send({ success: false, error: "Invalid plan" });
       }
@@ -41,7 +49,7 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
           request.user!.id,
           plan,
           interval,
-          parseGaClientId(gaClientId)
+          parseGaIds(request.body ?? {})
         );
         return reply.send({ success: true, data });
       } catch (err) {
@@ -52,18 +60,18 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
   );
 
   // POST /api/subscriptions/topup-checkout
-  // Body: { packs?: number (1–10), gaClientId?: string } — buys packs of smart AI credits
-  fastify.post<{ Body: { packs?: number; gaClientId?: string } }>(
+  // Body: { packs?: number (1–10), gaClientId?: string, gaSessionId?: string } — buys packs of smart AI credits
+  fastify.post<{ Body: { packs?: number; gaClientId?: string; gaSessionId?: string } }>(
     "/topup-checkout",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const { packs = 1, gaClientId } = request.body ?? {};
+      const { packs = 1 } = request.body ?? {};
       const packsNum = Math.max(1, Math.min(10, Math.floor(Number(packs))));
       try {
         const data = await svc.createTopupCheckoutSession(
           request.user!.id,
           packsNum,
-          parseGaClientId(gaClientId)
+          parseGaIds(request.body ?? {})
         );
         return reply.send({ success: true, data });
       } catch (err) {

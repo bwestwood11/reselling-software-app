@@ -1,8 +1,24 @@
 const MP_ENDPOINT = "https://www.google-analytics.com/mp/collect";
 
+/** GA identifiers captured in the browser at checkout and stored in Stripe metadata. */
+export interface GaIds {
+  clientId?: string;
+  sessionId?: string;
+}
+
+/** Stripe metadata entries for the GA identifiers that are present. */
+export function gaMetadata(ga: GaIds): Record<string, string> {
+  return {
+    ...(ga.clientId && { gaClientId: ga.clientId }),
+    ...(ga.sessionId && { gaSessionId: ga.sessionId }),
+  };
+}
+
 export interface GaPurchase {
   /** GA client ID captured in the browser at checkout. */
   clientId: string;
+  /** GA session the checkout started in — without it the event is hidden from Realtime. */
+  sessionId?: string;
   /** Stripe invoice or checkout-session id — GA de-duplicates purchases on this. */
   transactionId: string;
   /** Amount charged, in major units (dollars). */
@@ -24,7 +40,12 @@ export interface GaPurchase {
 export async function sendGaPurchase(purchase: GaPurchase): Promise<void> {
   const measurementId = process.env.GA_MEASUREMENT_ID;
   const apiSecret = process.env.GA_API_SECRET;
-  if (!measurementId || !apiSecret) return;
+  if (!measurementId || !apiSecret) {
+    console.warn(
+      `[ga] purchase ${purchase.transactionId} not sent: GA_MEASUREMENT_ID / GA_API_SECRET not set`
+    );
+    return;
+  }
 
   const quantity = purchase.quantity ?? 1;
   try {
@@ -44,6 +65,7 @@ export async function sendGaPurchase(purchase: GaPurchase): Promise<void> {
                 value: purchase.value,
                 currency: purchase.currency,
                 engagement_time_msec: 1,
+                ...(purchase.sessionId && { session_id: purchase.sessionId }),
                 items: [
                   {
                     item_id: purchase.itemId,
@@ -59,7 +81,11 @@ export async function sendGaPurchase(purchase: GaPurchase): Promise<void> {
         }),
       }
     );
-    if (!res.ok) console.error(`[ga] purchase ${purchase.transactionId} rejected: ${res.status}`);
+    if (!res.ok) {
+      console.error(`[ga] purchase ${purchase.transactionId} rejected: ${res.status}`);
+      return;
+    }
+    console.log(`[ga] purchase ${purchase.transactionId} sent (${purchase.value} ${purchase.currency})`);
   } catch (err) {
     console.error(`[ga] purchase ${purchase.transactionId} failed to send:`, err);
   }

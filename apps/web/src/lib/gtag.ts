@@ -23,3 +23,14 @@ export function getGaClientId(): string | undefined {
   if (typeof document === "undefined") return undefined;
   return document.cookie.match(/(?:^|;\s*)_ga=GA\d+\.\d+\.(\d+\.\d+)/)?.[1];
 }
+
+/**
+ * Current GA session ID, from the property's `_ga_<ID>` cookie ("GS1.1.<sid>.…" or
+ * "GS2.1.s<sid>$…"). GA needs it on server-sent events for them to show in Realtime
+ * and be tied to the session that started the checkout.
+ */
+export function getGaSessionId(): string | undefined {
+  const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.replace(/^G-/, "");
+  if (!id || typeof document === "undefined") return undefined;
+  return document.cookie.match(new RegExp(`(?:^|;\\s*)_ga_${id}=GS\\d\\.\\d\\.s?(\\d+)`))?.[1];
+}

@@ -12,7 +12,7 @@ import {
   type PlanKey,
   type BillingInterval,
 } from "../config/plans";
-import { sendGaPurchase } from "./google-analytics";
+import { gaMetadata, sendGaPurchase, type GaIds } from "./google-analytics";
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -228,7 +228,7 @@ export class SubscriptionService {
     userId: string,
     plan: PlanKey,
     interval: BillingInterval,
-    gaClientId?: string
+    ga: GaIds = {}
   ) {
     if (!isPaidPlan(plan) || !PLANS[plan].selfServe) {
       throw new Error(`Plan "${plan}" cannot be purchased self-serve.`);
@@ -255,9 +255,9 @@ export class SubscriptionService {
       cancel_url: `${webUrl}/settings/billing`,
       metadata: { userId, plan, interval },
       subscription_data: {
-        // gaClientId rides on the subscription so later charges (trial end,
+        // The GA ids ride on the subscription so later charges (trial end,
         // renewals) can be reported to Google Analytics against this visitor.
-        metadata: { userId, plan, interval, ...(gaClientId && { gaClientId }) },
+        metadata: { userId, plan, interval, ...gaMetadata(ga) },
         ...(eligibleForTrial && { trial_period_days: TRIAL_DAYS }),
       },
     });
@@ -266,7 +266,7 @@ export class SubscriptionService {
   }
 
   /** One-time purchase of AI credit top-up packs. */
-  async createTopupCheckoutSession(userId: string, packs = 1, gaClientId?: string) {
+  async createTopupCheckoutSession(userId: string, packs = 1, ga: GaIds = {}) {
     if (!AI_CREDIT_TOPUP.stripePriceId) {
       throw new Error("AI credit top-up is not configured. Set STRIPE_AI_CREDITS_PRICE_ID.");
     }
@@ -286,7 +286,7 @@ export class SubscriptionService {
         userId,
         topup: "AI_CREDITS",
         totalCredits: String(totalCredits),
-        ...(gaClientId && { gaClientId }),
+        ...gaMetadata(ga),
       },
     });
 
@@ -392,10 +392,15 @@ export class SubscriptionService {
         const session = event.data.object as Stripe.Checkout.Session;
         const clientId = session.metadata?.["gaClientId"];
         // Subscription checkouts are reported from their invoice instead.
-        if (session.mode !== "payment" || !clientId || !session.amount_total) return;
+        if (session.mode !== "payment" || !session.amount_total) return;
+        if (!clientId) {
+          console.log(`[ga] purchase ${session.id} not sent: checkout has no GA client ID`);
+          return;
+        }
         const credits = Number(session.metadata?.["totalCredits"]) || 0;
         await sendGaPurchase({
           clientId,
+          sessionId: session.metadata?.["gaSessionId"],
           transactionId: session.id,
           value: session.amount_total / 100,
           currency: (session.currency ?? "usd").toUpperCase(),
@@ -411,11 +416,15 @@ export class SubscriptionService {
         if (!subId || !invoice.amount_paid || !invoice.id) return;
         const stripeSub = await getStripe().subscriptions.retrieve(subId);
         const clientId = stripeSub.metadata["gaClientId"];
-        if (!clientId) return;
+        if (!clientId) {
+          console.log(`[ga] purchase ${invoice.id} not sent: subscription has no GA client ID`);
+          return;
+        }
         const priceId = stripeSub.items.data[0]?.price.id;
         const match = priceId ? getPlanByStripePriceId(priceId) : null;
         await sendGaPurchase({
           clientId,
+          sessionId: stripeSub.metadata["gaSessionId"],
           transactionId: invoice.id,
           value: invoice.amount_paid / 100,
           currency: invoice.currency.toUpperCase(),
