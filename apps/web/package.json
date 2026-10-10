@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
+    "@next/third-parties": "15.5.15",
     "@repo/auth": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/types": "workspace:*",

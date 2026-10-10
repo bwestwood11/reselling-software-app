@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Geist } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Providers } from "@/providers/providers";
 import { Toaster } from "sonner";
@@ -15,6 +16,9 @@ import {
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({ subsets: ["latin"] });
+
+// GA4 measurement ID (G-XXXXXXXXXX). Analytics stays off when unset, e.g. in local dev.
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -64,6 +68,7 @@ export default function RootLayout({
           <Toaster richColors position="top-right" />
         </Providers>
       </body>
+      {GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
     </html>
   );
 }

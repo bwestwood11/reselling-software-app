@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-const EFFECTIVE_DATE = "September 20, 2026";
+const EFFECTIVE_DATE = "October 10, 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -105,6 +105,13 @@ export default function PrivacyPage(): import("react").JSX.Element {
                   events (including errors), AI credit usage, and standard server logs such as IP
                   address, browser type and timestamps.
                 </>,
+                <>
+                  <B>Website usage data</B> — on our website we use Google Analytics to collect
+                  information about how the site is used, such as the pages you view, how you
+                  arrived, your approximate location (country and city), and your device and
+                  browser type. This is collected through cookies and is not used in our mobile
+                  app or Chrome extension.
+                </>,
               ]}
             />
           </Section>
@@ -117,6 +124,7 @@ export default function PrivacyPage(): import("react").JSX.Element {
                 "Process subscriptions, free trials, AI credit purchases and billing.",
                 "Send transactional email such as your verification code, and respond to support requests.",
                 "Keep the Service secure, prevent abuse and fraud, and fix bugs.",
+                "Understand how our website is used, in aggregate, so we can improve it.",
               ]}
             />
             <P>We do not sell your personal information and we do not use it for advertising.</P>
@@ -174,7 +182,8 @@ export default function PrivacyPage(): import("react").JSX.Element {
                   your behalf.
                 </>,
                 <>
-                  <B>Google</B> — if you choose to sign in with Google.
+                  <B>Google</B> — if you choose to sign in with Google, and website usage data
+                  collected through Google Analytics.
                 </>,
               ]}
             />
@@ -188,9 +197,23 @@ export default function PrivacyPage(): import("react").JSX.Element {
           <Section title="5. Cookies and local storage">
             <P>
               We use a session cookie to keep you signed in and a small amount of browser storage
-              for preferences such as your last-used inventory view. We do not use advertising or
-              third-party tracking cookies. The Chrome extension uses its own local extension
-              storage for its sign-in token.
+              for preferences such as your last-used inventory view. The Chrome extension uses its
+              own local extension storage for its sign-in token.
+            </P>
+            <P>
+              Our website also uses Google Analytics, which sets cookies (such as{" "}
+              <code>_ga</code>) to tell visitors apart and measure how the site is used. We use
+              this for analytics only — we do not use advertising cookies. You can opt out by
+              installing the{" "}
+              <a
+                href="https://tools.google.com/dlpage/gaoptout"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-orange-600 underline-offset-2 hover:underline"
+              >
+                Google Analytics opt-out browser add-on
+              </a>{" "}
+              or by blocking cookies in your browser settings.
             </P>
           </Section>
 
