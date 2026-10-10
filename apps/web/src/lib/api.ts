@@ -9,6 +9,7 @@ import type {
   ScanSession,
   ScanTier,
 } from "@repo/types";
+import { getGaClientId } from "./gtag";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -367,12 +368,12 @@ export const subscriptionApi = {
   createCheckout: (plan: string, interval: "monthly" | "yearly" = "monthly") =>
     request<any>("/api/subscriptions/checkout", {
       method: "POST",
-      body: JSON.stringify({ plan, interval }),
+      body: JSON.stringify({ plan, interval, gaClientId: getGaClientId() }),
     }),
   createTopupCheckout: (packs = 1) =>
     request<any>("/api/subscriptions/topup-checkout", {
       method: "POST",
-      body: JSON.stringify({ packs }),
+      body: JSON.stringify({ packs, gaClientId: getGaClientId() }),
     }),
   verifySession: (sessionId: string) =>
     request<any>("/api/subscriptions/verify-session", {

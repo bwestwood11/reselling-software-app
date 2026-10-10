@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { cn } from "@repo/ui";
 import { TrialNotice } from "@/components/auth/trial-notice";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { trackEvent } from "@/lib/gtag";
 import {
   Dialog,
   DialogContent,
@@ -220,6 +221,11 @@ function BillingContent() {
     onSuccess: ({ data }) => {
       queryClient.setQueryData(["subscription"], { data });
       queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      // Charges are reported to GA server-side from the Stripe webhook; a trial
+      // start has no charge, so it is recorded here.
+      if (justSubscribed && data.isTrialing) {
+        trackEvent("start_trial", { plan: data.plan, billing_interval: data.billingInterval });
+      }
       // Strip session_id from the URL so a refresh doesn't re-verify.
       window.history.replaceState(
         null,
@@ -249,7 +255,24 @@ function BillingContent() {
   const checkoutMutation = useMutation({
     mutationFn: (plan: PlanType) =>
       subscriptionApi.createCheckout(plan, interval) as Promise<{ data: { url: string } }>,
-    onSuccess: ({ data }) => {
+    onSuccess: ({ data }, plan) => {
+      const price = PLAN_DISPLAY[plan];
+      const value =
+        interval === "yearly"
+          ? Math.round(price.priceYearlyPerMonth * 12 * 100) / 100
+          : price.priceMonthly;
+      trackEvent("begin_checkout", {
+        currency: "USD",
+        value,
+        items: [
+          {
+            item_id: `${plan}_${interval}`,
+            item_name: `${price.name} (${interval})`,
+            price: value,
+            quantity: 1,
+          },
+        ],
+      });
       window.location.href = data.url;
     },
     onError: (err: Error) => toast.error(err.message ?? "Failed to start checkout"),
@@ -258,7 +281,19 @@ function BillingContent() {
   const topupMutation = useMutation({
     mutationFn: (n: number) =>
       subscriptionApi.createTopupCheckout(n) as Promise<{ data: { url: string } }>,
-    onSuccess: ({ data }) => {
+    onSuccess: ({ data }, n) => {
+      trackEvent("begin_checkout", {
+        currency: "USD",
+        value: n * TOPUP.pricePerPack,
+        items: [
+          {
+            item_id: "AI_CREDITS",
+            item_name: "Smart AI Credits",
+            price: TOPUP.pricePerPack,
+            quantity: n,
+          },
+        ],
+      });
       window.location.href = data.url;
     },
     onError: (err: Error) => toast.error(err.message ?? "Failed to start checkout"),

@@ -8,6 +8,7 @@ import { Button } from "@repo/ui";
 import { emailOtp } from "@repo/auth/client";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { OtpInput } from "@/components/auth/otp-input";
+import { trackEvent } from "@/lib/gtag";
 
 const RESEND_COOLDOWN_SECONDS = 90;
 
@@ -49,6 +50,8 @@ function VerifyEmailForm(): import("react").JSX.Element {
       return;
     }
 
+    // An email is only ever verified once, so this is the account's sign-up moment.
+    trackEvent("sign_up", { method: "email" });
     router.push("/dashboard");
   }
 

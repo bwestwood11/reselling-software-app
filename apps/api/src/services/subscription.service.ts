@@ -12,6 +12,7 @@ import {
   type PlanKey,
   type BillingInterval,
 } from "../config/plans";
+import { sendGaPurchase } from "./google-analytics";
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -223,7 +224,12 @@ export class SubscriptionService {
    * {@link TRIAL_DAYS}-day free trial; a card is collected up front and charged
    * automatically when the trial ends unless the user cancels.
    */
-  async createCheckoutSession(userId: string, plan: PlanKey, interval: BillingInterval) {
+  async createCheckoutSession(
+    userId: string,
+    plan: PlanKey,
+    interval: BillingInterval,
+    gaClientId?: string
+  ) {
     if (!isPaidPlan(plan) || !PLANS[plan].selfServe) {
       throw new Error(`Plan "${plan}" cannot be purchased self-serve.`);
     }
@@ -249,7 +255,9 @@ export class SubscriptionService {
       cancel_url: `${webUrl}/settings/billing`,
       metadata: { userId, plan, interval },
       subscription_data: {
-        metadata: { userId, plan, interval },
+        // gaClientId rides on the subscription so later charges (trial end,
+        // renewals) can be reported to Google Analytics against this visitor.
+        metadata: { userId, plan, interval, ...(gaClientId && { gaClientId }) },
         ...(eligibleForTrial && { trial_period_days: TRIAL_DAYS }),
       },
     });
@@ -258,7 +266,7 @@ export class SubscriptionService {
   }
 
   /** One-time purchase of AI credit top-up packs. */
-  async createTopupCheckoutSession(userId: string, packs = 1) {
+  async createTopupCheckoutSession(userId: string, packs = 1, gaClientId?: string) {
     if (!AI_CREDIT_TOPUP.stripePriceId) {
       throw new Error("AI credit top-up is not configured. Set STRIPE_AI_CREDITS_PRICE_ID.");
     }
@@ -274,7 +282,12 @@ export class SubscriptionService {
       line_items: [{ price: AI_CREDIT_TOPUP.stripePriceId, quantity: packs }],
       success_url: `${webUrl}/settings/billing?topup_success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/settings/billing`,
-      metadata: { userId, topup: "AI_CREDITS", totalCredits: String(totalCredits) },
+      metadata: {
+        userId,
+        topup: "AI_CREDITS",
+        totalCredits: String(totalCredits),
+        ...(gaClientId && { gaClientId }),
+      },
     });
 
     return { url: session.url! };
@@ -362,6 +375,60 @@ export class SubscriptionService {
       // reprocess the event cleanly instead of being deduped away.
       await this.db.stripeWebhookEvent.delete({ where: { id: event.id } }).catch(() => {});
       throw err;
+    }
+
+    await this.trackRevenue(event);
+  }
+
+  /**
+   * Report real charges to Google Analytics as `purchase` events: every paid
+   * subscription invoice (trial conversion, early trial end, renewal, plan change)
+   * and every AI-credit top-up. Runs once per event, after it has been handled, and
+   * never throws. Skipped when the checkout carried no GA client ID.
+   */
+  private async trackRevenue(event: Stripe.Event): Promise<void> {
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const clientId = session.metadata?.["gaClientId"];
+        // Subscription checkouts are reported from their invoice instead.
+        if (session.mode !== "payment" || !clientId || !session.amount_total) return;
+        const credits = Number(session.metadata?.["totalCredits"]) || 0;
+        await sendGaPurchase({
+          clientId,
+          transactionId: session.id,
+          value: session.amount_total / 100,
+          currency: (session.currency ?? "usd").toUpperCase(),
+          itemId: "AI_CREDITS",
+          itemName: AI_CREDIT_TOPUP.name,
+          quantity: Math.max(1, credits / AI_CREDIT_TOPUP.creditsPerPack),
+          params: { purchase_type: "ai_credit_topup" },
+        });
+      } else if (event.type === "invoice.payment_succeeded") {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = subscriptionIdFromInvoice(invoice);
+        // The invoice that opens a free trial is $0 — not a purchase.
+        if (!subId || !invoice.amount_paid || !invoice.id) return;
+        const stripeSub = await getStripe().subscriptions.retrieve(subId);
+        const clientId = stripeSub.metadata["gaClientId"];
+        if (!clientId) return;
+        const priceId = stripeSub.items.data[0]?.price.id;
+        const match = priceId ? getPlanByStripePriceId(priceId) : null;
+        await sendGaPurchase({
+          clientId,
+          transactionId: invoice.id,
+          value: invoice.amount_paid / 100,
+          currency: invoice.currency.toUpperCase(),
+          itemId: match ? `${match.plan}_${match.interval}` : (priceId ?? "subscription"),
+          itemName: match ? `${PLANS[match.plan].name} (${match.interval})` : "Subscription",
+          params: {
+            purchase_type: "subscription",
+            billing_reason: invoice.billing_reason ?? "unknown",
+          },
+        });
+      }
+    } catch (err) {
+      console.error(`[ga] failed to report revenue for ${event.type} ${event.id}:`, err);
     }
   }
 

@@ -4,6 +4,11 @@ import { SubscriptionService } from "../services/subscription.service";
 import type { PlanKey, BillingInterval } from "../config/plans";
 import { PLANS } from "../config/plans";
 
+/** Accept only a well-formed GA client ID ("<digits>.<digits>") — it ends up in Stripe metadata. */
+function parseGaClientId(value: unknown): string | undefined {
+  return typeof value === "string" && /^\d{1,20}\.\d{1,20}$/.test(value) ? value : undefined;
+}
+
 export async function subscriptionRoutes(fastify: FastifyInstance) {
   const svc = new SubscriptionService(fastify.prisma);
 
@@ -19,12 +24,12 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/subscriptions/checkout
-  // Body: { plan: "SIDE_HUSTLE" | "FULL_TIME", interval?: "monthly" | "yearly" }
-  fastify.post<{ Body: { plan: PlanKey; interval?: BillingInterval } }>(
+  // Body: { plan: "SIDE_HUSTLE" | "FULL_TIME", interval?: "monthly" | "yearly", gaClientId?: string }
+  fastify.post<{ Body: { plan: PlanKey; interval?: BillingInterval; gaClientId?: string } }>(
     "/checkout",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const { plan, interval = "monthly" } = request.body ?? {};
+      const { plan, interval = "monthly", gaClientId } = request.body ?? {};
       if (!plan || !PLANS[plan]) {
         return reply.status(400).send({ success: false, error: "Invalid plan" });
       }
@@ -32,7 +37,12 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: "Invalid billing interval" });
       }
       try {
-        const data = await svc.createCheckoutSession(request.user!.id, plan, interval);
+        const data = await svc.createCheckoutSession(
+          request.user!.id,
+          plan,
+          interval,
+          parseGaClientId(gaClientId)
+        );
         return reply.send({ success: true, data });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -42,15 +52,19 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
   );
 
   // POST /api/subscriptions/topup-checkout
-  // Body: { packs?: number (1–10) } — buys packs of smart AI credits
-  fastify.post<{ Body: { packs?: number } }>(
+  // Body: { packs?: number (1–10), gaClientId?: string } — buys packs of smart AI credits
+  fastify.post<{ Body: { packs?: number; gaClientId?: string } }>(
     "/topup-checkout",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const { packs = 1 } = request.body ?? {};
+      const { packs = 1, gaClientId } = request.body ?? {};
       const packsNum = Math.max(1, Math.min(10, Math.floor(Number(packs))));
       try {
-        const data = await svc.createTopupCheckoutSession(request.user!.id, packsNum);
+        const data = await svc.createTopupCheckoutSession(
+          request.user!.id,
+          packsNum,
+          parseGaClientId(gaClientId)
+        );
         return reply.send({ success: true, data });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";

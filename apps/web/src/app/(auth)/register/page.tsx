@@ -11,6 +11,7 @@ import { Button, Input, Label } from "@repo/ui";
 import { signUp } from "@repo/auth/client";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { TrialNotice } from "@/components/auth/trial-notice";
+import { trackEvent } from "@/lib/gtag";
 
 const schema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -53,6 +54,7 @@ export default function RegisterPage(): import("react").JSX.Element {
       return;
     }
 
+    trackEvent("sign_up", { method: "email" });
     router.push("/dashboard");
   }
 
