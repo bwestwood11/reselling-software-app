@@ -1,4 +1,5 @@
 import type { Listing, MarketplaceType, Prisma, PrismaClient } from "@repo/db";
+import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
 
 /**
  * Extension-driven delisting for Mercari and Poshmark.
@@ -144,6 +145,10 @@ export async function enqueueExtensionDelist(
       data: { jobId: job.id },
     },
   });
+
+  // Mercari delists can also run server-side over the residential proxy (no-op unless enabled) —
+  // so a sale elsewhere still pulls the Mercari copy down when the user has no extension running.
+  if (listing.marketplace === "MERCARI") scheduleMercariServerJob(job.id, listing.userId);
 
   return { jobId: job.id, deduped: false };
 }

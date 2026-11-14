@@ -19,6 +19,7 @@ import { poshmarkRoutes } from "./routes/poshmark";
 import { aiRoutes } from "./routes/ai";
 import { sourcesRoutes } from "./routes/sources";
 import { scanRoutes } from "./routes/scan";
+import { proxyTestRoutes } from "./routes/proxy-tests";
 import { prismaPlugin } from "./plugins/prisma";
 
 export async function buildApp() {
@@ -122,6 +123,10 @@ export async function buildApp() {
   await app.register(aiRoutes, { prefix: "/api/ai" });
   await app.register(sourcesRoutes, { prefix: "/api/sources" });
   await app.register(scanRoutes, { prefix: "/api/scan" });
+  // Residential-proxy diagnostics — only exist while PROXY_TEST_TOKEN is set (see the route file).
+  if (process.env.PROXY_TEST_TOKEN) {
+    await app.register(proxyTestRoutes, { prefix: "/api/internal/proxy-tests" });
+  }
   // Webhook must be registered AFTER other routes so its content-type parser
   // override is scoped only to the webhook plugin.
   await app.register(webhookRoutes, { prefix: "/api/webhooks" });

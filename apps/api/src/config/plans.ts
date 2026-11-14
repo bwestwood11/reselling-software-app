@@ -45,8 +45,8 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     description: "For casual sellers ready to scale up",
     inventoryLimit: 1500,
     aiCredits: 500,
-    priceMonthly: 2499, // $24.99/month
-    priceYearlyPerMonth: 1999, // $19.99/month billed yearly
+    priceMonthly: 3999, // $39.99/month
+    priceYearlyPerMonth: 3325, // $33.25/month billed yearly ($399/yr)
     stripePriceIdMonthly: process.env.STRIPE_SIDE_HUSTLE_PRICE_ID ?? "",
     stripePriceIdYearly: process.env.STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID ?? "",
     selfServe: true,
@@ -55,9 +55,9 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     name: "Full-Time",
     description: "For serious resellers growing their business",
     inventoryLimit: 3000,
-    aiCredits: 750,
-    priceMonthly: 4400, // $44.00/month
-    priceYearlyPerMonth: 3999, // $39.99/month billed yearly
+    aiCredits: 1000,
+    priceMonthly: 6999, // $69.99/month
+    priceYearlyPerMonth: 5833, // $58.33/month billed yearly ($699.99/yr)
     stripePriceIdMonthly: process.env.STRIPE_FULL_TIME_PRICE_ID ?? "",
     stripePriceIdYearly: process.env.STRIPE_FULL_TIME_YEARLY_PRICE_ID ?? "",
     selfServe: true,

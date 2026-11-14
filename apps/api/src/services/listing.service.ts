@@ -8,6 +8,7 @@ import { getPaginationParams, buildPaginatedResponse } from "@repo/utils";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 import { markInventoryItemListed } from "./listing-state";
+import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
 import {
   enqueueExtensionDelist,
   isExtensionDelistMarketplace,
@@ -329,8 +330,10 @@ export class ListingService {
         },
       });
 
-      // No server-side fallback: Mercari publishing is extension-only (see the scope note in
-      // jobs/mercari-zenrows.worker.ts). The job stays PENDING until the extension picks it up.
+      // Server-side publishing over the residential proxy, when enabled: runs immediately if the
+      // user's extension is offline, after a grace period if it's online (the extension goes
+      // first). With it disabled this is a no-op and the job waits for the extension.
+      scheduleMercariServerJob(job.id, userId);
       // jobId is returned so the caller can poll /api/mercari/jobs/:id for the real outcome —
       // this call only confirms the job was queued, not that Mercari accepted the listing.
       return { ...updated, jobId: job.id };

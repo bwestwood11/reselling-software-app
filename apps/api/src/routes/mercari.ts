@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
-import { markInventoryItemListed } from "../services/listing-state";
+import { applyMercariPublishOutcome } from "../services/mercari-job-outcome";
+import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
 
 function parseMeta(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
@@ -100,6 +101,9 @@ export async function mercariRoutes(fastify: FastifyInstance) {
         skipExtension: false,
       },
     });
+
+    // Server-side fallback over the residential proxy (no-op unless enabled).
+    scheduleMercariServerJob(job.id, userId);
 
     return reply.status(201).send({ success: true, data: job });
   });
@@ -255,45 +259,13 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     }
 
     if (existing.listingId && isTerminal) {
-      if (body.status === "COMPLETED") {
-        const published = await fastify.prisma.listing.update({
-          where: { id: existing.listingId },
-          data: {
-            status: "ACTIVE",
-            externalId: body.externalId ?? null,
-            externalUrl: body.externalId ? `https://www.mercari.com/us/item/${body.externalId}/` : null,
-            listedAt: now,
-            lastSyncAt: now,
-            syncError: null,
-            publishAttempts: 0,
-          },
-        });
-        await markInventoryItemListed(fastify.prisma, published.inventoryItemId);
-        await fastify.prisma.syncEvent.create({
-          data: {
-            listingId: existing.listingId,
-            type: "PUBLISH",
-            status: "success",
-            message: body.externalId
-              ? `Published to Mercari — listing ID: ${body.externalId}`
-              : "Published to Mercari",
-          },
-        });
-      } else {
-        const errorMsg = body.errorMessage ?? "Extension job failed";
-        await fastify.prisma.listing.update({
-          where: { id: existing.listingId },
-          data: { status: "FAILED", syncError: errorMsg, lastSyncAt: now },
-        });
-        await fastify.prisma.syncEvent.create({
-          data: {
-            listingId: existing.listingId,
-            type: "ERROR",
-            status: "failed",
-            message: errorMsg,
-          },
-        });
-      }
+      await applyMercariPublishOutcome(
+        fastify.prisma,
+        existing.listingId,
+        body.status === "COMPLETED"
+          ? { ok: true, externalId: body.externalId ?? null }
+          : { ok: false, errorMessage: body.errorMessage ?? "Extension job failed" }
+      );
     }
 
     return reply.send({ success: true, data: job });

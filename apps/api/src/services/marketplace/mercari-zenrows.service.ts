@@ -36,8 +36,13 @@ import {
   type RequestInit as UndiciRequestInit,
   type Response as UndiciResponse,
 } from "undici";
+import {
+  MERCARI_API,
+  MERCARI_HASHES,
+  buildCreateListingBody,
+  type MercariPublishPayload,
+} from "./mercari-graphql";
 
-const MERCARI_API = "https://www.mercari.com/v1/api";
 const ZENROWS_API = "https://api.zenrows.com/v1/";
 
 // Server-side publishing is OFF — Mercari listings are created only by the browser extension.
@@ -49,41 +54,11 @@ const ZENROWS_PUBLISH_ENABLED = false;
 // proxy username; params (premium_proxy, proxy_country) go in the password field, joined by "&".
 const ZENROWS_PROXY_URI = "http://api.zenrows.com:8001";
 
-// Apollo persisted-query hashes (confirmed live).
-const UPLOAD_PHOTOS_HASH = "9aa889ac01e549a01c66c7baabc968b0e4a7fa4cd0b6bd32b7599ce10ca09a10";
-const CREATE_LISTING_HASH = "265dab5d0d382d3c83dda7d65e9ad111f47c27aa5d92c7d9a4bacd890d5e32c0";
-const DELIVERY_ADDRESSES_HASH =
-  "60ae4e6793f7c6fcdd16b3aec263abd2ebef115ecabe86407b5c697fadef5f9c";
-
-const CONDITION_IDS: Record<string, number> = {
-  NEW_WITH_TAGS: 1,
-  NEW_WITHOUT_TAGS: 2,
-  VERY_GOOD: 3,
-  GOOD: 4,
-  SATISFACTORY: 5,
-};
-
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 // Shape of the MercariJob.payload built in listing.service.ts.
-export interface MercariZenRowsJobPayload {
-  title: string;
-  description?: string;
-  price: number; // cents
-  condition?: string;
-  images?: string[];
-  categoryId?: number | string | null;
-  brandId?: number | string | null;
-  sizeId?: number | string | null;
-  shippingPayerId?: number;
-  shippingCost?: number | null; // cents
-  shippingClassId?: number | null;
-  shippingPackageWeight?: number; // oz
-  isShippingSoyo?: boolean;
-  offerConfig?: unknown;
-  zipCode?: string | null;
-}
+export type MercariZenRowsJobPayload = MercariPublishPayload;
 
 interface MercariSession {
   accessToken: string;
@@ -245,7 +220,7 @@ export class MercariZenRowsService {
         JSON.stringify({
           operationName: "uploadTempListingPhotos",
           variables: { input: { photos: [null] } },
-          extensions: { persistedQuery: { version: 1, sha256Hash: UPLOAD_PHOTOS_HASH } },
+          extensions: { persistedQuery: { version: 1, sha256Hash: MERCARI_HASHES.uploadTempListingPhotos } },
         })
       );
       form.append("map", JSON.stringify({ "1": ["variables.input.photos.0"] }));
@@ -287,52 +262,6 @@ export class MercariZenRowsService {
   }
 
   // ── createListing (via ZenRows: solves Cloudflare + provides US IP) ──────────────────
-
-  private buildCreateListingBody(payload: MercariZenRowsJobPayload, photoIds: string[]) {
-    const price = payload.price;
-    const conditionId = CONDITION_IDS[payload.condition ?? "GOOD"] ?? 4;
-    const isSoyo = Boolean(payload.isShippingSoyo);
-    const classId = payload.shippingClassId ?? null;
-    const shippingClassIds = isSoyo ? [0] : classId != null ? [classId] : [];
-    const payerId = isSoyo ? 2 : (payload.shippingPayerId ?? 1);
-
-    // Fee = 10% of (price + shipping) when the buyer pays shipping, else 10% of price.
-    // Confirmed: capture showed floor((2000 + 797) * 0.10) = 279.
-    const salesFee =
-      payerId === 1 && payload.shippingCost != null
-        ? Math.floor((price + payload.shippingCost) * 0.1)
-        : Math.floor(price * 0.1);
-    // Confirmed from capture: minPriceForAutoPriceDrop = price * 0.80 (not 0.85).
-    const minPriceForAutoPriceDrop = Math.round(price * 0.8);
-
-    const toInt = (v: unknown) => Number.parseInt(String(v), 10);
-
-    return {
-      operationName: "createListing",
-      variables: {
-        input: {
-          photoIds,
-          name: payload.title,
-          price,
-          description: payload.description ?? "",
-          categoryId: toInt(payload.categoryId),
-          conditionId,
-          shippingPayerId: payerId,
-          shippingClassIds,
-          suggestedShippingClassIds: shippingClassIds,
-          shippingPackageWeight: payload.shippingPackageWeight ?? 8,
-          minPriceForAutoPriceDrop,
-          salesFee,
-          ...(payload.brandId ? { brandId: toInt(payload.brandId) } : {}),
-          ...(payload.sizeId ? { sizeId: toInt(payload.sizeId) } : {}),
-          ...(payload.zipCode ? { zipCode: String(payload.zipCode) } : {}),
-          ...(payload.offerConfig ? { offerConfig: payload.offerConfig } : {}),
-          ...(isSoyo ? { isShippingSoyo: true } : {}),
-        },
-      },
-      extensions: { persistedQuery: { version: 1, sha256Hash: CREATE_LISTING_HASH } },
-    };
-  }
 
   /** POST a Mercari GraphQL request through ZenRows (js_render + US premium proxy). */
   private async zenrowsPost(session: MercariSession, body: unknown): Promise<any> {
@@ -412,7 +341,7 @@ export class MercariZenRowsService {
     if (images.length === 0) throw new Error("At least one photo is required");
 
     const photoIds = await this.uploadPhotos(images, session);
-    const body = this.buildCreateListingBody(payload, photoIds);
+    const body = buildCreateListingBody(payload, photoIds);
     const data = await this.zenrowsPost(session, body);
 
     if (data?.errors?.length) {
@@ -429,7 +358,7 @@ export class MercariZenRowsService {
     const url =
       `${MERCARI_API}?operationName=DeliveryAddresses&variables=%7B%7D` +
       `&extensions=${encodeURIComponent(
-        JSON.stringify({ persistedQuery: { version: 1, sha256Hash: DELIVERY_ADDRESSES_HASH } })
+        JSON.stringify({ persistedQuery: { version: 1, sha256Hash: MERCARI_HASHES.deliveryAddresses } })
       )}`;
     const data = await this.zenrowsGet(session, url);
     if (data?.errors?.length) {

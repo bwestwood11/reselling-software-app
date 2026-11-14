@@ -31,6 +31,7 @@ model User {
   pollRuns               MarketplacePollRun[]
   accountabilityPeople   AccountabilityPerson[]
   accountabilityTasks    AccountabilityTask[]
+  proxyUsage             ProxyUsage[]
 }
 
 model Session {
@@ -497,4 +498,24 @@ model AccountabilityCheckin {
 
   @@unique([taskId, date])
   @@index([date])
+}
+
+// ─── Residential proxy metering ───────────────────────────────────────────────
+// One row per (user, marketplace, calendar month UTC). Bytes are what we pay the proxy provider
+// (Bright Data bills request + response bytes), measured by services/proxy/. `crossPosts` backs
+// the monthly fair-use cap on server-side publishes (PROXY_CROSSPOST_MONTHLY_LIMIT).
+model ProxyUsage {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketplace MarketplaceType
+  month       String // "YYYY-MM" (UTC)
+  bytes       BigInt          @default(0)
+  requests    Int             @default(0)
+  crossPosts  Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([userId, marketplace, month])
+  @@index([month])
 }

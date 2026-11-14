@@ -38,10 +38,10 @@ Each app needs its own `.env` file. Copy `apps/api/.env.example` → `apps/api/.
 Stripe env vars required in `apps/api/.env`:
 - `STRIPE_SECRET_KEY` — Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
-- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle monthly ($24.99/mo)
-- `STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID` — recurring price ID for Side Hustle yearly ($19.99/mo billed annually)
-- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time monthly ($44.00/mo)
-- `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($39.99/mo billed annually)
+- `STRIPE_SIDE_HUSTLE_PRICE_ID` — recurring price ID for Side Hustle monthly ($39.99/mo)
+- `STRIPE_SIDE_HUSTLE_YEARLY_PRICE_ID` — recurring price ID for Side Hustle yearly ($399/yr = $33.25/mo)
+- `STRIPE_FULL_TIME_PRICE_ID` — recurring price ID for Full-Time monthly ($69.99/mo)
+- `STRIPE_FULL_TIME_YEARLY_PRICE_ID` — recurring price ID for Full-Time yearly ($699.99/yr = $58.33/mo)
 - `STRIPE_AI_CREDITS_PRICE_ID` — one-time price ID for the smart AI credit top-up (100 credits/pack)
 
 Photo scanner (`/scan`) needs `GEMINI_API_KEY` in `apps/api/.env`; its eBay price lookups use the Browse API with the existing `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET`/`EBAY_SANDBOX`.
@@ -168,6 +168,8 @@ Factory pattern: `MarketplaceFactory.create(marketplace, connection)` returns a 
 `token-refresh.ts` — `refreshConnectionIfNeeded(db, connection)` refreshes the access token when < 5 minutes remain; `refreshEbayConnection` implements eBay OAuth refresh token flow. Called by adapters before making API calls.
 
 eBay adapter maps internal `Condition` values to eBay `ConditionID` (1000 = NEW_WITH_TAGS, 1500 = NEW_WITHOUT_TAGS, 3000 = pre-owned). Uses the XML-based Trading API.
+
+**Residential proxy / server-side Mercari (no extension):** `services/proxy/` holds the Bright Data config (one sticky IP per user × marketplace), metered HTTP (`proxiedFetch`), and `ProxyUsage` metering plus a monthly server cross-post cap (`PROXY_CROSSPOST_MONTHLY_LIMIT`, default 1,000). `services/marketplace/mercari-server.service.ts` publishes/delists over it: photos are compressed (`services/images/marketplace-image.ts`); GraphQL goes over plain HTTP first and falls back to a headless browser only on a Cloudflare challenge (its cookies live in `metadata.serverCookies`, never `sessionCookies`, which holds the extension's browser cookies). `jobs/mercari-server.worker.ts` runs MercariJobs (publish + delist) immediately when the extension is offline, after a grace period when it's online. Request shapes live in `services/marketplace/mercari-graphql.ts`. Everything is off unless `BRIGHTDATA_*` + `MERCARI_SERVER_PUBLISH=true` + `REDIS_URL` are set. Rollout tests: `apps/api/scripts/proxy/README.md` (`pnpm --filter @repo/api proxy:test …`; on the server, `/api/internal/proxy-tests/*`, which exists only while `PROXY_TEST_TOKEN` is set).
 
 Publishing/cross-listing does not consume credits — it is unlimited on every plan. Credits are only spent on AI features (see the credit model above).
 

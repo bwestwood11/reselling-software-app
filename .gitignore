@@ -50,3 +50,4 @@ coverage
 # Misc
 .cache
 tmp
+mercari-graphql-capture*.json

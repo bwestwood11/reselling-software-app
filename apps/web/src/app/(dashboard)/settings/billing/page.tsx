@@ -65,8 +65,8 @@ const PLAN_DISPLAY: Record<PlanType, PlanDisplay> = {
   },
   SIDE_HUSTLE: {
     name: "Side Hustle",
-    priceMonthly: 24.99,
-    priceYearlyPerMonth: 19.99,
+    priceMonthly: 39.99,
+    priceYearlyPerMonth: 33.25,
     description: "For casual sellers ready to scale up",
     Icon: Briefcase,
     features: [
@@ -82,14 +82,14 @@ const PLAN_DISPLAY: Record<PlanType, PlanDisplay> = {
   },
   FULL_TIME: {
     name: "Full-Time",
-    priceMonthly: 44.0,
-    priceYearlyPerMonth: 39.99,
+    priceMonthly: 69.99,
+    priceYearlyPerMonth: 58.33,
     description: "For serious resellers growing their business",
     Icon: Star,
     features: [
       "Everything in Side Hustle",
       "3,000 inventory items",
-      "750 smart AI credits / month",
+      "1,000 smart AI credits / month",
     ],
     popular: true,
     purchasable: true,

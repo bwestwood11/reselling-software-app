@@ -7,7 +7,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "proxy:test": "tsx scripts/proxy/run.ts",
+    "proxy:capture-mercari": "tsx scripts/proxy/capture-mercari-graphql.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1029.0",
@@ -31,6 +33,7 @@
     "pino-pretty": "^13.0.0",
     "playwright": "^1.59.1",
     "puppeteer-core": "^24.4.0",
+    "sharp": "^0.35.5",
     "stripe": "^17.7.0",
     "undici": "^8.9.0",
     "zod": "^4.0.0"
