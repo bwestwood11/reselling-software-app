@@ -2,7 +2,8 @@
 //
 // Every byte of a photo uploaded through the residential proxy is billed, and a phone photo is
 // typically 3–5 MB. Marketplaces display photos far smaller than that, so we normalise to
-// ≤1600px on the long edge as a progressive JPEG — usually 150–300 KB, a 90%+ saving.
+// ≤1200px on the long edge as a progressive JPEG — usually 100–150 KB, a 95%+ saving. 1200px
+// still covers Mercari's full-size viewer and zoom; going smaller starts to look soft.
 //
 // Images are downloaded from our own storage DIRECTLY (never through the proxy).
 
@@ -18,9 +19,9 @@ export interface PreparedImage {
 }
 
 export interface PrepareImageOptions {
-  /** Long-edge pixel cap. Default 1600. */
+  /** Long-edge pixel cap. Default 1200. */
   maxDimension?: number;
-  /** Target size; quality/dimension step down until under it (best effort). Default 300 KB. */
+  /** Target size; quality/dimension step down until under it (best effort). Default 150 KB. */
   targetBytes?: number;
 }
 
@@ -35,8 +36,8 @@ export async function prepareMarketplaceImage(
   input: Buffer,
   options: PrepareImageOptions = {}
 ): Promise<PreparedImage> {
-  const maxDimension = options.maxDimension ?? 1600;
-  const targetBytes = options.targetBytes ?? 300_000;
+  const maxDimension = options.maxDimension ?? 1200;
+  const targetBytes = options.targetBytes ?? 150_000;
 
   let best: { buffer: Buffer; width: number; height: number } | null = null;
 
@@ -74,13 +75,23 @@ async function isJpeg(buf: Buffer): Promise<boolean> {
   return buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
 }
 
+/** A photo URL that could not be fetched; `status` is the HTTP status (4xx = gone for good). */
+export class ImageDownloadError extends Error {
+  constructor(
+    readonly status: number,
+    url: string
+  ) {
+    super(`Image download failed (HTTP ${status}): ${url}`);
+  }
+}
+
 /** Download an image from our own storage (direct — no proxy) and prepare it for upload. */
 export async function downloadAndPrepareImage(
   url: string,
   options?: PrepareImageOptions
 ): Promise<PreparedImage> {
   const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`Image download failed (HTTP ${res.status}): ${url}`);
+  if (!res.ok) throw new ImageDownloadError(res.status, url);
   const input = Buffer.from(await res.arrayBuffer());
   return prepareMarketplaceImage(input, options);
 }

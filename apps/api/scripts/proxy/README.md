@@ -11,7 +11,7 @@ you set the env vars, so you can merge this before buying anything.
 | Bright Data config, one fixed IP per user per marketplace | `src/services/proxy/residential-proxy.ts` |
 | Metered HTTP through that IP | `src/services/proxy/proxy-fetch.ts` |
 | Per-user byte metering + 1,000 cross-posts/month cap | `src/services/proxy/proxy-usage.service.ts` (`ProxyUsage` table) |
-| Photo compression (≤1600px JPEG, ~200–250 KB) | `src/services/images/marketplace-image.ts` |
+| Photo compression (≤1200px JPEG, ~100–150 KB) | `src/services/images/marketplace-image.ts` |
 | Mercari publish/delist: HTTP first, browser only if Cloudflare challenges | `src/services/marketplace/mercari-server.service.ts` |
 | Worker: extension gets first go if online, server otherwise | `src/jobs/mercari-server.worker.ts` |
 | Browsers: same IP per user, images/fonts/trackers blocked, bytes metered | `src/services/playwright/base-marketplace-browser.service.ts` |

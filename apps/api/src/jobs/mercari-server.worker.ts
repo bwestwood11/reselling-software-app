@@ -15,10 +15,13 @@
 //
 // Enabled only when Bright Data env vars + MERCARI_SERVER_PUBLISH=true + REDIS_URL are all set.
 
-import { Queue, Worker, type Job } from "bullmq";
+import { Queue, UnrecoverableError, Worker, type Job } from "bullmq";
 import { prisma } from "@repo/db";
 import { getRedisConnection } from "../queues/redis";
-import { MercariServerService } from "../services/marketplace/mercari-server.service";
+import {
+  MercariServerService,
+  PermanentMercariError,
+} from "../services/marketplace/mercari-server.service";
 import type { MercariPublishPayload } from "../services/marketplace/mercari-graphql";
 import { applyMercariPublishOutcome } from "../services/mercari-job-outcome";
 import { completeExtensionDelist } from "../services/extension-delist.service";
@@ -112,7 +115,7 @@ async function processJob(job: Job<ServerJobData>): Promise<void> {
   try {
     if (isDelist) {
       const externalId = String(payload.externalId ?? "");
-      if (!externalId) throw new Error("Delist job has no externalId");
+      if (!externalId) throw new PermanentMercariError("Delist job has no externalId");
       await svc.delist(row.userId, externalId);
       await prisma.mercariJob.update({
         where: { id: row.id },
@@ -142,11 +145,15 @@ async function processJob(job: Job<ServerJobData>): Promise<void> {
     );
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    const permanent = err instanceof PermanentMercariError;
     console.error(
-      `[mercari-server] ${row.id} attempt ${job.attemptsMade + 1}/${MAX_ATTEMPTS} failed:`,
+      `[mercari-server] ${row.id} attempt ${job.attemptsMade + 1}/${MAX_ATTEMPTS} failed` +
+        `${permanent ? " (permanent — not retrying)" : ""}:`,
       errorMessage
     );
-    if (isLastAttempt) await failJob(row.id, row.listingId, errorMessage, isDelist);
+    if (permanent || isLastAttempt) await failJob(row.id, row.listingId, errorMessage, isDelist);
+    // A retry can't fix a permanent error and would re-upload the photos through the proxy.
+    if (permanent) throw new UnrecoverableError(errorMessage);
     throw err; // let BullMQ schedule the retry
   }
 }

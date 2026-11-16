@@ -1,7 +1,7 @@
 // Server-side Mercari publishing over a residential proxy — the "no extension required" path.
 //
 // Cost-optimised hybrid (see the pricing plan):
-//   1. Photos are downloaded from our own storage DIRECTLY, compressed to ~250 KB, then uploaded
+//   1. Photos are downloaded from our own storage DIRECTLY, compressed to ~150 KB, then uploaded
 //      to Mercari (uploadTempListingPhotos). That endpoint is US-region-gated but NOT behind
 //      Cloudflare, so a plain HTTP request through the user's sticky US residential IP should
 //      work. MERCARI_UPLOAD_DIRECT=true skips the proxy for uploads ("option B") — only turn it on
@@ -35,7 +35,11 @@ import {
   type ProxiedFetchContext,
 } from "../proxy/proxy-fetch";
 import { recordProxyUsage } from "../proxy/proxy-usage.service";
-import { downloadAndPrepareImage, type PreparedImage } from "../images/marketplace-image";
+import {
+  ImageDownloadError,
+  downloadAndPrepareImage,
+  type PreparedImage,
+} from "../images/marketplace-image";
 import {
   MERCARI_API,
   MERCARI_ORIGIN,
@@ -106,6 +110,18 @@ class MercariCloudflareBrowser extends BaseMarketplaceBrowserService {
     request: { method: "GET" | "POST"; url: string; body?: unknown }
   ): Promise<{ status: number; data: unknown }> {
     return this.withPage(userId, async (page) => {
+      // The page is only a same-origin vantage point for one fetch() — Mercari's own JS/CSS
+      // bundles (most of its weight) are never needed, so skip them. Cloudflare's challenge
+      // scripts (/cdn-cgi/, challenges.cloudflare.com) must still load or nothing clears.
+      await page.route("**/*", (route) => {
+        const req = route.request();
+        const isPageAsset = req.resourceType() === "script" || req.resourceType() === "stylesheet";
+        if (isPageAsset && !/\/cdn-cgi\/|challenges\.cloudflare\.com/.test(req.url())) {
+          return route.abort();
+        }
+        return route.fallback();
+      });
+
       await page.goto(`${MERCARI_ORIGIN}/`, { waitUntil: "domcontentloaded", timeout: 45_000 });
       await waitForCloudflare(page);
 
@@ -152,6 +168,41 @@ async function waitForCloudflare(page: PlaywrightPage, timeoutMs = 30_000): Prom
   );
 }
 
+/**
+ * A failure that retrying cannot fix — bad input, an expired Mercari token, or Mercari explicitly
+ * rejecting the request. The worker fails the job at once instead of retrying, because every
+ * retry re-uploads the photos through the paid proxy.
+ */
+export class PermanentMercariError extends Error {}
+
+// ── Cloudflare decision cache ────────────────────────────────────────────────────────────
+
+// Users whose plain-HTTP GraphQL was challenged EVEN WITH a clearance cookie — the cookie isn't
+// carrying over to plain HTTP for them, so retrying HTTP first only wastes a round trip until the
+// entry expires. A challenge without a cookie isn't cached: the browser run earns one, and the
+// next call should get the chance to use it over cheap HTTP. In-memory, so it assumes a single
+// API instance (like the proxy agents in residential-proxy.ts).
+const CF_CHALLENGE_TTL_MS = Number(process.env.MERCARI_CF_CHALLENGE_TTL_MS ?? 30 * 60_000);
+const MAX_CF_ENTRIES = 5_000;
+const cfChallengedUntil = new Map<string, number>();
+
+function isCfChallengeCached(userId: string): boolean {
+  const until = cfChallengedUntil.get(userId);
+  if (until === undefined) return false;
+  if (until > Date.now()) return true;
+  cfChallengedUntil.delete(userId);
+  return false;
+}
+
+function cacheCfChallenge(userId: string): void {
+  if (CF_CHALLENGE_TTL_MS <= 0) return;
+  if (cfChallengedUntil.size >= MAX_CF_ENTRIES) {
+    const oldestKey = cfChallengedUntil.keys().next().value;
+    if (oldestKey) cfChallengedUntil.delete(oldestKey);
+  }
+  cfChallengedUntil.set(userId, Date.now() + CF_CHALLENGE_TTL_MS);
+}
+
 // ── Service ──────────────────────────────────────────────────────────────────────────────
 
 export interface MercariPublishResult {
@@ -183,7 +234,7 @@ export class MercariServerService {
       select: { accessToken: true, metadata: true, isActive: true },
     });
     if (!connection?.isActive || !connection.accessToken) {
-      throw new Error("Mercari account not connected");
+      throw new PermanentMercariError("Mercari account not connected");
     }
     const meta = parseMeta(connection.metadata);
     return {
@@ -222,12 +273,24 @@ export class MercariServerService {
     imageUrls: string[],
     opts: { direct?: boolean } = {}
   ): Promise<{ ids: string[]; originalBytes: number; uploadedBytes: number }> {
+    // Download + compress every photo before uploading any: downloads are direct (free), so a
+    // broken photo URL fails the job before a single byte has gone through the proxy.
+    const images: PreparedImage[] = [];
+    for (const url of imageUrls) {
+      try {
+        images.push(await downloadAndPrepareImage(url));
+      } catch (err) {
+        if (err instanceof ImageDownloadError && err.status >= 400 && err.status < 500) {
+          throw new PermanentMercariError(err.message);
+        }
+        throw err;
+      }
+    }
+
     const ids: string[] = [];
     let originalBytes = 0;
     let uploadedBytes = 0;
-
-    for (const url of imageUrls) {
-      const image = await downloadAndPrepareImage(url);
+    for (const image of images) {
       originalBytes += image.originalBytes;
       uploadedBytes += image.bytes;
       ids.push(await this.uploadPreparedPhoto(userId, session, image, opts));
@@ -266,13 +329,15 @@ export class MercariServerService {
     }
     const data = res.json();
     if (!res.ok) {
-      throw new Error(
+      // 401 = the stored Mercari token has expired; only reconnecting fixes it.
+      const ErrorType = res.status === 401 ? PermanentMercariError : Error;
+      throw new ErrorType(
         `Mercari photo upload HTTP ${res.status} (${mode}): ` +
           res.text().replace(/\s+/g, " ").slice(0, 200)
       );
     }
     const err = graphqlError(data);
-    if (err) throw new Error(`Mercari photo upload error (${mode}): ${err}`);
+    if (err) throw new PermanentMercariError(`Mercari photo upload error (${mode}): ${err}`);
     const id = parseUploadId(data);
     if (!id) throw new Error(`Mercari returned no upload id (${mode})`);
     return id;
@@ -285,30 +350,36 @@ export class MercariServerService {
     session: MercariSession,
     request: { method: "GET" | "POST"; url: string; body?: unknown }
   ): Promise<{ data: unknown; usedBrowser: boolean }> {
-    const cookie = await this.clearanceCookieHeader(userId);
-    const headers = mercariHeaders(session, {
-      json: request.method === "POST",
-      userAgent: this.browser.userAgentFor(userId),
-    });
-    if (cookie) headers.Cookie = cookie;
+    if (isCfChallengeCached(userId)) {
+      console.log(`[mercari-server] Cloudflare challenge cached for ${userId} — using browser`);
+    } else {
+      const cookie = await this.clearanceCookieHeader(userId);
+      const headers = mercariHeaders(session, {
+        json: request.method === "POST",
+        userAgent: this.browser.userAgentFor(userId),
+      });
+      if (cookie) headers.Cookie = cookie;
 
-    const res = await proxiedFetch(this.ctx(userId), request.url, {
-      method: request.method,
-      headers,
-      body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
-    });
+      const res = await proxiedFetch(this.ctx(userId), request.url, {
+        method: request.method,
+        headers,
+        body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
+      });
 
-    if (!isCloudflareChallenge(res)) {
-      const data = res.json();
-      if (data === null) {
-        throw new Error(
-          `Mercari returned non-JSON (HTTP ${res.status}): ${res.text().replace(/\s+/g, " ").slice(0, 200)}`
-        );
+      if (!isCloudflareChallenge(res)) {
+        const data = res.json();
+        if (data === null) {
+          throw new Error(
+            `Mercari returned non-JSON (HTTP ${res.status}): ${res.text().replace(/\s+/g, " ").slice(0, 200)}`
+          );
+        }
+        return { data, usedBrowser: false };
       }
-      return { data, usedBrowser: false };
+
+      if (cookie) cacheCfChallenge(userId);
+      console.log(`[mercari-server] Cloudflare challenged HTTP for ${userId} — using browser`);
     }
 
-    console.log(`[mercari-server] Cloudflare challenged HTTP for ${userId} — using browser`);
     const viaBrowser = await this.browser.graphqlInPage(userId, session, request);
     if (viaBrowser.data === null || typeof viaBrowser.data === "string") {
       throw new Error(
@@ -322,9 +393,11 @@ export class MercariServerService {
   // ── Public operations ─────────────────────────────────────────────────────────────────
 
   async publish(userId: string, payload: MercariPublishPayload): Promise<MercariPublishResult> {
-    if (!payload.categoryId) throw new Error("categoryId is required for Mercari listings");
+    if (!payload.categoryId) {
+      throw new PermanentMercariError("categoryId is required for Mercari listings");
+    }
     const images = payload.images ?? [];
-    if (images.length === 0) throw new Error("At least one photo is required");
+    if (images.length === 0) throw new PermanentMercariError("At least one photo is required");
 
     const session = await this.getSession(userId);
     const photos = await this.uploadPhotos(userId, session, images.slice(0, 12));
@@ -335,7 +408,7 @@ export class MercariServerService {
       body: buildCreateListingBody(payload, photos.ids),
     });
     const err = graphqlError(data);
-    if (err) throw new Error(`Mercari rejected createListing: ${err}`);
+    if (err) throw new PermanentMercariError(`Mercari rejected createListing: ${err}`);
 
     const id = (data as { data?: { createListing?: { id?: unknown } } })?.data?.createListing?.id;
     if (id == null) throw new Error("Mercari createListing returned no listing id");
@@ -359,7 +432,7 @@ export class MercariServerService {
       body: buildDelistBody(externalId),
     });
     const err = graphqlError(data);
-    if (err) throw new Error(`Mercari delist failed: ${err}`);
+    if (err) throw new PermanentMercariError(`Mercari delist failed: ${err}`);
     const status = (data as { data?: { updateItemStatus?: { status?: string } } })?.data
       ?.updateItemStatus?.status;
     if (status !== "OK") throw new Error(`Mercari delist returned status ${status ?? "none"}`);
