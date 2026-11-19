@@ -173,3 +173,74 @@ export function graphqlError(data: unknown): string | null {
   const code = e?.extensions?.exception?.code ?? e?.extensions?.code;
   return `${e?.message ?? "GraphQL error"}${code ? ` [${code}]` : ""}`;
 }
+
+// ── Sold feed (sale detection) ─────────────────────────────────────────────────────────────
+//
+// The seller's own "Sold / In progress" listing queries, as CAPTURED from live traffic with
+// scripts/proxy/capture-mercari-graphql.ts and configured through MERCARI_SOLD_FEED_QUERIES
+// (never guessed — an unknown hash answers PersistedQueryNotFound). Value: a JSON array of
+//   { "operationName": "...", "sha256Hash": "...", "variables": { ... } }
+// copied straight from the capture file — one entry per tab (e.g. In Progress and Sold/Complete).
+// With it unset, the server can't detect Mercari sales and the sweep says so in its run row.
+
+export interface MercariFeedQuery {
+  operationName: string;
+  sha256Hash: string;
+  variables: unknown;
+}
+
+export function mercariSoldFeedQueries(): MercariFeedQuery[] {
+  const raw = process.env.MERCARI_SOLD_FEED_QUERIES?.trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    const list = Array.isArray(parsed) ? parsed : [parsed];
+    return list.filter(
+      (q): q is MercariFeedQuery =>
+        typeof q === "object" &&
+        q !== null &&
+        typeof (q as MercariFeedQuery).operationName === "string" &&
+        typeof (q as MercariFeedQuery).sha256Hash === "string" &&
+        /^[0-9a-f]{64}$/.test((q as MercariFeedQuery).sha256Hash)
+    );
+  } catch {
+    console.error("[mercari] MERCARI_SOLD_FEED_QUERIES is not valid JSON — ignoring it");
+    return [];
+  }
+}
+
+export function feedQueryUrl(q: MercariFeedQuery): string {
+  return (
+    `${MERCARI_API}?operationName=${encodeURIComponent(q.operationName)}` +
+    `&variables=${encodeURIComponent(JSON.stringify(q.variables ?? {}))}` +
+    `&extensions=${encodeURIComponent(JSON.stringify(persisted(q.sha256Hash)))}`
+  );
+}
+
+const ITEM_ID_RE = /^m\d{6,}$/;
+const ON_SALE_RE = /^(item_status_)?on_sale$/i;
+
+/**
+ * Item ids found in a sold-feed response, minus any whose own status says they're still on
+ * sale. Walks the JSON generically rather than assuming field paths, so it survives Mercari
+ * reshaping the response — the query itself is what restricts the feed to sold/in-progress items.
+ */
+export function soldItemIdsFromFeed(data: unknown): Set<string> {
+  const ids = new Set<string>();
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    const id = typeof obj.id === "string" ? obj.id : null;
+    if (id && ITEM_ID_RE.test(id)) {
+      const status = typeof obj.status === "string" ? obj.status : "";
+      if (!ON_SALE_RE.test(status)) ids.add(id);
+    }
+    for (const value of Object.values(obj)) visit(value);
+  };
+  visit(data);
+  return ids;
+}

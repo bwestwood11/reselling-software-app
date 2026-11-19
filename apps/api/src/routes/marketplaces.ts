@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { FastifyInstance } from "fastify";
+import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
 import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { refreshConnectionIfNeeded } from "../services/marketplace/token-refresh";
 import { ImportService } from "../services/marketplace/import.service";
@@ -684,6 +685,9 @@ export async function marketplacesRoutes(fastify: FastifyInstance) {
 
       // Server-side ZenRows fallback if the extension doesn't complete it (no-op unless configured).
       scheduleMercariZenRowsFallback(job.id);
+      // Residential-proxy server worker — reads the addresses itself in server mode, or as the
+      // fallback when the extension is offline (no-op unless Mercari server automation is on).
+      scheduleMercariServerJob(job.id, request.user!.id);
 
       return reply.status(202).send({ success: true, data: { jobId: job.id } });
     }

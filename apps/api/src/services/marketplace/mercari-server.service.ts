@@ -27,7 +27,7 @@ import {
   CaptchaChallengeError,
   type MarketplaceCredentials,
 } from "../playwright/base-marketplace-browser.service";
-import { isResidentialProxyConfigured } from "../proxy/residential-proxy";
+import { isServerAutomationEnabled } from "../automation-mode";
 import {
   ProxyFormData,
   isCloudflareChallenge,
@@ -46,7 +46,10 @@ import {
   buildCreateListingBody,
   buildDelistBody,
   deliveryAddressesUrl,
+  feedQueryUrl,
   graphqlError,
+  mercariSoldFeedQueries,
+  soldItemIdsFromFeed,
   mercariHeaders,
   parseUploadId,
   uploadPhotoOperations,
@@ -219,9 +222,9 @@ export class MercariServerService {
     this.browser = new MercariCloudflareBrowser(db);
   }
 
-  /** Server-side publishing is on only when Bright Data is configured AND explicitly enabled. */
+  /** On only when Bright Data + Redis are configured AND MERCARI_SERVER_PUBLISH=true. */
   static isEnabled(): boolean {
-    return isResidentialProxyConfigured() && process.env.MERCARI_SERVER_PUBLISH === "true";
+    return isServerAutomationEnabled(MARKETPLACE);
   }
 
   private ctx(userId: string): ProxiedFetchContext {
@@ -436,6 +439,33 @@ export class MercariServerService {
     const status = (data as { data?: { updateItemStatus?: { status?: string } } })?.data
       ?.updateItemStatus?.status;
     if (status !== "OK") throw new Error(`Mercari delist returned status ${status ?? "none"}`);
+  }
+
+  /**
+   * Item ids of the seller's sold / in-progress listings, read through the captured sold-feed
+   * queries (MERCARI_SOLD_FEED_QUERIES). One small GraphQL read per configured query instead of
+   * one ~300 KB item page per listing. Throws when no query is configured, so a sweep can never
+   * silently report "nothing sold" when it actually can't look.
+   */
+  async soldFeedItemIds(userId: string): Promise<{ ids: Set<string>; usedBrowser: boolean }> {
+    const queries = mercariSoldFeedQueries();
+    if (queries.length === 0) {
+      throw new Error(
+        "Mercari sale detection is not configured — capture the sold-feed query " +
+          "(pnpm --filter @repo/api proxy:capture-mercari) and set MERCARI_SOLD_FEED_QUERIES"
+      );
+    }
+    const session = await this.getSession(userId);
+    const ids = new Set<string>();
+    let usedBrowser = false;
+    for (const q of queries) {
+      const result = await this.graphql(userId, session, { method: "GET", url: feedQueryUrl(q) });
+      usedBrowser ||= result.usedBrowser;
+      const err = graphqlError(result.data);
+      if (err) throw new Error(`Mercari ${q.operationName} failed: ${err}`);
+      for (const id of soldItemIdsFromFeed(result.data)) ids.add(id);
+    }
+    return { ids, usedBrowser };
   }
 
   /** Harmless authenticated read — used by the test scripts to exercise the whole path. */

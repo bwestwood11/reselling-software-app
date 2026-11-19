@@ -179,7 +179,7 @@ export default function ListingsPage(): import("react").JSX.Element {
       qc.invalidateQueries({ queryKey: ["inventory-crosslist"] });
       // A PENDING result means the job was only queued — the extension posts it next.
       if (res?.data?.status === "PENDING") {
-        toast.success("Publishing — the extension is posting it now");
+        toast.success("Publishing — Omventa is posting it now");
       } else {
         toast.success("Published!");
       }
@@ -203,7 +203,7 @@ export default function ListingsPage(): import("react").JSX.Element {
       // ENDED once the extension confirms, so don't claim it already has.
       toast.success(
         result?.data?.delistQueued
-          ? "Delist queued — the Omventa extension is removing it now"
+          ? "Delist queued — Omventa is removing it now"
           : "Delisted"
       );
     },

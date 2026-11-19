@@ -1,4 +1,4 @@
-import type { PrismaClient, Condition } from "@repo/db";
+import type { PrismaClient, Condition, MarketplaceType } from "@repo/db";
 import { MarketplaceFactory } from "./marketplace/factory";
 import { EbayAdapter } from "./marketplace/ebay";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
@@ -13,12 +13,27 @@ function mapEbayCondition(conditionId: number): Condition {
   return "GOOD"; // 3000 = pre-owned
 }
 
+/**
+ * Marketplaces with their own hourly sold-detection sweep (ebay-status.service.ts and
+ * server-status-sweep.service.ts / the extension). The per-listing sync below skips them: for eBay
+ * it would cost one GetItem per listing every 30 minutes — exactly what the GetMyeBaySelling
+ * sweep exists to avoid — and the Mercari/Poshmark adapters can't read status at all, so syncing
+ * them only wrote a "Status: unknown" event per listing per run.
+ */
+const SWEPT_MARKETPLACES: MarketplaceType[] = ["EBAY", "MERCARI", "POSHMARK"];
+
 export class SyncService {
   constructor(private db: PrismaClient) {}
 
   async syncAll(userId: string) {
     const activeListings = await this.db.listing.findMany({
-      where: { userId, status: "ACTIVE", externalId: { not: null }, syncFailCount: { lt: 3 } },
+      where: {
+        userId,
+        status: "ACTIVE",
+        externalId: { not: null },
+        syncFailCount: { lt: 3 },
+        marketplace: { notIn: SWEPT_MARKETPLACES },
+      },
       include: { marketplaceConnection: true },
     });
 

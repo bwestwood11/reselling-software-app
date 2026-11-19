@@ -55,9 +55,19 @@ function brightDataConfig(): BrightDataConfig | null {
   };
 }
 
-/** True when Bright Data credentials are configured. */
+/**
+ * LOCAL TESTING ONLY: PROXY_LOCAL_DIRECT=true sends "proxied" traffic straight from this machine
+ * (a home connection is itself a residential IP), so the server-side marketplace flows can be
+ * exercised before Bright Data is bought. Ignored when NODE_ENV=production, so it can never send
+ * marketplace traffic from a datacenter IP.
+ */
+export function isLocalDirectMode(): boolean {
+  return process.env.PROXY_LOCAL_DIRECT === "true" && process.env.NODE_ENV !== "production";
+}
+
+/** True when Bright Data credentials are configured (or local-direct testing is on). */
 export function isResidentialProxyConfigured(): boolean {
-  return brightDataConfig() !== null;
+  return brightDataConfig() !== null || isLocalDirectMode();
 }
 
 /**

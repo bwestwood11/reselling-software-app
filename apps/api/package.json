@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "proxy:test": "tsx scripts/proxy/run.ts",
-    "proxy:capture-mercari": "tsx scripts/proxy/capture-mercari-graphql.ts"
+    "proxy:capture-mercari": "tsx scripts/proxy/capture-mercari-graphql.ts",
+    "proxy:local": "tsx scripts/proxy/local-check.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1029.0",

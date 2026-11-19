@@ -7,6 +7,7 @@ import { auth } from "@repo/auth";
 import { inventoryRoutes } from "./routes/inventory";
 import { listingsRoutes } from "./routes/listings";
 import { marketplacesRoutes } from "./routes/marketplaces";
+import { automationRoutes } from "./routes/automation";
 import { dashboardRoutes } from "./routes/dashboard";
 import { analyticsRoutes } from "./routes/analytics";
 import { accountabilityRoutes } from "./routes/accountability";
@@ -115,6 +116,7 @@ export async function buildApp() {
   await app.register(inventoryRoutes, { prefix: "/api/inventory" });
   await app.register(listingsRoutes, { prefix: "/api/listings" });
   await app.register(marketplacesRoutes, { prefix: "/api/marketplaces" });
+  await app.register(automationRoutes, { prefix: "/api/marketplaces/automation" });
   await app.register(syncRoutes, { prefix: "/api/sync" });
   await app.register(uploadRoutes, { prefix: "/api/upload" });
   await app.register(subscriptionRoutes, { prefix: "/api/subscriptions" });

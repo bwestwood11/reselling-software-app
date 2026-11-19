@@ -24,8 +24,8 @@ interface Flow {
 const MERCARI_FLOW: Flow = {
   durationMs: 25_000,
   steps: [
-    "Queued for the Omventa extension",
-    "Extension picked up the job",
+    "Queued",
+    "Picked up — starting",
     "Uploading photos to Mercari",
     "Creating the listing",
     "Waiting for Mercari to confirm",
@@ -35,8 +35,8 @@ const MERCARI_FLOW: Flow = {
 const POSHMARK_FLOW: Flow = {
   durationMs: 25_000,
   steps: [
-    "Queued for the Omventa extension",
-    "Extension picked up the job",
+    "Queued",
+    "Picked up — starting",
     "Uploading photos to Poshmark",
     "Creating the listing",
     "Waiting for Poshmark to confirm",

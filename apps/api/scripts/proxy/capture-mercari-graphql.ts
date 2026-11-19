@@ -121,6 +121,31 @@ async function main() {
   await browser.close().catch(() => {});
   save();
   console.log(`\nSaved ${ops.size} operation(s) to ${outFile}`);
+
+  // Likely sold-feed candidates, pre-formatted for MERCARI_SOLD_FEED_QUERIES. Check each one's
+  // responseSample in the file: the right ones list YOUR sold / in-progress items (ids like
+  // "m12345678901"). Keep only those entries, then set the env var to that JSON on one line.
+  const candidates = [...ops.values()].filter(
+    (o) =>
+      o.sha256Hash &&
+      (/sold|complete|in.?progress|transaction|order/i.test(o.pageUrl) ||
+        /sold|transaction|order|listing/i.test(o.operationName)) &&
+      /"m\d{6,}"/.test(o.responseSample)
+  );
+  if (candidates.length > 0) {
+    console.log("\nSold-feed candidates (verify, keep the right ones, set as MERCARI_SOLD_FEED_QUERIES):");
+    console.log(
+      JSON.stringify(
+        candidates.map((o) => ({
+          operationName: o.operationName,
+          sha256Hash: o.sha256Hash,
+          variables: o.variables,
+        }))
+      )
+    );
+  } else {
+    console.log("\nNo sold-feed candidates found — make sure you opened Listings → Sold / In Progress.");
+  }
 }
 
 main().catch((err) => {

@@ -1,25 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@repo/db";
-import { slugify } from "@repo/utils";
 import { requireAuth, requireActiveSubscription } from "../middleware/auth";
 import { completeExtensionDelist } from "../services/extension-delist.service";
-import { markInventoryItemListed } from "../services/listing-state";
+import { applyPoshmarkPublishOutcome } from "../services/poshmark-job-outcome";
+import { schedulePoshmarkServerJob } from "../jobs/poshmark-server.worker";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
+import { getAutomationMode, isServerSoldDetectionAvailable } from "../services/automation-mode";
 import {
   MarketplaceStatusService,
   type MarketplaceStatusResult,
 } from "../services/marketplace-status.service";
-
-/**
- * Poshmark listing URLs are `/listing/{title-slug}-{postId}` — the slug is
- * decorative (Poshmark resolves by the trailing id) but real URLs always have
- * one, so a placeholder keeps the dash-separated shape intact when the title
- * doesn't slugify to anything (e.g. all punctuation/emoji).
- */
-function buildPoshmarkListingUrl(postId: string, title: string | undefined): string {
-  const slug = (title && slugify(title)) || "listing";
-  return `https://poshmark.com/listing/${slug}-${postId}`;
-}
 
 /** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
 const POLL_TICK_MS = 750;
@@ -46,6 +36,9 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
       },
     });
 
+    // Server-side over the residential proxy (no-op unless Poshmark server automation is on).
+    schedulePoshmarkServerJob(job.id, request.user!.id);
+
     return reply.status(201).send({ success: true, data: job });
   });
 
@@ -62,6 +55,17 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
     const deadline = Date.now() + waitSeconds * 1000;
 
     await recordExtensionHeartbeat(request.user!.id);
+
+    // Server mode: the server runs every job itself, so the extension is told there's nothing
+    // to do. The request is still held for the full wait — answering at once would make the
+    // extension re-poll every 250ms — and the poll still refreshes its presence above.
+    if ((await getAutomationMode(fastify.prisma, request.user!.id, "POSHMARK")) === "server") {
+      while (Date.now() < deadline) {
+        if (request.socket.destroyed) return;
+        await new Promise((r) => setTimeout(r, POLL_TICK_MS));
+      }
+      return reply.send({ success: true, data: [] });
+    }
 
     const findJobs = () =>
       fastify.prisma.poshmarkJob.findMany({
@@ -153,47 +157,17 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
     }
 
     if (existing.listingId && isTerminal) {
-      if (body.status === "COMPLETED") {
-        const published = await fastify.prisma.listing.update({
-          where: { id: existing.listingId },
-          data: {
-            status: "ACTIVE",
-            externalId: body.externalId ?? null,
-            externalUrl: body.externalId
-              ? buildPoshmarkListingUrl(body.externalId, payloadObj.title as string | undefined)
-              : null,
-            listedAt: now,
-            lastSyncAt: now,
-            syncError: null,
-            publishAttempts: 0,
-          },
-        });
-        await markInventoryItemListed(fastify.prisma, published.inventoryItemId);
-        await fastify.prisma.syncEvent.create({
-          data: {
-            listingId: existing.listingId,
-            type: "PUBLISH",
-            status: "success",
-            message: body.externalId
-              ? `Published to Poshmark — listing ID: ${body.externalId}`
-              : "Published to Poshmark",
-          },
-        });
-      } else {
-        const errorMsg = body.errorMessage ?? "Extension job failed";
-        await fastify.prisma.listing.update({
-          where: { id: existing.listingId },
-          data: { status: "FAILED", syncError: errorMsg, lastSyncAt: now },
-        });
-        await fastify.prisma.syncEvent.create({
-          data: {
-            listingId: existing.listingId,
-            type: "ERROR",
-            status: "failed",
-            message: errorMsg,
-          },
-        });
-      }
+      await applyPoshmarkPublishOutcome(
+        fastify.prisma,
+        existing.listingId,
+        body.status === "COMPLETED"
+          ? {
+              ok: true,
+              externalId: body.externalId ?? null,
+              title: payloadObj.title as string | undefined,
+            }
+          : { ok: false, errorMessage: body.errorMessage ?? "Extension job failed" }
+      );
     }
 
     return reply.send({ success: true, data: job });
@@ -213,6 +187,18 @@ export async function poshmarkRoutes(fastify: FastifyInstance) {
     const body = (request.body ?? {}) as { force?: boolean };
 
     await recordExtensionHeartbeat(request.user!.id);
+
+    // Server mode: the server sweeps this marketplace (server-status-sweep.service.ts) — as long
+    // as it can. If server sale detection isn't ready yet, the extension keeps sweeping.
+    if (
+      isServerSoldDetectionAvailable("POSHMARK") &&
+      (await getAutomationMode(fastify.prisma, request.user!.id, "POSHMARK")) === "server"
+    ) {
+      return reply.send({
+        success: true,
+        data: { due: false, reason: "server_mode", listings: [] },
+      });
+    }
 
     const result = await statusService.claim(request.user!.id, { force: body.force === true });
     return reply.send({ success: true, data: result });

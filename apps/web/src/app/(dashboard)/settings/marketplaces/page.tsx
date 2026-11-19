@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { marketplacesApi } from "@/lib/api";
+import { marketplacesApi, type AutomationMode, type AutomationStatus } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { cn } from "@repo/ui";
 import {
@@ -368,6 +368,11 @@ export default function MarketplacesSettingsPage(): import("react").JSX.Element 
                   </div>
                 )}
 
+                {/* Server vs extension (Mercari / Poshmark) */}
+                {(mp.key === "MERCARI" || mp.key === "POSHMARK") && isConnected && (
+                  <AutomationModeToggle marketplace={mp.key} label={mp.label} />
+                )}
+
                 {/* Mercari preferences */}
                 {mp.key === "MERCARI" && isConnected && <MercariPreferences />}
               </div>
@@ -423,6 +428,137 @@ export default function MarketplacesSettingsPage(): import("react").JSX.Element 
             toast.success("Poshmark connected successfully!");
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// ─── Server vs extension (Mercari / Poshmark) ────────────────────────────────
+// Omventa's servers post, delist and check for sales by default, so nothing needs to stay open.
+// A user can switch a marketplace back to the Chrome extension (their own browser and IP); the
+// server still steps in when the extension is offline, so sales are never missed.
+
+/** "every hour", "twice a day", "every 30 minutes", "every 6 hours" … */
+function describeInterval(minutes: number): string {
+  if (minutes === 720) return "twice a day";
+  if (minutes === 1440) return "once a day";
+  if (minutes === 60) return "every hour";
+  if (minutes % 60 === 0) return `every ${minutes / 60} hours`;
+  return `every ${minutes} minutes`;
+}
+
+function AutomationModeToggle({
+  marketplace,
+  label,
+}: {
+  marketplace: "MERCARI" | "POSHMARK";
+  label: string;
+}) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["marketplace-automation"],
+    queryFn: () => marketplacesApi.getAutomation(),
+    staleTime: 30_000,
+  });
+  const status: AutomationStatus | undefined = data?.data?.find(
+    (s: AutomationStatus) => s.marketplace === marketplace
+  );
+
+  const setMode = useMutation({
+    mutationFn: (mode: AutomationMode) => marketplacesApi.setAutomationMode(marketplace, mode),
+    onSuccess: (_res, mode) => {
+      qc.invalidateQueries({ queryKey: ["marketplace-automation"] });
+      toast.success(
+        mode === "server"
+          ? `${label} now runs on Omventa's servers`
+          : `${label} now runs through your Chrome extension`
+      );
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Couldn't change the setting"),
+  });
+
+  const checkNow = useMutation({
+    mutationFn: () => marketplacesApi.checkSalesNow(marketplace),
+    onSuccess: (res: any) => {
+      const sold = res?.data?.sold ?? 0;
+      toast.success(
+        sold > 0 ? `${sold} new sale(s) found on ${label}` : `No new ${label} sales`
+      );
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Sale check failed"),
+  });
+
+  if (isLoading || !status) return null;
+
+  const options = [
+    {
+      value: "server" as const,
+      label: "Omventa servers",
+      hint: "Works from any device. Nothing needs to stay open.",
+      disabled: !status.serverAvailable,
+    },
+    {
+      value: "extension" as const,
+      label: "Chrome extension",
+      hint: "Runs in your browser. Omventa takes over while it's closed.",
+      disabled: false,
+    },
+  ];
+
+  return (
+    <div className="space-y-3 border-t border-zinc-100 bg-zinc-50/60 px-5 py-4">
+      <div className="flex items-center gap-1.5">
+        <Zap className="h-3.5 w-3.5 text-zinc-400" />
+        <span className="text-xs font-semibold text-zinc-700">
+          Who posts, delists and checks for sales
+        </span>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setMode.mutate(opt.value)}
+            disabled={opt.disabled || setMode.isPending || status.effective === opt.value}
+            className={cn(
+              "flex-1 rounded-xl border px-3.5 py-2.5 text-left transition-all disabled:cursor-default",
+              status.effective === opt.value
+                ? "border-orange-300 bg-white shadow-sm ring-1 ring-orange-200"
+                : "border-zinc-200 bg-white hover:bg-zinc-50",
+              opt.disabled && "opacity-50"
+            )}
+          >
+            <span className="block text-xs font-semibold text-zinc-800">{opt.label}</span>
+            <span className="mt-0.5 block text-[11px] text-zinc-500">
+              {opt.disabled ? "Not available yet" : opt.hint}
+            </span>
+          </button>
+        ))}
+      </div>
+      {status.effective === "server" && (
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+          {status.serverSoldDetection ? (
+            <span>
+              Sales are checked {describeInterval(status.soldCheckIntervalMinutes)}
+              {status.lastStatusCheckAt
+                ? ` · last checked ${new Date(status.lastStatusCheckAt).toLocaleString()}`
+                : ""}
+            </span>
+          ) : (
+            <span className="text-orange-600">
+              Hourly sale checks for {label} are being set up. Keep the extension installed until
+              then.
+            </span>
+          )}
+          {status.serverSoldDetection && (
+            <button
+              onClick={() => checkNow.mutate()}
+              disabled={checkNow.isPending}
+              className="font-medium text-orange-600 hover:underline disabled:opacity-50"
+            >
+              {checkNow.isPending ? "Checking…" : "Check for sales now"}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -583,11 +719,6 @@ function MercariPreferences() {
 
   return (
     <div className="space-y-5 border-t border-zinc-100 bg-zinc-50/60 px-5 py-4">
-      <p className="text-xs text-zinc-500">
-        Mercari listings are published by the Omventa browser extension, which posts from your own
-        browser session. Keep the extension installed and signed in.
-      </p>
-
       {/* Shipping method */}
       <div>
         <div className="mb-2 flex items-center gap-1.5">

@@ -1,5 +1,6 @@
 import type { MarketplaceType, Prisma, PrismaClient } from "@repo/db";
 import { handleSold, type OnSoldOutcome } from "./sold-detection.service";
+import { soldCheckIntervalMs } from "../config/sold-check";
 
 /**
  * Extension-driven status polling — hourly sold detection for Mercari and Poshmark.
@@ -23,11 +24,8 @@ import { handleSold, type OnSoldOutcome } from "./sold-detection.service";
  * user running the extension in two browsers polls once per hour in total rather than twice.
  */
 
-/** How often a user's listings on one marketplace are swept. */
-export const STATUS_POLL_INTERVAL_MS = 60 * 60 * 1000;
-
-/** Back-compat alias — the Poshmark sweep was the first caller of this interval. */
-export const POSHMARK_POLL_INTERVAL_MS = STATUS_POLL_INTERVAL_MS;
+/** How often a user's listings on one marketplace are swept — see config/sold-check.ts. */
+export const statusPollIntervalMs = soldCheckIntervalMs;
 
 /** A claimed run that never reported back is written off after this long. */
 const POLL_RUN_STALE_MS = 15 * 60 * 1000;
@@ -69,7 +67,7 @@ export class MarketplaceStatusService {
     await this.reapStaleRuns(userId);
 
     const nextDueAt = connection.lastPolledAt
-      ? new Date(connection.lastPolledAt.getTime() + STATUS_POLL_INTERVAL_MS)
+      ? new Date(connection.lastPolledAt.getTime() + soldCheckIntervalMs())
       : new Date(0);
 
     if (!opts.force && nextDueAt.getTime() > Date.now()) {
@@ -115,7 +113,7 @@ export class MarketplaceStatusService {
     return {
       due: true as const,
       pollRunId: pollRun.id,
-      intervalMs: STATUS_POLL_INTERVAL_MS,
+      intervalMs: soldCheckIntervalMs(),
       listings: listings.map((l) => ({
         listingId: l.id,
         externalId: l.externalId!,
@@ -164,7 +162,7 @@ export class MarketplaceStatusService {
 
     const outcomes = await handleSold(
       this.db,
-      newlySoldIds.map((listingId) => ({ listingId, detectedBy: "the hourly status check" }))
+      newlySoldIds.map((listingId) => ({ listingId, detectedBy: "the scheduled status check" }))
     );
 
     const errorCount = known.filter((r) => r.status === "error").length;

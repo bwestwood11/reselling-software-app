@@ -22,8 +22,15 @@ export async function syncRoutes(fastify: FastifyInstance) {
     "/all",
     { preHandler: [requireAuth, requireActiveSubscription] },
     async (request, reply) => {
-      const result = await svc.syncAll(request.user!.id);
-      return reply.send({ success: true, data: result });
+      // The per-listing sync now skips eBay (its GetMyeBaySelling sweep covers it), so "sync all"
+      // runs that sweep too. It's ~2 eBay calls, so skipping the hourly interval here is cheap.
+      const [result, ebay] = await Promise.all([
+        svc.syncAll(request.user!.id),
+        ebayStatus.sweep(request.user!.id, { force: true }).catch((err: unknown) => ({
+          error: err instanceof Error ? err.message : "eBay status check failed",
+        })),
+      ]);
+      return reply.send({ success: true, data: { ...result, ebay } });
     }
   );
 

@@ -9,6 +9,7 @@ import { MarketplaceFactory } from "./marketplace/factory";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 import { markInventoryItemListed } from "./listing-state";
 import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
+import { schedulePoshmarkServerJob } from "../jobs/poshmark-server.worker";
 import {
   enqueueExtensionDelist,
   isExtensionDelistMarketplace,
@@ -218,8 +219,9 @@ export class ListingService {
       },
     });
 
-    // Poshmark has no public API and requires cookie-based browser auth. Queue a
-    // PoshmarkJob for the Chrome extension, which runs in a real browser context.
+    // Poshmark has no public API and requires cookie-based auth. Queue a PoshmarkJob: the
+    // server runs it over the residential proxy (jobs/poshmark-server.worker.ts) or, if the user
+    // chose the extension, the extension posts it from a real poshmark.com tab.
     if (listing.marketplace === "POSHMARK") {
       const images = listing.inventoryItem?.images?.map((img) => img.url) ?? [];
       const mpData = listing.marketplaceData as Record<string, unknown> | null;
@@ -267,16 +269,18 @@ export class ListingService {
         where: { listingId: id, type: "PUBLISH", status: "pending" },
         data: {
           status: "success",
-          message: `Poshmark job queued (${job.id}) — extension will post directly`,
+          message: `Poshmark job queued (${job.id})`,
         },
       });
+
+      schedulePoshmarkServerJob(job.id, userId);
 
       return { ...updated, jobId: job.id };
     }
 
-    // Mercari cannot be published server-side (Cloudflare Bot Management blocks Node.js
-    // requests by TLS fingerprint). Instead, queue a MercariJob for the Chrome extension,
-    // which runs in a real browser context and calls Mercari's API directly.
+    // Mercari blocks datacenter IPs (Cloudflare Bot Management). Queue a MercariJob: the server
+    // runs it over the residential proxy (jobs/mercari-server.worker.ts) or, if the user chose
+    // the extension, the extension posts it from a real mercari.com tab.
     if (listing.marketplace === "MERCARI") {
       const images =
         listing.inventoryItem?.images?.map((img) => img.url) ?? [];
@@ -326,13 +330,13 @@ export class ListingService {
         where: { listingId: id, type: "PUBLISH", status: "pending" },
         data: {
           status: "success",
-          message: `Mercari job queued (${job.id}) — extension will post directly`,
+          message: `Mercari job queued (${job.id})`,
         },
       });
 
-      // Server-side publishing over the residential proxy, when enabled: runs immediately if the
-      // user's extension is offline, after a grace period if it's online (the extension goes
-      // first). With it disabled this is a no-op and the job waits for the extension.
+      // Server-side publishing over the residential proxy, when enabled: immediately in server
+      // mode; in extension mode, immediately if the extension is offline, else after a grace
+      // period. With it disabled this is a no-op and the job waits for the extension.
       scheduleMercariServerJob(job.id, userId);
       // jobId is returned so the caller can poll /api/mercari/jobs/:id for the real outcome —
       // this call only confirms the job was queued, not that Mercari accepted the listing.

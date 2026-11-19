@@ -2,18 +2,28 @@ import cron from "node-cron";
 import { prisma } from "@repo/db";
 import { SyncService } from "../services/sync.service";
 import { EbayStatusService } from "../services/ebay-status.service";
+import { ServerStatusSweepService } from "../services/server-status-sweep.service";
+import { soldCheckIntervalMinutes } from "../config/sold-check";
 
 export function startSyncJob() {
   const svc = new SyncService(prisma);
   const ebayStatus = new EbayStatusService(prisma);
+  const serverSweep = new ServerStatusSweepService(prisma);
 
   // Run status sync every 30 minutes
   cron.schedule("*/30 * * * *", async () => {
     console.log("[sync-job] Running scheduled sync...");
     try {
+      // Only marketplaces without their own sweep need the per-listing sync (see sync.service).
       const users = await prisma.user.findMany({
         where: {
-          listings: { some: { status: "ACTIVE", externalId: { not: null } } },
+          listings: {
+            some: {
+              status: "ACTIVE",
+              externalId: { not: null },
+              marketplace: { notIn: ["EBAY", "MERCARI", "POSHMARK"] },
+            },
+          },
         },
         select: { id: true },
       });
@@ -33,15 +43,11 @@ export function startSyncJob() {
     }
   });
 
-  // Hourly eBay sold-detection sweep — the server-side counterpart of the extension's Mercari
-  // and Poshmark sweeps. It is separate from the 30-minute sync above because it carries the
-  // MarketplacePollRun audit trail and its own once-an-hour claim; running it on the sync tick
-  // would either double-sweep or silently no-op every other tick.
-  //
-  // Users are swept one at a time on purpose: each sweep makes one eBay GetItem call per active
-  // listing, and fanning that out across every user at once is what trips eBay's call limits.
-  cron.schedule("15 * * * *", async () => {
-    console.log("[ebay-status] Running hourly eBay sold-detection sweep...");
+  // eBay sold-detection sweep — the server-side counterpart of the Mercari/Poshmark sweeps.
+  // Ticks every 15 minutes, but each user is only swept once per SOLD_CHECK_INTERVAL_MINUTES
+  // (config/sold-check.ts): the claim inside sweep() answers "not due" in between, which costs
+  // one DB read and no eBay calls. Each due sweep is ~2 GetMyeBaySelling calls.
+  cron.schedule("10,25,40,55 * * * *", async () => {
     try {
       const users = await prisma.marketplaceConnection.findMany({
         where: { marketplace: "EBAY", isActive: true },
@@ -71,7 +77,20 @@ export function startSyncJob() {
     }
   });
 
+  // Mercari/Poshmark sold detection from the server, over Bright Data (no-op unless server
+  // automation is enabled). Ticks every 15 minutes because each user's interval is counted from
+  // their own last sweep — the claim inside sweep() keeps it to once per
+  // SOLD_CHECK_INTERVAL_MINUTES per user.
+  cron.schedule("5,20,35,50 * * * *", async () => {
+    try {
+      await serverSweep.sweepAll();
+    } catch (err) {
+      console.error("[server-sweep] Fatal error:", err);
+    }
+  });
+
   console.log(
-    "[sync-job] Scheduled sync job started (sync every 30 minutes, eBay sold-detection hourly)"
+    `[sync-job] Scheduled sync job started (sync every 30 minutes; sold check every ` +
+      `${soldCheckIntervalMinutes()} min per user on eBay/Mercari/Poshmark — SOLD_CHECK_INTERVAL_MINUTES)`
   );
 }

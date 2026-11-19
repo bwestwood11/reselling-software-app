@@ -212,11 +212,11 @@ export function useCrosslistForm({ onClose, initialItemId }: CrosslistFormProps)
           return;
         }
         if (status === "FAILED") {
-          toast.error(jobRes?.data?.errorMessage ?? "Extension failed");
+          toast.error(jobRes?.data?.errorMessage ?? "Refresh failed");
           return;
         }
       }
-      toast.error("Timed out waiting for extension.");
+      toast.error("Timed out — try again in a minute.");
     } catch (err: any) {
       toast.error(err?.message ?? "Could not refresh addresses");
     } finally {

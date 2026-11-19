@@ -184,7 +184,34 @@ export const marketplacesApi = {
       method: "PATCH",
       body: JSON.stringify({ alwaysUseZenRows }),
     }),
+  // Who posts, delists and checks for sales on Mercari/Poshmark: Omventa's servers (default)
+  // or the user's Chrome extension.
+  getAutomation: () =>
+    request<{ success: boolean; data: AutomationStatus[] }>("/api/marketplaces/automation"),
+  setAutomationMode: (marketplace: "MERCARI" | "POSHMARK", mode: AutomationMode) =>
+    request<any>(`/api/marketplaces/automation/${marketplace.toLowerCase()}`, {
+      method: "PUT",
+      body: JSON.stringify({ mode }),
+    }),
+  checkSalesNow: (marketplace: "MERCARI" | "POSHMARK") =>
+    request<any>(`/api/marketplaces/automation/${marketplace.toLowerCase()}/check-now`, {
+      method: "POST",
+    }),
 };
+
+export type AutomationMode = "server" | "extension";
+
+export interface AutomationStatus {
+  marketplace: "MERCARI" | "POSHMARK";
+  connected: boolean;
+  serverAvailable: boolean;
+  preferred: AutomationMode;
+  effective: AutomationMode;
+  extensionOnline: boolean;
+  serverSoldDetection: boolean;
+  lastStatusCheckAt: string | null;
+  soldCheckIntervalMinutes: number;
+}
 
 // ─── eBay Import ──────────────────────────────────────────────────────────────
 

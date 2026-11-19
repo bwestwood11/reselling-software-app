@@ -1,8 +1,13 @@
 import type { Listing, MarketplaceType, Prisma, PrismaClient } from "@repo/db";
 import { scheduleMercariServerJob } from "../jobs/mercari-server.worker";
+import { schedulePoshmarkServerJob } from "../jobs/poshmark-server.worker";
+import { getAutomationMode } from "./automation-mode";
 
 /**
- * Extension-driven delisting for Mercari and Poshmark.
+ * Queued delisting for Mercari and Poshmark — run by the server over the residential proxy
+ * (default, see automation-mode.ts and jobs/{mercari,poshmark}-server.worker.ts) or by the
+ * browser extension when the user chose it. The history below explains why these two are job
+ * queues rather than direct adapter calls.
  *
  * Neither marketplace can be delisted from the server: Mercari puts Cloudflare Bot Management in
  * front of www.mercari.com (Node.js requests are blocked outright) and Poshmark's vm-rest API only
@@ -136,19 +141,24 @@ export async function enqueueExtensionDelist(
     payload,
   });
 
+  const mode = await getAutomationMode(db, listing.userId, listing.marketplace);
   await db.syncEvent.create({
     data: {
       listingId: listing.id,
       type: "DELIST",
       status: "pending",
-      message: `${reason} — queued for the browser extension to delist from ${listing.marketplace}`,
+      message:
+        mode === "server"
+          ? `${reason} — queued to delist from ${listing.marketplace}`
+          : `${reason} — queued for the browser extension to delist from ${listing.marketplace}`,
       data: { jobId: job.id },
     },
   });
 
-  // Mercari delists can also run server-side over the residential proxy (no-op unless enabled) —
-  // so a sale elsewhere still pulls the Mercari copy down when the user has no extension running.
+  // The server workers run the delist over the residential proxy: right away in server mode, or
+  // as the fallback when the extension is offline in extension mode (no-ops unless enabled).
   if (listing.marketplace === "MERCARI") scheduleMercariServerJob(job.id, listing.userId);
+  if (listing.marketplace === "POSHMARK") schedulePoshmarkServerJob(job.id, listing.userId);
 
   return { jobId: job.id, deduped: false };
 }
@@ -164,7 +174,7 @@ export async function enqueueExtensionDelist(
 export async function completeExtensionDelist(
   db: PrismaClient,
   listingId: string,
-  outcome: { ok: boolean; errorMessage?: string }
+  outcome: { ok: boolean; errorMessage?: string; via?: "server" | "extension" }
 ): Promise<void> {
   const listing = await db.listing.findUnique({ where: { id: listingId } });
   if (!listing) return;
@@ -193,7 +203,10 @@ export async function completeExtensionDelist(
       listingId,
       type: "DELIST",
       status: "success",
-      message: `Delisted from ${listing.marketplace} by the browser extension`,
+      message:
+        outcome.via === "server"
+          ? `Delisted from ${listing.marketplace} by Omventa`
+          : `Delisted from ${listing.marketplace} by the browser extension`,
     },
   });
 

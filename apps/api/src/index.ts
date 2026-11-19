@@ -4,6 +4,7 @@ import { startSyncJob } from "./jobs/sync.job";
 // import { startPlaywrightWorker } from "./jobs/playwright.worker";
 import { startMercariZenRowsWorker } from "./jobs/mercari-zenrows.worker";
 import { startMercariServerWorker } from "./jobs/mercari-server.worker";
+import { startPoshmarkServerWorker } from "./jobs/poshmark-server.worker";
 import { seedMercariCategories } from "./jobs/mercari-categories.worker";
 import { prisma } from "@repo/db";
 import { MercariPlaywrightService } from "./services/playwright/mercari.playwright";
@@ -29,6 +30,7 @@ async function main() {
   // Server-side Mercari publish/delist over the residential proxy (Bright Data) — only active when
   // BRIGHTDATA_* + MERCARI_SERVER_PUBLISH=true + REDIS_URL are set.
   startMercariServerWorker();
+  startPoshmarkServerWorker();
 }
 
 // MercariPlaywrightService.testBrowser()

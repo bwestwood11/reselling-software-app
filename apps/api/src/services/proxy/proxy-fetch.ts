@@ -14,7 +14,7 @@ import {
   FormData as UndiciFormData,
   type RequestInit as UndiciRequestInit,
 } from "undici";
-import { getProxyAgent } from "./residential-proxy";
+import { getProxyAgent, isLocalDirectMode } from "./residential-proxy";
 import { recordProxyUsage } from "./proxy-usage.service";
 
 /** Per-request allowance for CONNECT + TLS handshake bytes (amortised over a reused tunnel). */
@@ -88,7 +88,9 @@ export async function proxiedFetch(
   const dispatcher = options.direct
     ? undefined
     : getProxyAgent({ userId: ctx.userId, marketplace: ctx.marketplace });
-  if (!options.direct && !dispatcher) {
+  // Local testing: no proxy, but meter the bytes as if it were one, so cost estimates still work.
+  const localDirect = !options.direct && !dispatcher && isLocalDirectMode();
+  if (!options.direct && !dispatcher && !localDirect) {
     throw new Error("Residential proxy is not configured (set BRIGHTDATA_* env vars)");
   }
 
@@ -121,7 +123,7 @@ export async function proxiedFetch(
   const body = Buffer.from(await res.arrayBuffer());
   const responseHeaders = res.headers as unknown as Headers;
 
-  const meteredBytes = dispatcher
+  const meteredBytes = dispatcher || localDirect
     ? url.length +
       20 +
       headersSize(headers) +
@@ -131,7 +133,7 @@ export async function proxiedFetch(
       HANDSHAKE_ALLOWANCE
     : 0;
 
-  if (dispatcher && !options.skipRecord) {
+  if ((dispatcher || localDirect) && !options.skipRecord) {
     await recordProxyUsage(ctx.db, ctx.userId, ctx.marketplace, {
       bytes: meteredBytes,
       requests: 1,
@@ -144,7 +146,7 @@ export async function proxiedFetch(
     headers: responseHeaders,
     body,
     meteredBytes,
-    proxied: Boolean(dispatcher),
+    proxied: Boolean(dispatcher) || localDirect,
     text: () => body.toString("utf8"),
     json: <T>() => {
       try {

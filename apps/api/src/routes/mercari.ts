@@ -32,6 +32,7 @@ import {
   getCategoryCount,
 } from "../services/mercari-categories.service";
 import { recordExtensionHeartbeat } from "../services/mercari-presence";
+import { getAutomationMode, isServerSoldDetectionAvailable } from "../services/automation-mode";
 
 /** How often a held-open /jobs/pending long poll re-checks for work. Sets pickup latency. */
 const POLL_TICK_MS = 750;
@@ -122,6 +123,17 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     const deadline = Date.now() + waitSeconds * 1000;
 
     await recordExtensionHeartbeat(request.user!.id);
+
+    // Server mode: the server runs every job itself, so the extension is told there's nothing
+    // to do. The request is still held for the full wait — answering at once would make the
+    // extension re-poll every 250ms — and the poll still refreshes its presence above.
+    if ((await getAutomationMode(fastify.prisma, request.user!.id, "MERCARI")) === "server") {
+      while (Date.now() < deadline) {
+        if (request.socket.destroyed) return;
+        await new Promise((r) => setTimeout(r, POLL_TICK_MS));
+      }
+      return reply.send({ success: true, data: [] });
+    }
 
     const findJobs = () =>
       fastify.prisma.mercariJob.findMany({
@@ -286,6 +298,18 @@ export async function mercariRoutes(fastify: FastifyInstance) {
     const body = (request.body ?? {}) as { force?: boolean };
 
     await recordExtensionHeartbeat(request.user!.id);
+
+    // Server mode: the server sweeps this marketplace (server-status-sweep.service.ts) — as long
+    // as it can. If server sale detection isn't ready yet, the extension keeps sweeping.
+    if (
+      isServerSoldDetectionAvailable("MERCARI") &&
+      (await getAutomationMode(fastify.prisma, request.user!.id, "MERCARI")) === "server"
+    ) {
+      return reply.send({
+        success: true,
+        data: { due: false, reason: "server_mode", listings: [] },
+      });
+    }
 
     const result = await statusService.claim(request.user!.id, { force: body.force === true });
     return reply.send({ success: true, data: result });

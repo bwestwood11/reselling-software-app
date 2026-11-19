@@ -34,6 +34,32 @@ export interface EbayItemDetail {
   dimensions?: { length: number; width: number; height: number };
 }
 
+/** One sale read from GetMyeBaySelling's SoldList. */
+export interface EbaySoldTransaction {
+  itemId: string;
+  /** What the buyer paid per unit (TransactionPrice), in dollars. */
+  price?: number;
+  quantityPurchased: number;
+  /**
+   * Units still for sale on the listing, when eBay includes it on the sold item. A value above
+   * 0 means this was a partial sale of a multi-quantity listing that is still live.
+   */
+  quantityAvailable?: number;
+}
+
+/** Recent selling activity for a whole store, read in a handful of calls. */
+export interface EbaySellingActivity {
+  /** ItemID → most recent sale of that listing within the window. */
+  sold: Map<string, EbaySoldTransaction>;
+  /** ItemIDs that ended without selling within the window. */
+  unsold: Set<string>;
+  /** Trading API calls this read cost (one per page). */
+  calls: number;
+}
+
+/** Most pages read per list per sweep (200 entries each) — bounds a pathological store. */
+const SELLING_ACTIVITY_MAX_PAGES = 25;
+
 /**
  * Rewrite an eBay-hosted image URL to its largest variant. Handles both URL styles:
  *   .../z/<id>/$_1.JPG?set_id=…   → .../z/<id>/$_57.JPG?set_id=…
@@ -675,6 +701,113 @@ ${policiesXml}
 
     console.log("[eBay GetMyeBaySelling:%s] fetched %d listings", status, all.length);
     return all;
+  }
+
+  /**
+   * Everything that sold or ended without selling in the last `durationInDays` days, for the
+   * whole store, via GetMyeBaySelling's SoldList and UnsoldList (200 entries per page).
+   *
+   * This is what sold detection uses instead of one GetItem per active listing: a 1,500-item
+   * store costs ~2 calls an hour instead of 1,500, which keeps us far inside the Trading API's
+   * daily call limit no matter how many users we have.
+   */
+  async getRecentSellingActivity(durationInDays: number): Promise<EbaySellingActivity> {
+    const days = Math.min(60, Math.max(1, Math.ceil(durationInDays)));
+    const sold = new Map<string, EbaySoldTransaction>();
+    const unsold = new Set<string>();
+    let calls = 0;
+
+    for (const section of ["SoldList", "UnsoldList"] as const) {
+      for (let page = 1; page <= SELLING_ACTIVITY_MAX_PAGES; page++) {
+        const xml = `<?xml version="1.0" encoding="utf-8"?>
+<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ErrorLanguage>en_US</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+  <ActiveList><Include>false</Include></ActiveList>
+  <ScheduledList><Include>false</Include></ScheduledList>
+  <BidList><Include>false</Include></BidList>
+  <DeletedFromSoldList><Include>false</Include></DeletedFromSoldList>
+  <DeletedFromUnsoldList><Include>false</Include></DeletedFromUnsoldList>
+  <${section}>
+    <Include>true</Include>
+    <DurationInDays>${days}</DurationInDays>
+    <Pagination>
+      <EntriesPerPage>200</EntriesPerPage>
+      <PageNumber>${page}</PageNumber>
+    </Pagination>
+  </${section}>
+</GetMyeBaySellingRequest>`;
+
+        const res = await fetch(this.tradingUrl, {
+          method: "POST",
+          headers: this.tradingHeaders("GetMyeBaySelling"),
+          body: xml,
+        });
+        calls++;
+        const text = await res.text();
+        const ack = this.xmlValue(text, "Ack");
+        if (ack === "Failure" || !res.ok) {
+          const errors = this.parseXmlErrors(text);
+          throw new Error(
+            `eBay GetMyeBaySelling (${section}) failed: ${errors.join(" | ") || text.slice(0, 300)}`
+          );
+        }
+
+        // Only read inside the requested container, so a stray Summary block can't leak in.
+        const body = this.xmlValue(text, section) ?? "";
+
+        if (section === "SoldList") {
+          for (const tx of this.xmlBlocks(body, "Transaction")) {
+            // xmlBlocks matches <Item> exactly — xmlValue("Item") would also match <ItemID>.
+            const itemXml = this.xmlBlocks(tx, "Item")[0] ?? "";
+            const itemId = this.xmlValue(itemXml, "ItemID");
+            if (!itemId) continue;
+            const priceStr = this.xmlValue(tx, "TransactionPrice");
+            const qtyAvailStr = this.xmlValue(itemXml, "QuantityAvailable");
+            // Transactions come newest first, so the first one seen per item is kept.
+            if (!sold.has(itemId)) {
+              sold.set(itemId, {
+                itemId,
+                price: priceStr ? Number.parseFloat(priceStr) || undefined : undefined,
+                quantityPurchased:
+                  Number.parseInt(this.xmlValue(tx, "QuantityPurchased") ?? "1", 10) || 1,
+                quantityAvailable:
+                  qtyAvailStr !== undefined ? Number.parseInt(qtyAvailStr, 10) : undefined,
+              });
+            }
+          }
+        } else {
+          for (const itemXml of this.xmlBlocks(body, "Item")) {
+            const itemId = this.xmlValue(itemXml, "ItemID");
+            if (itemId) unsold.add(itemId);
+          }
+        }
+
+        const totalPages =
+          Number.parseInt(this.xmlValue(body, "TotalNumberOfPages") ?? "1", 10) || 1;
+        if (page >= totalPages) break;
+      }
+    }
+
+    console.log(
+      "[eBay GetMyeBaySelling:activity] days=%d sold=%d unsold=%d calls=%d",
+      days,
+      sold.size,
+      unsold.size,
+      calls
+    );
+    return { sold, unsold, calls };
+  }
+
+  /** Every <tag>…</tag> block in `xml` (non-nested tags only). */
+  private xmlBlocks(xml: string, tag: string): string[] {
+    const blocks: string[] = [];
+    const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "gi");
+    let match;
+    while ((match = regex.exec(xml)) !== null) {
+      if (match[1]) blocks.push(match[1]);
+    }
+    return blocks;
   }
 
   /**

@@ -1,10 +1,17 @@
 import type { Prisma, PrismaClient } from "@repo/db";
-import { MarketplaceFactory } from "./marketplace/factory";
+import { EbayAdapter } from "./marketplace/ebay";
+import { soldCheckIntervalMs } from "../config/sold-check";
 import { refreshConnectionIfNeeded } from "./marketplace/token-refresh";
 import { handleSold, type OnSoldOutcome } from "./sold-detection.service";
 
 /**
- * eBay status polling — hourly sold detection, run entirely on the server.
+ * eBay status polling — scheduled sold detection (SOLD_CHECK_INTERVAL_MINUTES), run entirely on the server.
+ *
+ * Reads the whole store's recent activity with GetMyeBaySelling (SoldList + UnsoldList, 200
+ * entries per page) instead of one GetItem per active listing. A 1,500-item store costs about
+ * 2 calls an hour instead of 1,500, which keeps every user well inside the Trading API's daily
+ * call limit. GetItem is only used to double-check a sale of a multi-quantity listing, where a
+ * SoldList entry alone can't say whether the listing sold out.
  *
  * This is the eBay half of the same pattern Mercari and Poshmark use (see
  * marketplace-status.service.ts). The difference is who reads the marketplace: eBay has a real
@@ -17,14 +24,24 @@ import { handleSold, type OnSoldOutcome } from "./sold-detection.service";
  * "last checked" readout work the same across all three marketplaces.
  */
 
-/** How often a user's eBay listings are swept. Matches the extension-driven marketplaces. */
-export const EBAY_POLL_INTERVAL_MS = 60 * 60 * 1000;
+/** How often a user's eBay listings are swept — SOLD_CHECK_INTERVAL_MINUTES (config/sold-check.ts). */
+export const ebayPollIntervalMs = soldCheckIntervalMs;
+
+/** Pause between the (rare) GetItem confirmations, so a burst of sales doesn't burst eBay. */
+const EBAY_STATUS_GAP_MS = 250;
+
+/** How far back to read on a user's first sweep — eBay's maximum. */
+const FIRST_SWEEP_LOOKBACK_DAYS = 60;
 
 /**
- * Pause between GetItem calls so a large store does not burst against eBay's call limits.
- * The Trading API's default daily allowance is generous but per-second bursts are not.
+ * Days of SoldList/UnsoldList to read so this sweep overlaps the previous one: the time since
+ * the last sweep plus a day of slack (eBay counts days in its own timezone).
  */
-const EBAY_STATUS_GAP_MS = 250;
+function lookbackDays(previousPollAt: Date | null): number {
+  if (!previousPollAt) return FIRST_SWEEP_LOOKBACK_DAYS;
+  const elapsedDays = (Date.now() - previousPollAt.getTime()) / 86_400_000;
+  return Math.min(FIRST_SWEEP_LOOKBACK_DAYS, Math.max(2, Math.ceil(elapsedDays) + 1));
+}
 
 /** Per-listing outcome, recorded on the poll run for debugging a sweep that looked wrong. */
 interface EbayStatusResult {
@@ -68,7 +85,7 @@ export class EbayStatusService {
     }
 
     const nextDueAt = connection.lastPolledAt
-      ? new Date(connection.lastPolledAt.getTime() + EBAY_POLL_INTERVAL_MS)
+      ? new Date(connection.lastPolledAt.getTime() + soldCheckIntervalMs())
       : new Date(0);
     if (!opts.force && nextDueAt.getTime() > Date.now()) {
       return { due: false, reason: "not_due", nextDueAt, ...empty };
@@ -76,9 +93,11 @@ export class EbayStatusService {
 
     const listings = await this.db.listing.findMany({
       where: { userId, marketplace: "EBAY", status: "ACTIVE", externalId: { not: null } },
-      select: { id: true, externalId: true },
+      select: { id: true, externalId: true, inventoryItem: { select: { quantity: true } } },
       orderBy: { lastStatusCheckAt: { sort: "asc", nulls: "first" } },
     });
+    // Read before the claim below overwrites it — it sets how far back this sweep must look.
+    const previousPollAt = connection.lastPolledAt;
 
     // Stamp the claim before doing any work, exactly as the extension-driven sweeps do: it is
     // what stops the cron tick and a manual "check now" from sweeping the same store twice.
@@ -98,7 +117,7 @@ export class EbayStatusService {
     ]);
 
     try {
-      const results = await this.readListings(connection, listings);
+      const results = await this.readListings(connection, listings, lookbackDays(previousPollAt));
       return { due: true, pollRunId: pollRun.id, ...(await this.reconcile(pollRun.id, results)) };
     } catch (err) {
       // A whole-sweep failure (expired refresh token, eBay outage) — close the run out rather
@@ -112,22 +131,67 @@ export class EbayStatusService {
     }
   }
 
-  /** Read each listing's status back from eBay. One token refresh serves the whole sweep. */
+  /**
+   * Work out each active listing's status from the store's recent SoldList/UnsoldList. One token
+   * refresh and ~2 calls serve the whole sweep, however many listings the user has.
+   */
   private async readListings(
     connection: Prisma.MarketplaceConnectionGetPayload<object>,
-    listings: Array<{ id: string; externalId: string | null }>
+    listings: Array<{
+      id: string;
+      externalId: string | null;
+      inventoryItem: { quantity: number } | null;
+    }>,
+    days: number
   ): Promise<EbayStatusResult[]> {
     if (listings.length === 0) return [];
 
     const fresh = await refreshConnectionIfNeeded(this.db, connection);
-    const adapter = MarketplaceFactory.create("EBAY", fresh);
+    const adapter = new EbayAdapter(fresh);
+    const activity = await adapter.getRecentSellingActivity(days);
 
     const results: EbayStatusResult[] = [];
     for (const listing of listings) {
       const externalId = listing.externalId!;
+      const sale = activity.sold.get(externalId);
+
+      if (!sale) {
+        results.push({
+          listingId: listing.id,
+          externalId,
+          status: activity.unsold.has(externalId) ? "ended" : "active",
+        });
+        continue;
+      }
+
+      // Units left on the listing after the sale: a partial sale of a multi-quantity listing
+      // leaves it live, and must not delist the copies elsewhere.
+      if (sale.quantityAvailable !== undefined) {
+        results.push({
+          listingId: listing.id,
+          externalId,
+          ...(sale.quantityAvailable > 0
+            ? { status: "active" as const }
+            : { status: "sold" as const, soldPrice: sale.price }),
+        });
+        continue;
+      }
+
+      // Single-unit listing (the normal case): one sale means it's gone.
+      if ((listing.inventoryItem?.quantity ?? 1) <= 1) {
+        results.push({ listingId: listing.id, externalId, status: "sold", soldPrice: sale.price });
+        continue;
+      }
+
+      // Multi-quantity and eBay didn't say what's left — ask about this one listing.
       try {
         const status = await adapter.checkStatus(externalId);
-        results.push({ listingId: listing.id, externalId, ...status });
+        results.push({
+          listingId: listing.id,
+          externalId,
+          ...status,
+          soldPrice: status.status === "sold" ? (sale.price ?? status.soldPrice) : undefined,
+        });
       } catch (err) {
         results.push({
           listingId: listing.id,
@@ -160,7 +224,7 @@ export class EbayStatusService {
       .map((r) => ({
         listingId: r.listingId,
         soldPrice: r.soldPrice,
-        detectedBy: "the hourly eBay status check",
+        detectedBy: "the scheduled eBay status check",
       }));
 
     // handleSold() is idempotent — a listing another path already marked SOLD comes back as
